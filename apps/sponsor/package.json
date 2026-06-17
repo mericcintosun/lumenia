@@ -1,0 +1,20 @@
+{
+  "name": "@lumenia/sponsor",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lumenia sponsor service — sponsored create + fee-bump (HOT key, KMS)",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "spike1": "tsx src/spike1-sponsored-claim.ts"
+  },
+  "dependencies": {
+    "@lumenia/shared": "workspace:*",
+    "@simplewebauthn/server": "13.3.1",
+    "@stellar/stellar-sdk": "16.0.0",
+    "argon2": "^0.41.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

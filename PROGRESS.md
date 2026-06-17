@@ -18,6 +18,8 @@ Last updated: 2026-06-17 · Network: **testnet** · No real money used.
 | [stack.md](stack.md) | Pinned tech stack + project risk table (R1–R10) + 6 persona reviews. |
 | [AGENT_GUIDE.md](AGENT_GUIDE.md) | Grant context for the next agent + locked decisions + upcoming work. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Architecture-decision workspace (create-architecture workflow; Step 1 done). |
+| [POSITIONING.md](POSITIONING.md) | Product-market fit & positioning recommendation (remittance wedge → wallet; SCF→VC). |
+| [OFF_RAMP_VERIFICATION.md](OFF_RAMP_VERIFICATION.md) | Executable off-ramp plan (CCTP testnet spike [ME] + KAST/Binance real-world checks [YOU]). |
 | Memory note | `~/.claude/projects/.../memory/lumenia-project.md` (+ MEMORY.md index) — persistent cross-session context. |
 
 ---
@@ -115,7 +117,7 @@ Inserts the real wire boundary: WEB builds + signs the claim inner tx → `toXDR
 | Sponsor key behind external raw-Ed25519 signer (KMS path) | ✅ PROVEN mechanically (Spike #1b); real AWS KMS call not yet wired |
 | web→sponsor XDR wire-parity + fee-bump of re-parsed tx | ✅ PROVEN (Spike #1c) |
 | Fee-abuse / rate-limit economic defense | ⚠️ DESIGNED, not yet built (needs the HTTP service + rate-limit) |
-| 🔑 Turkish CASP accepts USDC on **Stellar** (off-ramp) | ❌ UNVERIFIED — research says no native CASP support today; mitigation path = **CCTP on Stellar (live ~May 2026)** to bridge to an accepted chain, or a USDC card. Still must be confirmed before promising cash-out. |
+| 🔑 Recipient can turn Stellar-USDC into spendable TRY (off-ramp) | ⚠️ PATHS IDENTIFIED, real-world unconfirmed. **CCTP V2 is live on Stellar testnet+mainnet** (bridge leg is **testnet-testable now**, no money/KYC). Two **direct** Stellar-USDC exits need no bridge: **KAST card** (TRY spend) and **Binance Global→Binance TR→IBAN**. MASAK: ~$3k/day, 72h first withdrawal. Plan: [OFF_RAMP_VERIFICATION.md](OFF_RAMP_VERIFICATION.md) — Spike #4 (CCTP testnet) = [ME]; KAST/Binance real-account checks = [YOU]. |
 | WebAuthn PRF round-trip on real devices (Spike #2) | ❌ UNVERIFIED (needs hardware); Argon2id is the mandatory floor |
 | WhatsApp webview claim + escape-to-browser + Argon2id (Spike #3) | ❌ UNVERIFIED (needs hardware); architecture researched (value-first + escape-to-browser) |
 | Serwist + Turbopack PWA service worker | ❌ UNVERIFIED; webpack fallback still supported in Next 16 |

@@ -13,7 +13,7 @@
 Send/request USDC by link; the recipient claims it walletless, seedless, and **pays no gas**, in a target ~30s.
 Every claim = a new funded Stellar account. Target: Instawards (30-day MVP) + SCF Build (Integration).
 
-## How this project works (after the Stelvin "mempool" lesson)
+## How this project works (research-first discipline)
 - **Research first, then code.** Verify every "Stellar does X" assumption against the official docs.
   Mark anything unverified as `UNVERIFIED — test`.
 - **Adversarial stress-test:** cross-test major decisions with the 6 personas (kill or improve).

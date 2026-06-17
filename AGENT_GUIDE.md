@@ -2,7 +2,7 @@
 
 This document brings you (the next agent) up to speed quickly: **grant context**, **project direction**, **locked decisions**, **constraints**, and **what's next**. Read this first, then [README.md](README.md) (decisions + rationale) and [stack.md](stack.md) (pinned stack + persona rulings), then [PROGRESS.md](PROGRESS.md) (what has concretely been built so far).
 
-> **Who the user is:** A Stellar Turkey ambassador. They previously shipped **Stelvin** (a Soroban privacy batch-auction) — but its "MEV/mempool security layer" thesis turned out to be wrong (Stellar has no mempool). Because of that, they now want **thorough research + adversarial stress-testing before diving in**. Work the same way: verify an assumption before writing any code.
+> **Who the user is:** A Stellar Türkiye ambassador who works **research-first**: after a past assumption (that Stellar had a mempool) turned out wrong, they now insist on **thorough research + adversarial stress-testing before diving in**. Work the same way: verify every "Stellar does X" assumption against the official docs before writing any code.
 
 ---
 
@@ -27,9 +27,9 @@ This project (**Lumenia**) is being built for two Stellar grants. The user share
 - → **Lumenia fits the Integration Track:** it combines existing blocks (Claimable Balance, sponsorship, anchor/MyKobo, USDC) and brings users.
 
 ### Strategic read (from 2 people close to the Stellar team + research)
-- **Retail/consumer products are front and center.** Security-layer products (like Stelvin) and simple task-reward systems are **no longer of interest.**
+- **Retail/consumer products are front and center.** Security-layer products and simple task-reward systems are **no longer of interest.**
 - SDF north-star: **"everyday financial services"**, stablecoin utility, RWA, agentic payments.
-- **Open the SCF application with Stelvin credibility** ("I shipped a Soroban contract running on mainnet" = builder-proof). The metric to promise: **net-new funded Stellar addresses created via claims** (not TVL — ecosystem activation).
+- The metric to promise: **net-new funded Stellar addresses created via claims** (not TVL — ecosystem activation).
 
 ---
 

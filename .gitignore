@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# build / cache
+.next/
+dist/
+*.tsbuildinfo
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+
+# external reference repos (each has its own .git — not embedded in the Lumenia repo)
+stellar-ai-guide/
+stellar-build/
+
+# stellar-build skill state (if present)
+.stellar-build/
+.stellar-new/

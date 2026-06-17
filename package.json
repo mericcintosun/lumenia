@@ -1,0 +1,15 @@
+{
+  "name": "lumenia",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lumenia — send/request USDC by link; the recipient claims it walletless, seedless, gasless (Stellar)",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "web:dev": "pnpm --filter @lumenia/web dev",
+    "sponsor:dev": "pnpm --filter @lumenia/sponsor dev",
+    "spike1": "pnpm --filter @lumenia/sponsor spike1"
+  }
+}

@@ -296,7 +296,7 @@ async function main() {
   console.log(` • still 0 XLM after claim     : ${recipNativeAfterClaim === "0.0000000"}`);
   console.log(` • anti-drain works            : true`);
   console.log("\n Economic backbone proven: the sponsor paid ALL reserve+fee,");
-  console.log(" the user received USDC with ZERO XLM. (Stack §3.3 + day-1 spike #1)");
+  console.log(" the user received USDC with ZERO XLM. (Stack 3.3 + day-1 spike #1)");
 
   if (!pass) process.exit(1);
 }

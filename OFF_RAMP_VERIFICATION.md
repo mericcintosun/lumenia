@@ -16,6 +16,19 @@ Research upgraded the picture from "no path" to "three concrete paths, one of th
 
 So the question is no longer "is there a path?" but "**which path do we make the v1 default, and does it actually clear for a real TR recipient?**"
 
+> Caveat (Banxa lesson, below): the "KAST / Binance accept Stellar-USDC directly" claims are from web research and **still need the Phase-1 real-account confirmation** — vendor docs can surprise.
+
+---
+
+## 0.1 Official Stellar anchor directory — checked (2026-06-18)
+
+We checked the authoritative source, **anchors.stellar.org** (a curated SDF catalog; data served from a Sanity CMS). **Honest finding: it does NOT add a direct Stellar-USDC → TRY off-ramp.**
+
+- **Turkey anchors listed:** Banxa, BiLira, Onramp.money, Digibank, Arf. The "Card / Apple Pay / Binance Pay" labels are mostly **Banxa's**; the directory's fiat/rail fields are coarse (TRY isn't even a fiat asset in the CMS), so the listing alone proves nothing about a corridor.
+- **Banxa** sells USDC → TRY (FAST/EFT payout, SPK-regulated) **but explicitly does NOT support USDC on the Stellar network** (on Stellar, XLM is buy-only). So Banxa off-ramps USDC → TRY — just not *Stellar* USDC.
+- **BiLira** (Turkish; issues the ₺-pegged **TRYB**, runs "BiLira Direct" TRY on/off-ramp) is the most promising local lead, but a SEP-24/6 TRY rail for *Stellar* USDC is **unconfirmed**.
+- **Net:** no directory anchor offers a *direct* Stellar-USDC → TRY cash-out today — consistent with R1. The value of checking: **named partners to engage** (Banxa, BiLira). The ask shifts from "does any path exist?" to "**will you accept USDC on Stellar?**" (a BD conversation, possibly via the SDF/Stellar Türkiye team).
+
 ---
 
 ## 1. Ranked end-to-end paths (Stellar-USDC → spendable TRY)

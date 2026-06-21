@@ -80,7 +80,7 @@ The primitives shared by web + sponsor:
 
 **What it proves (honest scope):** the **economic backbone** — a new user can own an account + USDC trustline and claim USDC with **zero XLM** because the sponsor pays all reserve + fee. That is the *easy, already-documented* half of the sponsor risk.
 
-> ⚠️ **Correction (don't overclaim):** Spike #1 signs with a **local in-memory `Keypair`** (`tx.sign`) in a **single process**. It does **NOT** prove (a) that the sponsor key can live in an HSM/KMS, or (b) that the inner tx survives the web→sponsor wire, or (c) fee-abuse/economic anti-drain. Those are covered by §4b–§4d below; what remains open is in §6.
+> ⚠️ **Correction (don't overclaim):** Spike #1 signs with a **local in-memory `Keypair`** (`tx.sign`) in a **single process**. It does **NOT** prove (a) that the sponsor key can live in an HSM/KMS, or (b) that the inner tx survives the web→sponsor wire, or (c) fee-abuse/economic anti-drain. Those are covered by §4b–§4d below; what remains open is in 6.
 
 ## 4b. ✅ Anti-drain validator hardening + tests (14/14)
 
@@ -127,7 +127,7 @@ Proves the Stellar-specific half of the CCTP bridge leg (off-ramp Path 3) on liv
 | Sponsor key behind external raw-Ed25519 signer (KMS path) | ✅ PROVEN mechanically (Spike #1b); real AWS KMS call not yet wired |
 | web→sponsor XDR wire-parity + fee-bump of re-parsed tx | ✅ PROVEN (Spike #1c) |
 | Fee-abuse / rate-limit economic defense | ⚠️ DESIGNED, not yet built (needs the HTTP service + rate-limit) |
-| 🔑 Recipient can turn Stellar-USDC into spendable TRY (off-ramp) | ⚠️ PATHS IDENTIFIED, real-world unconfirmed. **CCTP V2 is live on Stellar testnet+mainnet** (bridge leg is **testnet-testable now**, no money/KYC). Two **direct** Stellar-USDC exits need no bridge: **KAST card** (TRY spend) and **Binance Global→Binance TR→IBAN**. MASAK: ~$3k/day, 72h first withdrawal. Plan: [OFF_RAMP_VERIFICATION.md](OFF_RAMP_VERIFICATION.md) — Spike #4 (CCTP testnet) = [ME]; KAST/Binance real-account checks = [YOU]. |
+| 🔑 Recipient can turn Stellar-USDC into spendable TRY (off-ramp) | ⚠️ PATHS IDENTIFIED, real-world unconfirmed. **CCTP V2 is live on Stellar testnet+mainnet** (bridge leg is **testnet-testable now**, no money/KYC). Two **direct** Stellar-USDC exits need no bridge: **KAST card** (TRY spend) and **Binance Global→Binance TR→IBAN**. MASAK: ~$3k/day, 72h first withdrawal. Official anchor directory (anchors.stellar.org) checked 2026-06-18: TR anchors = Banxa/BiLira/Onramp.money/Digibank/Arf, but **Banxa rejects Stellar-USDC** (XLM buy-only) and **no anchor offers a direct TRY off-ramp for Stellar-USDC** — Banxa/BiLira are BD leads ("accept USDC on Stellar?"), not a ready path. Plan: [OFF_RAMP_VERIFICATION.md](OFF_RAMP_VERIFICATION.md) — Spike #4 (CCTP testnet) = [ME]; KAST/Binance real-account checks = [YOU]. |
 | WebAuthn PRF round-trip on real devices (Spike #2) | ❌ UNVERIFIED (needs hardware); Argon2id is the mandatory floor |
 | WhatsApp webview claim + escape-to-browser + Argon2id (Spike #3) | ❌ UNVERIFIED (needs hardware); architecture researched (value-first + escape-to-browser) |
 | Serwist + Turbopack PWA service worker | ❌ UNVERIFIED; webpack fallback still supported in Next 16 |

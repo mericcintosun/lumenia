@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Instawards SOW — Lumenia</title>
+<style>
+  :root { --ink:#000; --line:#000; --muted:#444; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #f4f4f6;
+    color: var(--ink);
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  .page {
+    max-width: 900px;
+    margin: 32px auto;
+    background: #fff;
+    padding: 64px 72px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.18);
+  }
+  h1 { text-align: center; font-size: 22px; margin: 0; }
+  h1 .sub { display:block; font-size: 18px; margin-top: 2px; }
+  .meta { margin: 18px 0 4px; font-size: 14px; color: var(--muted); }
+  h2 { font-size: 17px; margin: 34px 0 12px; }
+  h3 { font-size: 15px; margin: 22px 0 10px; }
+  p { margin: 10px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 6px; }
+  th, td { border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; text-align: left; }
+  th { font-weight: 700; }
+  td.label, th.label { font-weight: 700; white-space: nowrap; }
+  .center { text-align: center; }
+  .scopehdr { text-align:center; font-weight:700; }
+  .small { font-size: 13.5px; color: var(--muted); }
+  .box { border: 1px solid var(--line); padding: 11px; margin: 6px 0; }
+  .note { margin: 12px 0; }
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Instawards Statement of Work (SOW)<span class="sub">30-Day Scoped Engagement</span></h1>
+  <p class="meta center">Network: Stellar testnet (mainnet is a later phase). Scope: the link-send hero flow only. Posture: non-custodial, no yield.</p>
+
+  <h2>1. Project &amp; Team Information</h2>
+  <table>
+    <tr><td class="label">Project Name</td><td>Lumenia</td></tr>
+    <tr><td class="label">Builder / Team Name</td><td>Meriç Cintosun</td></tr>
+    <tr><td class="label">Primary Contact (Name + Email)</td><td>Meriç Cintosun (mericcintosunn@gmail.com)</td></tr>
+    <tr><td class="label">Ambassador Chapter</td><td>Stellar Türkiye</td></tr>
+    <tr><td class="label">Ambassador Chapter Lead</td><td>İrem Koçi (Stellar Türkiye)</td></tr>
+    <tr><td class="label">Date Submitted</td><td>2026-06-18</td></tr>
+    <tr><td class="label">Suggested Sprint Start Date</td><td>2026-06-23</td></tr>
+  </table>
+
+  <h2>2. Instawards Overview &amp; Intent</h2>
+  <h3>2.1 Instawards Purpose (for Builder Context)</h3>
+  <p>Instawards fund short, clearly scoped, execution-focused work that can be completed and demonstrated within 30 days or less. This SOW is a shared commitment between the Builder and the Ambassador Chapter Lead on what will be delivered, why it matters, and how success is verified.</p>
+
+  <h2>3. Problem Statement &amp; Objective</h2>
+  <table>
+    <tr>
+      <td class="label" style="width:210px">Problem Being Addressed</td>
+      <td>In crypto, even receiving money requires the recipient to have a wallet, save a seed phrase, and hold the native asset for fees, a setup most people never complete. This is what breaks cross-border transfers from the EU to Turkey: the sender is ready, but the recipient stalls at “install a wallet first.” Lumenia removes that wall: you send USDC by link, and the recipient claims it with no app, no seed phrase, and no setup.</td>
+    </tr>
+    <tr>
+      <td class="label">Objective of This Instaward</td>
+      <td>
+        <p style="margin-top:0"><strong>Objective.</strong> In 30 days, a live testnet demo where a recipient taps a link and receives USDC with no wallet, no setup, and no gas on their side, provable by a transaction hash on a public testnet explorer. This proves the receive half; converting held dollars to local currency is delegated to a licensed provider (see Section 4) and is the next milestone, not something Lumenia builds or operates.</p>
+        <p><strong>Success metric (binary).</strong> At least one verifiable end-to-end testnet claim: a link tap that lands USDC in a freshly sponsored 0-XLM account, evidenced by a public on-chain tx hash. No partial credit.</p>
+        <p><strong>Why achievable.</strong> The hard parts are already proven on testnet: three working spikes (a sponsored 0-XLM claim, external KMS-style Ed25519 signing, and wire parity between the web and the sponsor) plus an anti-drain validator with 14/14 passing tests. The 30 days integrate these proven parts into one live flow.</p>
+        <p style="margin-bottom:0"><strong>Trust model (bearer claim-link).</strong> The link carries a one-time claim ticket in the URL <code>#fragment</code> (never sent to servers), not a permanent key; the recipient’s key is generated on-device at claim time. Before claim, the USDC sits in a Stellar Claimable Balance on the ledger, not on any Lumenia server, claimable via the ticket or reclaimed by the sender after 7 days (a lost link is not stranded). Lumenia never holds funds. Production hardening (an optional claim password and on-device key recovery) is out of scope here.</p>
+      </td>
+    </tr>
+  </table>
+
+  <h2>4. Scope of Work (30-Day Deliverables)</h2>
+  <h3>4.1 In-Scope Deliverables</h3>
+  <table>
+    <tr><th style="width:170px">Deliverable</th><th>Description (what will be built or produced)</th><th>Why this matters</th></tr>
+    <tr>
+      <td class="label">D1: Live sponsor service (testnet)</td>
+      <td>Deployed HTTP service with two endpoints: <code>/create-account</code> (sponsors a 0-XLM account and a USDC trustline) and <code>/feebump</code> (validates the client transaction against the anti-drain allowlist, fee-bumps it, submits, and confirms). Env hot-key signer, with per-IP and per-account rate-limiting and a fee cap.</td>
+      <td>Lets a recipient receive USDC with no XLM and no gas. It is the backend the live claim runs on.</td>
+    </tr>
+    <tr>
+      <td class="label">D2: End-to-end walletless claim (testnet)</td>
+      <td>The recipient taps the link, a value-first page shows the amount, they claim, and a sponsored 0-XLM account receives the USDC while the recipient holds 0 XLM throughout.</td>
+      <td>The hero moment, independently verifiable via tx hash.</td>
+    </tr>
+    <tr>
+      <td class="label">D3: Anti-drain protection, wired and tested</td>
+      <td>The anti-drain validator gating every live <code>/feebump</code>, with 14/14 tests passing against the deployed code, a public repo, and a short technical write-up.</td>
+      <td>A service that funds accounts and fees can be drained; this shows the safeguard is real and inspectable.</td>
+    </tr>
+  </table>
+
+  <p class="note"><strong>Cash-out (delegated, not operated).</strong> Converting dollars to local currency is handled by a licensed provider (for example Binance, which accepts USDC on Stellar) under its own license; Lumenia hands off to it and never converts or holds fiat. In this scope it is an integration design and a UI placeholder, not a live conversion. Local currency (TRY) is added only once a licensed path is confirmed.</p>
+
+  <div class="box">
+    <p class="scopehdr" style="margin:0 0 6px">Out-of-Scope (Explicitly Not Included)</p>
+    <p style="margin:0">Mainnet and real money, live fiat conversion by Lumenia (delegated), account recovery and passkeys, request-money and bill-split, WhatsApp auto-notifications, production KMS/HSM, DB and SEP-7, and multi-corridor or abuse-at-scale handling.</p>
+  </div>
+
+  <h3>4.2 Deliverable-Aligned Budget Request</h3>
+  <table>
+    <tr><th style="width:200px">Requested Budget Amount</th><th>Rationale for Budget Request</th></tr>
+    <tr>
+      <td class="label">$5,000</td>
+      <td>Execution, not exploration: the hard risks are already retired by three testnet spikes and a validator with 14/14 passing tests, so the 30 days integrate them into one live demo. The budget covers sponsor-service infrastructure, RPC and hosting for a continuously running testnet deployment, and demo production. It is scoped to a single hero flow on testnet, with mainnet reserved for later.</td>
+    </tr>
+  </table>
+
+  <h2>5. 30-Day Execution Plan &amp; Timeline</h2>
+  <p class="small">As a solo builder, the timeline is kept deliberately conservative: infrastructure is front-loaded, with slack left for hardening and the demo.</p>
+  <h3>5.1 Weekly Breakdown</h3>
+  <table>
+    <tr><th style="width:90px">Week</th><th>Planned Work</th><th>Expected Output</th></tr>
+    <tr>
+      <td class="label">Week 1</td>
+      <td>Stand up the Node sponsor service (CJS, stellar-sdk@16) and ship <code>/create-account</code> (begin-sponsoring, createAccount(0), changeTrust, then end-sponsoring). Deploy to a public testnet URL with basic secret and RPC config. Drive it from a CLI script.</td>
+      <td>A reachable sponsor service, and one real testnet account created via CLI (sponsored 0-XLM, USDC trustline open, 0 XLM held) with a verifiable tx hash.</td>
+    </tr>
+    <tr>
+      <td class="label">Week 2</td>
+      <td>Ship <code>/feebump</code> (validate against the anti-drain allowlist, fee-bump, submit, then confirm). Wire the existing claim page (Next.js 16) to both endpoints, and verify wire parity over the real HTTP boundary.</td>
+      <td>The first end-to-end walletless claim in a real browser on testnet: a link tap puts USDC in the account with 0 XLM held, plus an on-screen verifiable tx hash.</td>
+    </tr>
+    <tr>
+      <td class="label">Week 3</td>
+      <td>Harden the service: per-IP and per-account rate-limiting and a fee cap, integration tests (happy claim, drain rejection, rate-limit), and error handling. Publish and clean the public repo.</td>
+      <td>Anti-drain enforced on every fee-bump, a passing test suite, rate-limited endpoints, and a published public repo.</td>
+    </tr>
+    <tr>
+      <td class="label">Week 4</td>
+      <td>Polish the flow and UI (including the delegated cash-out placeholder). Record the 60-second demo. Assemble the evidence package.</td>
+      <td>A demo video, a tx-hash and explorer package, and a short write-up; D1, D2 and D3 closed.</td>
+    </tr>
+  </table>
+
+  <h2>6. Evidence of Completion (Required)</h2>
+  <h3>6.1 Planned Evidence to Be Submitted</h3>
+  <table>
+    <tr><th style="width:170px">Deliverable</th><th>Evidence Type</th><th>Description</th></tr>
+    <tr>
+      <td class="label">D1: Live sponsor service</td>
+      <td>Explorer link and public repo</td>
+      <td>A successful sponsored account creation and a fee-bumped claim on a testnet explorer, from the live service; the anti-drain check is runnable in the repo.</td>
+    </tr>
+    <tr>
+      <td class="label">D2: End-to-end walletless claim</td>
+      <td>Tx hash (link) and a 60-second demo video</td>
+      <td>Click the tx hash to confirm the claim on a testnet explorer, then watch a 60-second video of a link opened on a phone, funds arriving, with no setup and no gas.</td>
+    </tr>
+    <tr>
+      <td class="label">D3: Anti-drain protection</td>
+      <td>Screenshot, public repo, and write-up</td>
+      <td>A “14 tests passed” screenshot, the repo to re-run the tests, and a short plain-language write-up.</td>
+    </tr>
+  </table>
+
+  <h3>6.2 Evidence Verification Checklist (For Ambassador Use)</h3>
+  <p class="small">For each deliverable, the Ambassador Chapter Lead will assess whether evidence is present and sufficient.</p>
+  <table>
+    <tr><th style="width:170px">Deliverable</th><th class="center">Evidence Present</th><th class="center">Evidence Partial</th><th class="center">Evidence Missing</th><th>Comments</th></tr>
+    <tr><td class="label">D1: Live sponsor service</td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td><td></td></tr>
+    <tr><td class="label">D2: End-to-end walletless claim</td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td><td></td></tr>
+    <tr><td class="label">D3: Anti-drain protection</td><td class="center">☐</td><td class="center">☐</td><td class="center">☐</td><td></td></tr>
+  </table>
+
+</div>
+</body>
+</html>

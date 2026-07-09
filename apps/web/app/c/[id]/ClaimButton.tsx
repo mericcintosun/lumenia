@@ -2,38 +2,66 @@
 
 import { useState } from "react";
 import { tr } from "../../../lib/copy";
+import { runClaim } from "../../../lib/sponsor";
 
 /**
- * The claim action — runs AFTER the user has already seen their money.
+ * The claim action — runs AFTER the user has already seen their money
+ * (value-first). It reads the bearer key from the URL #fragment (never sent to a
+ * server), asks the sponsor to create a 0-XLM account + trustline, then submits a
+ * fee-bumped claim. The recipient holds 0 XLM and pays no gas.
  *
- * Real flow (to wire): detect environment → if a real browser, create a passkey
- * (WebAuthn PRF) for recovery; if WhatsApp's in-app webview, set up an Argon2id
- * password (or escape to the browser on Android via intent://). Then build the
- * sponsored claim inner tx, send it to the sponsor service for anti-drain
- * validation + fee-bump (see @lumenia/shared + Spikes #1/#1c). The bearer secret
- * lives in the URL fragment (window.location.hash) and never leaves the client.
- *
- * Stubbed here: the deferred-credential, value-first UX shell. One mental model
- * for recovery — "your password is the master key; Face ID is a shortcut."
+ * Out of scope for this sprint (SOW): recovery / passkeys / Argon2id — the key
+ * here comes straight from the link.
  */
-export default function ClaimButton({ claimId }: { claimId: string }) {
-  const [state, setState] = useState<"idle" | "claiming" | "done">("idle");
+const SPONSOR_URL = process.env.NEXT_PUBLIC_SPONSOR_URL ?? "https://lumenia-sponsor.vercel.app";
+const explorer = (hash: string) => `https://stellar.expert/explorer/testnet/tx/${hash}`;
+
+export default function ClaimButton({ claimId, balanceId }: { claimId: string; balanceId?: string }) {
+  const [state, setState] = useState<"idle" | "claiming" | "done" | "error">("idle");
+  const [hash, setHash] = useState("");
+  const [error, setError] = useState("");
 
   async function onClaim() {
     setState("claiming");
-    // const secret = window.location.hash.slice(1); // bearer claim-key, client-only
-    // TODO: environment-detect → recovery setup (Argon2id primary / PRF upgrade)
-    // TODO: build inner claim tx (@lumenia/shared) → POST to sponsor /feebump
-    await new Promise((r) => setTimeout(r, 1200)); // placeholder
-    setState("done");
+    setError("");
+    try {
+      const bearerSecret = window.location.hash.slice(1);
+      if (!bearerSecret) throw new Error("Bu link geçersiz (anahtar yok).");
+      if (!balanceId) throw new Error("Bu link geçersiz (bakiye bilgisi yok).");
+      const { hash } = await runClaim({ sponsorUrl: SPONSOR_URL, bearerSecret, balanceId });
+      setHash(hash);
+      setState("done");
+    } catch (e) {
+      setError((e as Error).message);
+      setState("error");
+    }
   }
 
   if (state === "done") {
-    return <p style={{ fontWeight: 600 }}>{tr.claim.done}</p>;
+    return (
+      <div>
+        <p style={{ fontWeight: 600 }}>{tr.claim.done}</p>
+        <a
+          className="muted"
+          href={explorer(hash)}
+          target="_blank"
+          rel="noreferrer"
+          style={{ fontSize: "0.75rem", wordBreak: "break-all", display: "inline-block", marginTop: "0.5rem" }}
+        >
+          {hash}
+        </a>
+      </div>
+    );
   }
+
   return (
-    <button className="btn" onClick={onClaim} disabled={state === "claiming"} data-claim-id={claimId}>
-      {state === "claiming" ? tr.claim.claiming : tr.claim.claimCta}
-    </button>
+    <>
+      <button className="btn" onClick={onClaim} disabled={state === "claiming"} data-claim-id={claimId}>
+        {state === "claiming" ? tr.claim.claiming : tr.claim.claimCta}
+      </button>
+      {state === "error" && (
+        <p style={{ color: "#c0392b", fontSize: "0.8rem", marginTop: "0.75rem" }}>{error}</p>
+      )}
+    </>
   );
 }

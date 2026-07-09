@@ -21,5 +21,5 @@ export function indicativeRate(): number {
 export async function getClaim(id: string): Promise<ClaimView | null> {
   // TODO: real lookup by id → DB row (created at link-generation time).
   if (!id || id.length < 3) return null;
-  return { id, senderName: "Annen", usd: "20.00", status: "pending" };
+  return { id, senderName: "Alvin", usd: "20.00", status: "pending" };
 }

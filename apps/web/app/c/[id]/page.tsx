@@ -1,10 +1,11 @@
 /**
  * Claim page — the hero, VALUE-FIRST (Kaan/Nicole + WhatsApp-webview research).
  *
- * The page shows the money IMMEDIATELY — "Annen sana para gönderdi · $20" — with
- * NO credential, wallet, or crypto term in sight. The "30s promise" is kept here,
- * before any signer/recovery exists. The actual claim + credential setup happen in
- * the client component AFTER the user has seen the value (deferred-credential).
+ * The page shows the money IMMEDIATELY — "Alvin sana para gönderdi · $20" — with
+ * NO credential, wallet, or crypto term in sight. The public claim metadata
+ * (amount, sender, balanceId) rides in the URL query so the server can render it;
+ * the bearer key rides in the #fragment and is read only client-side (ClaimButton).
+ * The actual claim happens after the user has seen the value (deferred-credential).
  */
 import { notFound } from "next/navigation";
 import { getClaim, indicativeRate } from "../../../lib/claims";
@@ -12,9 +13,32 @@ import { formatUsd, usdToTryIndicative } from "../../../lib/money";
 import { tr } from "../../../lib/copy";
 import ClaimButton from "./ClaimButton";
 
-export default async function ClaimPage({ params }: { params: Promise<{ id: string }> }) {
+interface ClaimView {
+  id: string;
+  senderName: string;
+  usd: string;
+  balanceId?: string;
+}
+
+export default async function ClaimPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const { id } = await params;
-  const claim = await getClaim(id);
+  const sp = await searchParams;
+
+  // A real claim link carries public metadata in the query. Fall back to the stub
+  // (demo / OG-card route) when it is absent.
+  let claim: ClaimView | null;
+  if (sp.a && sp.b) {
+    claim = { id, senderName: sp.s ?? "Biri", usd: sp.a, balanceId: sp.b };
+  } else {
+    const stub = await getClaim(id);
+    claim = stub ? { id: stub.id, senderName: stub.senderName, usd: stub.usd } : null;
+  }
   if (!claim) notFound();
 
   return (
@@ -24,8 +48,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ id: stri
         <div className="amount">{formatUsd(claim.usd)}</div>
         <div className="amount-try">≈ {usdToTryIndicative(claim.usd, indicativeRate())}</div>
         <p className="muted" style={{ marginTop: "1.5rem" }}>{tr.claim.amountNote}</p>
-        {/* Value already shown above — the credential/claim work lives here, deferred. */}
-        <ClaimButton claimId={claim.id} />
+        <ClaimButton claimId={claim.id} balanceId={claim.balanceId} />
         <p className="muted" style={{ fontSize: "0.85rem", marginTop: "1rem" }}>{tr.claim.holdHint}</p>
       </div>
     </main>

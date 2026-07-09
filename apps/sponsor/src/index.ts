@@ -10,37 +10,17 @@
  *
  * The request handlers live in lib/* and are platform-agnostic, so the same core
  * runs behind this node:http server (local dev + CLI) and behind a Vercel function
- * adapter (api/*) when deployed. Rate-limiting here is an in-memory skeleton for
- * the testnet sprint; W3 moves it to a durable store (Vercel KV / Upstash).
+ * adapter (api/*) when deployed. Per-IP + per-account rate limiting and the fee cap
+ * are enforced on both paths (lib/rate-limit.ts); durable cross-instance limiting
+ * (Vercel KV) is the mainnet upgrade — see ANTI_DRAIN.md.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { getService } from "./lib/service.js";
+import { getService, enforceRateLimit } from "./lib/service.js";
 import { createAccountHandler } from "./lib/create-account.js";
 import { feebumpHandler } from "./lib/feebump.js";
 
 const { config, signer, server } = getService();
 const allowedOrigin = process.env.ALLOWED_ORIGIN ?? "*";
-
-/* ------------------------- tiny per-IP rate limiter ------------------------ */
-/* Token bucket: RATE_CAP requests per RATE_WINDOW_MS, refilled continuously.
-   In-memory (per instance) — a W3 hardening item promotes this to a shared store. */
-const RATE_CAP = Number.parseInt(process.env.RATE_CAP ?? "30", 10);
-const RATE_WINDOW_MS = Number.parseInt(process.env.RATE_WINDOW_MS ?? "60000", 10);
-const buckets = new Map<string, { tokens: number; ts: number }>();
-
-function rateLimited(ip: string, now: number): boolean {
-  const b = buckets.get(ip) ?? { tokens: RATE_CAP, ts: now };
-  const refill = ((now - b.ts) / RATE_WINDOW_MS) * RATE_CAP;
-  b.tokens = Math.min(RATE_CAP, b.tokens + refill);
-  b.ts = now;
-  if (b.tokens < 1) {
-    buckets.set(ip, b);
-    return true;
-  }
-  b.tokens -= 1;
-  buckets.set(ip, b);
-  return false;
-}
 
 /* ------------------------------- helpers ---------------------------------- */
 function send(res: ServerResponse, status: number, body: unknown): void {
@@ -74,7 +54,6 @@ function clientIp(req: IncomingMessage): string {
 
 /* -------------------------------- router ---------------------------------- */
 const httpServer = createServer(async (req, res) => {
-  const now = Date.now();
   const method = req.method ?? "GET";
   const url = (req.url ?? "/").split("?")[0];
 
@@ -91,14 +70,12 @@ const httpServer = createServer(async (req, res) => {
     });
   }
 
-  if (rateLimited(clientIp(req), now)) {
-    return send(res, 429, { error: "rate limited" });
-  }
-
   try {
     if (method === "POST" && url === "/create-account") {
       const body = (await readJson(req)) as { recipientPublicKey?: string };
       if (!body.recipientPublicKey) return send(res, 400, { error: "recipientPublicKey is required" });
+      const rl = enforceRateLimit(clientIp(req), body.recipientPublicKey);
+      if (rl.limited) return send(res, 429, { error: rl.reason });
       const result = await createAccountHandler(server, config, signer, {
         recipientPublicKey: body.recipientPublicKey,
       });
@@ -110,6 +87,8 @@ const httpServer = createServer(async (req, res) => {
       if (!body.xdr || !body.recipientPublicKey || !body.balanceId) {
         return send(res, 400, { error: "xdr, recipientPublicKey and balanceId are required" });
       }
+      const rl = enforceRateLimit(clientIp(req), body.recipientPublicKey);
+      if (rl.limited) return send(res, 429, { error: rl.reason });
       const result = await feebumpHandler(server, config, signer, {
         xdr: body.xdr,
         recipientPublicKey: body.recipientPublicKey,

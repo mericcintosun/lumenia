@@ -3,7 +3,10 @@
  * Bundled to api/create-account.js (self-contained CJS) by build-vercel.mjs.
  * Delegates to the same core the local node:http server calls (lib/create-account).
  */
-import { getService, applyCors, parseBody, type VercelReq, type VercelRes } from "../lib/service.js";
+import {
+  getService, applyCors, parseBody, clientIpFrom, enforceRateLimit,
+  type VercelReq, type VercelRes,
+} from "../lib/service.js";
 import { createAccountHandler } from "../lib/create-account.js";
 
 export default async function handler(req: VercelReq, res: VercelRes): Promise<void> {
@@ -16,6 +19,8 @@ export default async function handler(req: VercelReq, res: VercelRes): Promise<v
     if (typeof recipientPublicKey !== "string" || !recipientPublicKey) {
       return res.status(400).json({ error: "recipientPublicKey is required" });
     }
+    const rl = enforceRateLimit(clientIpFrom(req.headers), recipientPublicKey);
+    if (rl.limited) return res.status(429).json({ error: rl.reason });
     const { config, signer, server } = getService();
     const result = await createAccountHandler(server, config, signer, { recipientPublicKey });
     return res.status(200).json(result);

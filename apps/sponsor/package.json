@@ -15,7 +15,8 @@
     "spike1b": "tsx src/spike1b-kms-rawsign.ts",
     "spike1c": "tsx src/spike1c-wire-parity.ts",
     "spike4": "tsx src/spike4-cctp-bridge.ts",
-    "test:antidrain": "tsx src/test-antidrain.ts"
+    "test:antidrain": "tsx src/test-antidrain.ts",
+    "test:integration": "tsx src/test-integration.ts"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "16.0.0"

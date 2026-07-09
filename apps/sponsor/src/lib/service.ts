@@ -7,6 +7,7 @@ import type { Horizon } from "@stellar/stellar-sdk";
 import { loadConfig, type SponsorConfig } from "./config.js";
 import { signerFromSecret, type SponsorSigner } from "./signer.js";
 import { horizon } from "./stellar.js";
+import { checkRateLimit, rateLimitConfigFromEnv, type RateLimitVerdict } from "./rate-limit.js";
 
 export interface Service {
   config: SponsorConfig;
@@ -59,4 +60,17 @@ export function parseBody(body: unknown): Record<string, unknown> {
   if (body == null) return {};
   if (typeof body === "string") return body.length ? (JSON.parse(body) as Record<string, unknown>) : {};
   return body as Record<string, unknown>;
+}
+
+/** Best-effort client IP from proxy headers (Vercel/Node put it in x-forwarded-for). */
+export function clientIpFrom(headers: Record<string, string | string[] | undefined>): string {
+  const fwd = headers["x-forwarded-for"];
+  const raw = Array.isArray(fwd) ? fwd[0] : fwd;
+  if (raw && raw.length) return raw.split(",")[0]!.trim();
+  return "unknown";
+}
+
+/** Enforce per-IP + per-account rate limits (env-configured) for this request. */
+export function enforceRateLimit(ip: string, account?: string): RateLimitVerdict {
+  return checkRateLimit(ip, account, rateLimitConfigFromEnv(), Date.now());
 }

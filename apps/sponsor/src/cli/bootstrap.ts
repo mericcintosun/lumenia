@@ -7,7 +7,7 @@
  *   # then paste SPONSOR_SECRET + USDC_ISSUER into .env (or the deploy env)
  */
 import { Keypair } from "@stellar/stellar-sdk";
-import { friendbot } from "../lib/stellar";
+import { friendbot } from "../lib/stellar.js";
 
 async function main() {
   const sponsor = Keypair.random();

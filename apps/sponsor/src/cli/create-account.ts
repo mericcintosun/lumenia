@@ -14,10 +14,10 @@
  *   NEEDS: internet (Horizon testnet + friendbot). Testnet only, no real money.
  */
 import { Horizon, Keypair, TransactionBuilder, type Transaction } from "@stellar/stellar-sdk";
-import { makeConfig, passphraseFor, defaultHorizon } from "../lib/config";
-import { signerFromSecret } from "../lib/signer";
-import { horizon, submit, friendbot, nativeBalance, trustlineBalance } from "../lib/stellar";
-import { createAccountHandler, type CreateAccountResult } from "../lib/create-account";
+import { makeConfig, passphraseFor, defaultHorizon } from "../lib/config.js";
+import { signerFromSecret } from "../lib/signer.js";
+import { horizon, submit, friendbot, nativeBalance, trustlineBalance } from "../lib/stellar.js";
+import { createAccountHandler, type CreateAccountResult } from "../lib/create-account.js";
 
 const EXPLORER = (hash: string) => `https://stellar.expert/explorer/testnet/tx/${hash}`;
 

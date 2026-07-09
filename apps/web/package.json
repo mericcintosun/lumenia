@@ -9,7 +9,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "@lumenia/shared": "workspace:*",
     "@simplewebauthn/browser": "13.3.0",
     "@stellar/stellar-sdk": "16.0.0",
     "@stellar/typescript-wallet-sdk": "3.0.1",
@@ -20,6 +19,7 @@
   },
   "devDependencies": {
     "@serwist/turbopack": "9.5.11",
+    "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "typescript": "^5.6.0"
   }

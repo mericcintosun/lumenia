@@ -14,14 +14,10 @@
  * the testnet sprint; W3 moves it to a durable store (Vercel KV / Upstash).
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { loadConfig } from "./lib/config";
-import { signerFromSecret } from "./lib/signer";
-import { horizon } from "./lib/stellar";
-import { createAccountHandler } from "./lib/create-account";
+import { getService } from "./lib/service.js";
+import { createAccountHandler } from "./lib/create-account.js";
 
-const config = loadConfig();
-const signer = signerFromSecret(config.sponsorSecret);
-const server = horizon(config);
+const { config, signer, server } = getService();
 const allowedOrigin = process.env.ALLOWED_ORIGIN ?? "*";
 
 /* ------------------------- tiny per-IP rate limiter ------------------------ */

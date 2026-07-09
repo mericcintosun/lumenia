@@ -72,10 +72,24 @@ export interface InnerTxPolicy {
   expectedSource: string;
   /** Sponsor account — pays the fee and may ONLY source begin/createAccount. */
   sponsor: string;
-  /** The exact asset `changeTrust` is allowed to add (e.g. USDC). If omitted, any changeTrust asset passes. */
+  /**
+   * The exact asset `changeTrust` is allowed to add (e.g. USDC).
+   * STRICT DEFAULT: if a `changeTrust` op is present and this is omitted, the tx
+   * is REJECTED (a forgotten field must fail closed, not silently allow any asset).
+   * To intentionally accept any asset, set `allowUncheckedAsset: true`.
+   */
   expectedAsset?: Asset;
-  /** The exact Claimable Balance id that may be claimed. If omitted, any balanceId passes. */
+  /**
+   * The exact Claimable Balance id that may be claimed.
+   * STRICT DEFAULT: if a `claimClaimableBalance` op is present and this is omitted,
+   * the tx is REJECTED. To intentionally accept any balanceId, set
+   * `allowUncheckedBalanceId: true`.
+   */
   expectedBalanceId?: string;
+  /** Escape hatch: allow a `changeTrust` with no `expectedAsset` set (default false). */
+  allowUncheckedAsset?: boolean;
+  /** Escape hatch: allow a `claimClaimableBalance` with no `expectedBalanceId` set (default false). */
+  allowUncheckedBalanceId?: boolean;
   /** Allowed `payment` destinations. If a payment appears and this is omitted/empty, the payment is REJECTED. */
   allowedPaymentDestinations?: Set<string>;
   /** Max `createAccount` startingBalance (default "0" — sponsor funds zero XLM). */
@@ -162,13 +176,23 @@ export function validateInnerTransaction(
           if (!line || typeof (line as Asset).equals !== "function" || !policy.expectedAsset.equals(line as Asset)) {
             return { ok: false, reason: "changeTrust asset is not the expected asset" };
           }
+        } else if (!policy.allowUncheckedAsset) {
+          // Strict default: an unconstrained changeTrust fails closed (a forgotten
+          // expectedAsset must not silently sponsor a trustline for any/LP asset).
+          return { ok: false, reason: "changeTrust present but no expectedAsset set (strict mode)" };
         }
         break;
       }
       case "claimClaimableBalance": {
         const o = op as { balanceId?: string };
-        if (policy.expectedBalanceId && o.balanceId !== policy.expectedBalanceId) {
-          return { ok: false, reason: `claim balanceId ${o.balanceId} != expected` };
+        if (policy.expectedBalanceId) {
+          if (o.balanceId !== policy.expectedBalanceId) {
+            return { ok: false, reason: `claim balanceId ${o.balanceId} != expected` };
+          }
+        } else if (!policy.allowUncheckedBalanceId) {
+          // Strict default: an unconstrained claim fails closed (a forgotten
+          // expectedBalanceId must not let any claimable balance be claimed).
+          return { ok: false, reason: "claim present but no expectedBalanceId set (strict mode)" };
         }
         break;
       }

@@ -249,6 +249,55 @@ check(
   "sponsoredid",
 );
 
+/* ---- STRICT-MODE FAIL-CLOSED VECTORS (a forgotten policy field must reject) ---- */
+
+check(
+  "S1 changeTrust with no expectedAsset set (strict mode rejects)",
+  validateInnerTransaction(
+    buildTx(recipient.publicKey(), [
+      Operation.changeTrust({ asset: USDC, source: recipient.publicKey() }),
+      Operation.claimClaimableBalance({ balanceId: BALANCE_ID }),
+    ]),
+    { expectedSource: recipient.publicKey(), sponsor: sponsor.publicKey(), expectedBalanceId: BALANCE_ID }, // expectedAsset omitted
+  ),
+  false,
+  "strict mode",
+);
+
+check(
+  "S2 claim with no expectedBalanceId set (strict mode rejects)",
+  validateInnerTransaction(
+    buildTx(recipient.publicKey(), [Operation.claimClaimableBalance({ balanceId: BALANCE_ID })]),
+    { expectedSource: recipient.publicKey(), sponsor: sponsor.publicKey(), expectedAsset: USDC }, // expectedBalanceId omitted
+  ),
+  false,
+  "strict mode",
+);
+
+check(
+  "S3 op sourced by a third party (neither sponsor nor recipient) fails closed",
+  validateInnerTransaction(
+    buildTx(recipient.publicKey(), [Operation.claimClaimableBalance({ balanceId: BALANCE_ID, source: attacker.publicKey() })]),
+    basePolicy,
+  ),
+  false,
+  "must be sourced by the recipient",
+);
+
+/* ---- ESCAPE HATCH: explicit opt-out re-enables the permissive behavior ---- */
+
+check(
+  "S4 explicit allowUncheckedAsset re-permits an unconstrained changeTrust",
+  validateInnerTransaction(
+    buildTx(recipient.publicKey(), [
+      Operation.changeTrust({ asset: USDC, source: recipient.publicKey() }),
+      Operation.claimClaimableBalance({ balanceId: BALANCE_ID }),
+    ]),
+    { expectedSource: recipient.publicKey(), sponsor: sponsor.publicKey(), expectedBalanceId: BALANCE_ID, allowUncheckedAsset: true },
+  ),
+  true,
+);
+
 console.log("\n============================================================");
 console.log(failed === 0 ? ` ✅ ANTI-DRAIN TESTS PASS (${passed}/${passed + failed})` : ` ❌ ANTI-DRAIN TESTS FAIL (${failed} failed)`);
 console.log("============================================================");

@@ -1,12 +1,29 @@
 /**
  * Vercel function source — POST /feebump.
  * Bundled to api/feebump.js (self-contained CJS) by build-vercel.mjs.
- * Placeholder until W2: validate (anti-drain) → fee-bump → submit → confirm.
+ * Anti-drain validate → fee-bump → submit → confirm (same core as the node:http server).
  */
-import { applyCors, type VercelReq, type VercelRes } from "../lib/service.js";
+import { getService, applyCors, parseBody, type VercelReq, type VercelRes } from "../lib/service.js";
+import { feebumpHandler } from "../lib/feebump.js";
 
-export default function handler(req: VercelReq, res: VercelRes): void {
+export default async function handler(req: VercelReq, res: VercelRes): Promise<void> {
   applyCors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
-  return res.status(501).json({ error: "not implemented yet (W2)" });
+  if (req.method !== "POST") return res.status(405).json({ error: "method not allowed" });
+  try {
+    const body = parseBody(req.body);
+    const { xdr, recipientPublicKey, balanceId } = body as {
+      xdr?: string;
+      recipientPublicKey?: string;
+      balanceId?: string;
+    };
+    if (!xdr || !recipientPublicKey || !balanceId) {
+      return res.status(400).json({ error: "xdr, recipientPublicKey and balanceId are required" });
+    }
+    const { config, signer, server } = getService();
+    const result = await feebumpHandler(server, config, signer, { xdr, recipientPublicKey, balanceId });
+    return res.status(200).json(result);
+  } catch (e) {
+    return res.status(400).json({ error: (e as Error).message });
+  }
 }

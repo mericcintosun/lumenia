@@ -27,8 +27,8 @@ import {
   type Transaction,
   type xdr,
 } from "@stellar/stellar-sdk";
-// canonical validator (relative import — no workspace symlink needed)
-import { validateInnerTransaction, type InnerTxPolicy } from "../../../packages/shared/src/index";
+// the deployed validator (same module the live /feebump imports)
+import { validateInnerTransaction, type InnerTxPolicy } from "./lib/anti-drain.js";
 
 const NETWORK = Networks.TESTNET;
 

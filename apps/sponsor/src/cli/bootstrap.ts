@@ -17,6 +17,9 @@ async function main() {
   console.log(`SPONSOR_SECRET=${sponsor.secret()}`);
   console.log(`SPONSOR_PUBLIC=${sponsor.publicKey()}`);
   console.log(`USDC_ISSUER=${issuer.publicKey()}`);
+  // The issuer secret is needed by the demo's create-link/claim step to mint USDC
+  // that matches the sponsor's configured trustline asset. (Testnet only.)
+  console.log(`USDC_ISSUER_SECRET=${issuer.secret()}`);
 }
 
 main().catch((e) => {

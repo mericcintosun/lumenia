@@ -16,6 +16,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { getService } from "./lib/service.js";
 import { createAccountHandler } from "./lib/create-account.js";
+import { feebumpHandler } from "./lib/feebump.js";
 
 const { config, signer, server } = getService();
 const allowedOrigin = process.env.ALLOWED_ORIGIN ?? "*";
@@ -105,7 +106,16 @@ const httpServer = createServer(async (req, res) => {
     }
 
     if (method === "POST" && url === "/feebump") {
-      return send(res, 501, { error: "not implemented yet (W2)" });
+      const body = (await readJson(req)) as { xdr?: string; recipientPublicKey?: string; balanceId?: string };
+      if (!body.xdr || !body.recipientPublicKey || !body.balanceId) {
+        return send(res, 400, { error: "xdr, recipientPublicKey and balanceId are required" });
+      }
+      const result = await feebumpHandler(server, config, signer, {
+        xdr: body.xdr,
+        recipientPublicKey: body.recipientPublicKey,
+        balanceId: body.balanceId,
+      });
+      return send(res, 200, result);
     }
 
     return send(res, 404, { error: "not found" });

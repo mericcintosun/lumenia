@@ -36,8 +36,8 @@ import {
   TransactionBuilder,
   type Transaction,
 } from "@stellar/stellar-sdk";
-// canonical anti-drain validator (relative import — no workspace symlink needed)
-import { validateInnerTransaction } from "../../../packages/shared/src/index";
+// the deployed anti-drain validator (same module the live /feebump imports)
+import { validateInnerTransaction } from "./lib/anti-drain.js";
 
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
 const FRIENDBOT_URL = "https://friendbot.stellar.org";

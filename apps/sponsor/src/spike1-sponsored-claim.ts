@@ -3,7 +3,7 @@
  *  SPIKE #1 — Sponsored 0-XLM Claim (Stellar testnet)
  * ============================================================================
  *
- *  GOAL (Tyler + Elliot's day-1 gate): prove the ECONOMIC BACKBONE of Lumenia.
+ *  GOAL (the day-1 architecture/code-review gate): prove the ECONOMIC BACKBONE of Lumenia.
  *  If a new user can own an account + USDC trustline with ZERO XLM
  *  and the sponsor pays ALL reserve + fee, and a fee-bumped claim works,
  *  and the anti-drain validator rejects a malicious inner tx → the product's spine is solid.

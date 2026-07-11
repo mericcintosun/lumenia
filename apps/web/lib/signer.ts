@@ -1,5 +1,5 @@
 /**
- * Signer abstraction (Tyler condition #1).
+ * Signer abstraction (architecture-review condition #1).
  *
  * Everything that signs goes through this ONE interface. v1 uses a classic
  * Ed25519 key unlocked by biometric/password; v2 swaps in an OZ passkey

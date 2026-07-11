@@ -92,7 +92,7 @@ Keeping a classic Ed25519 key only in browser memory is catastrophic (if the dat
 
 ## 4. Architectural decisions and why
 
-This section is the heart of the project: every major decision and **why** it was made that way. Rationales are detailed in [stack.md](stack.md). Each decision was stress-tested via an adversarial AI persona-review method (not a team): the **technical decisions are locked**, while the **product/strategy decisions remain provisional bets**.
+This section is the heart of the project: every major decision and **why** it was made that way. Rationales are detailed in [stack.md](stack.md). Each decision was stress-tested via an adversarial multi-lens AI review: the **technical decisions are locked**, while the **product/strategy decisions remain provisional bets**.
 
 ### Decision 1 — Not React Native, but a **web-first PWA**
 **Why:** The essence of Lumenia is a **link.** A link opens wherever the user taps it (WhatsApp in-app browser, Safari, Chrome). Saying "go to the App Store first to receive the money" kills the funnel — that's the exact opposite of the "30 seconds, zero setup" promise. Also WebAuthn/passkey is **first-class on the web**, whereas in React Native it's polyfill hell (`createKeypair` blows up in RN, requiring crypto/Buffer shims). A Next.js PWA = a single codebase, both a powerful web app and a mobile app installed via "Add to Home Screen." If a true native app is needed, we move to Expo in v2. **Web-first also keeps the passkey door open for v2.**
@@ -158,7 +158,7 @@ lumenia/  (pnpm workspaces)
 ├── packages/
 │   └── shared/      → tx-builders, claim-secret hash, types
 │                      (web + sponsor must build the tx byte-for-byte identically)
-├── stack.md         → pinned tech stack + persona rulings
+├── stack.md         → pinned tech stack + adversarial review rulings
 └── README.md        → this document
 ```
 

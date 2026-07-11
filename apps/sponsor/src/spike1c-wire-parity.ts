@@ -3,7 +3,7 @@
  *  SPIKE #1c — web→sponsor XDR wire-parity + fee-bump of a re-parsed tx (testnet)
  * ============================================================================
  *
- *  GOAL (Elliot's code-review finding #2): Spike #1 built + validated + fee-bumped
+ *  GOAL (code-review finding #2): Spike #1 built + validated + fee-bumped
  *  the claim tx in ONE process, so "byte-for-byte identical tx between web and
  *  sponsor" was free. The real architecture sends the inner tx as XDR over the
  *  wire (web → sponsor HTTP). This spike inserts that wire boundary explicitly:

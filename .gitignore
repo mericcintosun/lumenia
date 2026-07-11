@@ -32,3 +32,16 @@ apps/sponsor/public/
 
 # Local next-agent handoff (testnet keys + deploy state) — never commit
 HANDOFF.md
+
+# Personal tool/editor config — local only
+.claude/
+.vscode/
+
+# Internal working docs (agent manual, personal profile, strategy & planning) —
+# kept local; the public repo carries the Instawards-relevant docs only
+# (README, stack, PROGRESS, INSTAWARDS_SOW, EVIDENCE, ANTI_DRAIN, evidence/).
+CLAUDE.md
+AGENT_GUIDE.md
+ARCHITECTURE.md
+POSITIONING.md
+OFF_RAMP_VERIFICATION.md

@@ -3,7 +3,7 @@
  *  TEST — anti-drain validator (canonical, packages/shared)
  * ============================================================================
  *
- *  Addresses the code-review finding (Tyler + Elliot): op-type allowlisting is
+ *  Addresses the code-review finding: op-type allowlisting is
  *  not enough; the validator must check op SOURCE and sensitive PARAMETERS.
  *  These cases prove the hardened validator accepts the legit claim shape and
  *  rejects every reserve/principal drain vector we could think of.

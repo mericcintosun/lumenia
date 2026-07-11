@@ -1,5 +1,5 @@
 /**
- * Claim page — the hero, VALUE-FIRST (Kaan/Nicole + WhatsApp-webview research).
+ * Claim page — the hero, VALUE-FIRST (UX/product review + WhatsApp-webview research).
  *
  * The page shows the money IMMEDIATELY — "Alvin sent you money · $20" — with
  * NO credential, wallet, or crypto term in sight. The public claim metadata

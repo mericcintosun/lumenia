@@ -1,5 +1,5 @@
 /**
- * Account identity (Tyler condition #2: address-stable).
+ * Account identity (architecture-review condition #2: address-stable).
  *
  * The Stellar account address is the user's stable identity. It is stored and
  * referenced as data — it is NOT re-derived from whichever Signer is active.

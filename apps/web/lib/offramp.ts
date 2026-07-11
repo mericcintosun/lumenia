@@ -1,5 +1,5 @@
 /**
- * Off-ramp exit adapters (Tyler conditions #3 + #4).
+ * Off-ramp exit adapters (architecture-review conditions #3 + #4).
  *
  * OUTSIDE the trust boundary. Off-ramp is the user's own edge choice; every
  * value move here is signed by the RECIPIENT's own key (never the sponsor KMS).
@@ -10,7 +10,7 @@
  * thesis, sidesteps the 72h bank-withdrawal hold). The CCTP adapter is the
  * partner-independent fallback proven (Stellar-side) by Spike #4.
  *
- * NOTE (Elliot): the CCTP amount decimal scale (USDC 6 vs Stellar SAC 7) is
+ * NOTE (code review): the CCTP amount decimal scale (USDC 6 vs Stellar SAC 7) is
  * UNVERIFIED until a funded burn — confirm before any real value moves.
  */
 

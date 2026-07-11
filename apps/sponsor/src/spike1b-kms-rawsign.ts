@@ -3,7 +3,7 @@
  *  SPIKE #1b — External raw Ed25519 signer → valid Stellar signature (testnet)
  * ============================================================================
  *
- *  GOAL (Tyler + Elliot's #1 architecture risk, R3): Spike #1 signed with a
+ *  GOAL (the #1 architecture risk, R3): Spike #1 signed with a
  *  local in-memory Keypair (`tx.sign`). The REAL risk is whether the sponsor
  *  key can live behind an HSM/KMS that returns a RAW 64-byte Ed25519 signature,
  *  and whether we can turn that into a valid Stellar `DecoratedSignature` the

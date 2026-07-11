@@ -3,11 +3,11 @@
  *  SPIKE #4 — CCTP V2 off-ramp bridge: Stellar-side interface (testnet)
  * ============================================================================
  *
- *  GOAL (off-ramp track; persona round #1): prove the STELLAR-SPECIFIC half of the
- *  CCTP bridge leg is real and we can build on it — the part Elliot flagged as the
+ *  GOAL (off-ramp track; adversarial review round #1): prove the STELLAR-SPECIFIC half of the
+ *  CCTP bridge leg is real and we can build on it — the part the code review flagged as the
  *  only uncertain risk (ScVal i128 / BytesN<32> mint_recipient, SAC `approve`,
  *  `deposit_for_burn` arg order + auth). The EVM `receiveMessage` mint is standard
- *  CCTP and out of scope (Elliot's scope (b)).
+ *  CCTP and out of scope (review scope (b)).
  *
  *  HARD BLOCKER (documented, not a failure): the testnet CCTP USDC faucet
  *  (faucet.circle.com) is web/reCAPTCHA only — no scriptable API. So we CANNOT

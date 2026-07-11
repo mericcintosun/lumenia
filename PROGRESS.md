@@ -10,8 +10,6 @@ Last updated: 2026-07-11 · Network: **testnet** · No real money used.
 
 > Naming note: the product is **Lumenia**; packages are `@lumenia/*`. The working directory is historically named `faceid-wallet` (cosmetic). Stelvin is a **separate, independent project** — not part of Lumenia and not used as its credential.
 
-> "Personas" (Tyler/Elliot/Justin/Nicole/Kaan/Bri) are an **adversarial AI review method**, not a team of people — see [stack.md](stack.md).
-
 ---
 
 ## 1. Documentation (written, English)
@@ -19,12 +17,10 @@ Last updated: 2026-07-11 · Network: **testnet** · No real money used.
 | File | What |
 |---|---|
 | [README.md](README.md) | Comprehensive project documentation — problem/solution/flows + 8 architecture decisions and **why**, tech stack, roadmap, risks, competitors. |
-| [stack.md](stack.md) | Pinned tech stack + project risk table (R1–R10) + 6 persona reviews. |
-| [AGENT_GUIDE.md](AGENT_GUIDE.md) | Grant context for the next agent + locked decisions + upcoming work. |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Architecture-decision workspace (create-architecture workflow; Step 1 done). |
-| [POSITIONING.md](POSITIONING.md) | Product-market fit & positioning recommendation (remittance wedge → wallet; SCF→VC). |
-| [OFF_RAMP_VERIFICATION.md](OFF_RAMP_VERIFICATION.md) | Executable off-ramp plan (CCTP testnet spike [ME] + KAST/Binance real-world checks [YOU]). |
-| Memory note | `~/.claude/projects/.../memory/lumenia-project.md` (+ MEMORY.md index) — persistent cross-session context. |
+| [stack.md](stack.md) | Pinned tech stack + project risk table (R1–R10) + adversarial review notes (six lenses). |
+| [EVIDENCE.md](EVIDENCE.md) | Reviewer-facing Instawards evidence package (tx hashes, live URLs, test capture). |
+| [ANTI_DRAIN.md](ANTI_DRAIN.md) | Plain-language write-up of the anti-drain safeguard (SOW D3). |
+| Internal working docs | Agent guide, architecture workspace, positioning/strategy and off-ramp planning are **local, gitignored** working documents (not part of the public repo). |
 
 ---
 
@@ -137,7 +133,7 @@ Proves the Stellar-specific half of the CCTP bridge leg (off-ramp Path 3) on liv
 | web→sponsor XDR wire-parity + fee-bump of re-parsed tx | ✅ PROVEN (Spike #1c + live browser claim — §10) |
 | **Live sponsor service + end-to-end walletless browser claim** | ✅ **PROVEN on-chain** (§10: tx `b9ef1844…` — 20 USDC landed, 0 XLM held, sponsor paid the fee) |
 | Fee-abuse / rate-limit economic defense | ✅ PROVEN live — durable cross-instance 429 on the deployed service (Upstash store; §10) + integration test |
-| 🔑 Recipient can turn Stellar-USDC into spendable TRY (off-ramp) | ⚠️ PATHS IDENTIFIED, real-world unconfirmed. **CCTP V2 is live on Stellar testnet+mainnet** (bridge leg is **testnet-testable now**, no money/KYC). Two **direct** Stellar-USDC exits need no bridge: **KAST card** (TRY spend) and **Binance Global→Binance TR→IBAN**. MASAK: ~$3k/day, 72h first withdrawal. Official anchor directory (anchors.stellar.org) checked 2026-06-18: TR anchors = Banxa/BiLira/Onramp.money/Digibank/Arf, but **Banxa rejects Stellar-USDC** (XLM buy-only) and **no anchor offers a direct TRY off-ramp for Stellar-USDC** — Banxa/BiLira are BD leads ("accept USDC on Stellar?"), not a ready path. Plan: [OFF_RAMP_VERIFICATION.md](OFF_RAMP_VERIFICATION.md) — Spike #4 (CCTP testnet) = [ME]; KAST/Binance real-account checks = [YOU]. |
+| 🔑 Recipient can turn Stellar-USDC into spendable TRY (off-ramp) | ⚠️ PATHS IDENTIFIED, real-world unconfirmed. **CCTP V2 is live on Stellar testnet+mainnet** (bridge leg is **testnet-testable now**, no money/KYC). Two **direct** Stellar-USDC exits need no bridge: **KAST card** (TRY spend) and **Binance Global→Binance TR→IBAN**. MASAK: ~$3k/day, 72h first withdrawal. Official anchor directory (anchors.stellar.org) checked 2026-06-18: TR anchors = Banxa/BiLira/Onramp.money/Digibank/Arf, but **Banxa rejects Stellar-USDC** (XLM buy-only) and **no anchor offers a direct TRY off-ramp for Stellar-USDC** — Banxa/BiLira are BD leads ("accept USDC on Stellar?"), not a ready path. Plan tracked in a local working doc — Spike #4 (CCTP testnet) done; KAST/Binance real-account checks pending. |
 | WebAuthn PRF round-trip on real devices (Spike #2) | ❌ UNVERIFIED (needs hardware); Argon2id is the mandatory floor |
 | WhatsApp webview claim + escape-to-browser + Argon2id (Spike #3) | ❌ UNVERIFIED (needs hardware); architecture researched (value-first + escape-to-browser) |
 | Serwist + Turbopack PWA service worker | ❌ UNVERIFIED; webpack fallback still supported in Next 16 |
@@ -146,7 +142,7 @@ Proves the Stellar-specific half of the CCTP bridge leg (off-ramp Path 3) on liv
 
 ## 7. Research completed (off-code, June 2026)
 
-Six deep research briefs were produced to de-risk the persona-flagged unknowns. Headlines:
+Six deep research briefs were produced to de-risk the review-flagged unknowns. Headlines:
 
 - **Off-ramp:** No Turkish CASP confirmed to accept USDC on the *Stellar* network. **Mitigation:** CCTP is live on Stellar (~May 2026) → bridge Stellar-USDC to a chain Turkish CASPs accept; or a USDC-funded card (RedotPay/KAST). MASAK caps: ~$3k/day, 72h first withdrawal.
 - **WhatsApp webview:** passkeys **cannot** be created in WhatsApp's webview. **Mitigation:** value-first (show the money before any credential) + escape-to-browser (Android `intent://` reliable; iOS "Open in Safari" best-effort) + Argon2id password fallback. Reframe the promise to "see + claim in ~30s," not "passkey in 30s."
@@ -160,7 +156,7 @@ Six deep research briefs were produced to de-risk the persona-flagged unknowns. 
 ## 8. NOT DONE YET (for the next agent)
 
 - ✅ ~~`apps/web` skeleton~~ → **built, deployed and wired** (value-first claim page → live sponsor; §10). Recovery/passkeys, off-ramp adapters and the Serwist SW remain stubs (SOW out-of-scope).
-- ✅ ~~`apps/sponsor` HTTP service~~ → **live on Vercel** with anti-drain gate, fee cap and per-IP/per-account rate limit (§10). Still open from the old sub-list: the KMS call (env hot-key for the sprint), and Tyler's exact op-sequence matcher (the live `/feebump` policy pins `maxOps: 1`, which covers the claim path).
+- ✅ ~~`apps/sponsor` HTTP service~~ → **live on Vercel** with anti-drain gate, fee cap and per-IP/per-account rate limit (§10). Still open from the old sub-list: the KMS call (env hot-key for the sprint), and the exact op-sequence matcher from the architecture review (the live `/feebump` policy pins `maxOps: 1`, which covers the claim path).
 - ❌ **Spike #2** (WebAuthn PRF round-trip on a real device) — requires hardware.
 - ❌ **Spike #3** (WhatsApp webview claim + escape-to-browser + Argon2id fallback) — requires hardware.
 - ❌ 🔑 **CASP / off-ramp confirmation** — still the highest-leverage off-code task; research narrowed it to "confirm a CCTP-bridged or card cash-out actually works for a TR recipient."

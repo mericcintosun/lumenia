@@ -15,7 +15,7 @@ import { unlockPhase2 } from "../../../lib/keystore";
 import { PrimaryButton } from "../../../components/brand/PrimaryButton";
 
 export default function UnlockPage() {
-  const { status, account } = useWallet();
+  const { status, account, setSessionSeed } = useWallet();
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,8 +35,9 @@ export default function UnlockPage() {
     setError("");
     try {
       const { seed } = await unlockPhase2(password);
-      seed.fill(0); // Stage 5 will hold the signer; here we only verify the password
-      router.replace("/home");
+      setSessionSeed(seed); // hold in memory for the session (send needs to sign)
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.replace(next && next.startsWith("/") ? next : "/home");
     } catch {
       setError("That password didn't work. Try again.");
     } finally {

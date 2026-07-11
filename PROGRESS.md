@@ -44,7 +44,8 @@ lumenia/  (working dir: faceid-wallet)
 │           ├── spike1-sponsored-claim.ts   # ✅ Spike #1  — sponsored 0-XLM claim economics
 │           ├── spike1b-kms-rawsign.ts      # ✅ Spike #1b — external raw Ed25519 → DecoratedSignature
 │           ├── spike1c-wire-parity.ts      # ✅ Spike #1c — web→sponsor XDR wire-parity + fee-bump
-│           └── test-antidrain.ts           # ✅ anti-drain validator tests (now 18/18 — §10)
+│           ├── spike5-sponsored-send.ts    # ✅ Spike #5  — 0-XLM sponsored onward-send (7/7 testnet)
+│           └── test-antidrain.ts           # ✅ anti-drain validator tests (now 25/25: 18 claim + 7 onward-send)
 └── packages/
     └── shared/
         ├── package.json                 # @lumenia/shared

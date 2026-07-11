@@ -1,0 +1,72 @@
+"use client";
+
+/**
+ * LinkReadyCard — the money link is ready to share (FRONTEND_PLAN component
+ * inventory: LinkReadyCard + ShareToWhatsAppButton + ReclaimNotice). Share the way
+ * you share everything else: a link in a chat. The bearer key lives in the link's
+ * #fragment — treat it like cash in an envelope (surfaced honestly).
+ */
+import { useState } from "react";
+import Link from "next/link";
+import { Copy, Check } from "lucide-react";
+import { MoneyCard } from "./MoneyCard";
+
+export function LinkReadyCard({
+  link,
+  balanceId,
+  from,
+}: {
+  link: string;
+  balanceId: string;
+  from: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const sentId = balanceId.slice(-8);
+  const waText = encodeURIComponent(`${from} sent you money 💸 Tap to receive it: ${link}`);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — the share button still works */
+    }
+  }
+
+  return (
+    <MoneyCard className="flex flex-col gap-3 p-5">
+      <p className="font-semibold text-ink">Your money link is ready</p>
+      <p
+        data-testid="money-link"
+        className="break-all rounded-[14px] border border-line bg-paper px-3 py-2 text-xs text-ink-soft"
+      >
+        {link}
+      </p>
+
+      <a
+        href={`https://wa.me/?text=${waText}`}
+        target="_blank"
+        rel="noreferrer"
+        className="flex h-12 w-full items-center justify-center rounded-full bg-money text-sm font-semibold text-primary-foreground"
+      >
+        Share on WhatsApp
+      </a>
+      <button
+        onClick={copy}
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line text-sm font-medium text-ink"
+      >
+        {copied ? <Check className="size-4 text-money" /> : <Copy className="size-4" />}
+        {copied ? "Copied" : "Copy link"}
+      </button>
+
+      <p className="text-xs text-ink-soft">
+        Share it privately with the person it's for — whoever holds the link can claim it, like cash in an
+        envelope. If nobody claims it, the money comes back to you after 7 days.
+      </p>
+      <Link href={`/sent/${sentId}`} className="text-sm font-semibold text-money underline-offset-2 hover:underline">
+        Track this link →
+      </Link>
+    </MoneyCard>
+  );
+}

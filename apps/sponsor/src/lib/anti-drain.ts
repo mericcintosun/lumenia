@@ -32,6 +32,20 @@ const SPONSOR_SOURCEABLE_OPS = new Set<string>([
   "createAccount",
 ]);
 
+/**
+ * The tight op allowlist for the /send path (a 0-XLM sender creates a dual-predicate
+ * Claimable Balance; the sponsor sponsors the reserve + fee-bumps). Kept SEPARATE
+ * from the claim allowlist so /feebump can NEVER accept a createClaimableBalance —
+ * the send has its own endpoint + policy. `createClaimableBalance` is deliberately
+ * NOT in SPONSOR_SOURCEABLE_OPS, so the generic source check forces it to be
+ * sender-sourced (a sponsor-sourced CB would spend the sponsor's own USDC).
+ */
+export const ALLOWED_SEND_OP_TYPES = new Set<string>([
+  "beginSponsoringFutureReserves",
+  "createClaimableBalance",
+  "endSponsoringFutureReserves",
+]);
+
 export interface InnerTxPolicy {
   /** Expected tx source (the recipient account). */
   expectedSource: string;
@@ -61,6 +75,18 @@ export interface InnerTxPolicy {
   maxStartingBalance?: string;
   /** Maximum number of ops accepted in a single tx. */
   maxOps?: number;
+  /**
+   * Override the allowed op-type set (defaults to the claim ALLOWED_INNER_OP_TYPES).
+   * The /send path passes ALLOWED_SEND_OP_TYPES so the claim allowlist is never widened.
+   */
+  allowedOpTypes?: Set<string>;
+  /**
+   * For `createClaimableBalance`: the EXACT number of claimants allowed. This BOUNDS
+   * the sponsor's reserve lock (reserve = baseReserve × numClaimants, otherwise
+   * attacker-controlled). STRICT: if a createClaimableBalance is present and this is
+   * omitted, the tx is REJECTED.
+   */
+  expectedClaimantCount?: number;
 }
 
 export interface ValidationResult {
@@ -79,6 +105,7 @@ export function validateInnerTransaction(
 ): ValidationResult {
   const maxOps = policy.maxOps ?? 6;
   const maxStarting = Number.parseFloat(policy.maxStartingBalance ?? "0");
+  const allowedTypes = policy.allowedOpTypes ?? ALLOWED_INNER_OP_TYPES;
 
   if (tx.operations.length === 0) {
     return { ok: false, reason: "no operations" };
@@ -91,7 +118,7 @@ export function validateInnerTransaction(
   }
 
   for (const op of tx.operations) {
-    if (!ALLOWED_INNER_OP_TYPES.has(op.type)) {
+    if (!allowedTypes.has(op.type)) {
       return { ok: false, reason: `disallowed op type: ${op.type}` };
     }
 
@@ -158,6 +185,49 @@ export function validateInnerTransaction(
           // Strict default: an unconstrained claim fails closed (a forgotten
           // expectedBalanceId must not let any claimable balance be claimed).
           return { ok: false, reason: "claim present but no expectedBalanceId set (strict mode)" };
+        }
+        break;
+      }
+      case "createClaimableBalance": {
+        // The /send shape: a sender-sourced CB whose reserve the sponsor sponsors.
+        // The sponsor never loses value (the USDC is the sender's) — the only new
+        // surface is the RESERVE LOCK, controlled by claimant count + predicates.
+        const o = op as {
+          asset?: Asset;
+          claimants?: Array<{ destination?: string; predicate?: { switch(): { name: string } } }>;
+        };
+        // asset must be the expected one (strict fail-closed, like changeTrust)
+        if (policy.expectedAsset) {
+          const asset = o.asset;
+          if (!asset || typeof (asset as Asset).equals !== "function" || !policy.expectedAsset.equals(asset as Asset)) {
+            return { ok: false, reason: "createClaimableBalance asset is not the expected asset" };
+          }
+        } else if (!policy.allowUncheckedAsset) {
+          return { ok: false, reason: "createClaimableBalance present but no expectedAsset set (strict mode)" };
+        }
+        const claimants = o.claimants ?? [];
+        // EXACT claimant count — bounds the sponsor's reserve lock (baseReserve ×
+        // numClaimants). Strict: a forgotten count must fail closed.
+        if (policy.expectedClaimantCount === undefined) {
+          return { ok: false, reason: "createClaimableBalance present but no expectedClaimantCount set (strict mode)" };
+        }
+        if (claimants.length !== policy.expectedClaimantCount) {
+          return {
+            ok: false,
+            reason: `createClaimableBalance has ${claimants.length} claimants, expected ${policy.expectedClaimantCount}`,
+          };
+        }
+        // At least one UNCONDITIONAL claimant → the CB is always claimable → the
+        // sponsored reserve is always releasable (closes "locked forever" griefing).
+        const hasUnconditional = claimants.some(
+          (c) => c.predicate?.switch?.().name === "claimPredicateUnconditional",
+        );
+        if (!hasUnconditional) {
+          return { ok: false, reason: "createClaimableBalance has no unconditional claimant (reserve could lock forever)" };
+        }
+        // The sender must be a claimant (the reclaim path — money returns to them).
+        if (!claimants.some((c) => c.destination === policy.expectedSource)) {
+          return { ok: false, reason: "createClaimableBalance missing the sender as a reclaim claimant" };
         }
         break;
       }

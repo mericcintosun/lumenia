@@ -71,14 +71,13 @@ export default function HomePage() {
     <div className="flex flex-col gap-5">
       <BalanceHeader usd={usd ?? "0"} tryValue={tryValue} phase={account.phase} />
 
-      {/* Primary action — Send goes live in Stage 5; honest disabled until then. */}
-      <button
-        disabled
-        title="Coming soon"
-        className="h-14 w-full rounded-full bg-money text-base font-semibold text-primary-foreground opacity-60"
+      {/* Primary action — send money onward with a link of your own. */}
+      <Link
+        href="/send"
+        className="flex h-14 w-full items-center justify-center rounded-full bg-money text-base font-semibold text-primary-foreground"
       >
-        {copy.claim.ctaSend} · {copy.claim.soon}
-      </button>
+        {copy.claim.ctaSend}
+      </Link>
 
       {account.phase === 1 && <LockMoneyCard />}
 

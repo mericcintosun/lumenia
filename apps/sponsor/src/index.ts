@@ -18,9 +18,11 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { getService, enforceRateLimit } from "./lib/service.js";
 import { createAccountHandler } from "./lib/create-account.js";
 import { feebumpHandler } from "./lib/feebump.js";
+import { sendLinkHandler } from "./lib/send.js";
+import { faucetHandler } from "./lib/faucet.js";
 import { handleEvent } from "./lib/events.js";
 
-const { config, signer, server } = getService();
+const { config, signer, faucet, server } = getService();
 const allowedOrigin = process.env.ALLOWED_ORIGIN ?? "*";
 
 /* ------------------------------- helpers ---------------------------------- */
@@ -95,6 +97,30 @@ const httpServer = createServer(async (req, res) => {
         recipientPublicKey: body.recipientPublicKey,
         balanceId: body.balanceId,
       });
+      return send(res, 200, result);
+    }
+
+    if (method === "POST" && url === "/send-link") {
+      const body = (await readJson(req)) as { xdr?: string; senderPublicKey?: string };
+      if (!body.xdr || !body.senderPublicKey) {
+        return send(res, 400, { error: "xdr and senderPublicKey are required" });
+      }
+      const rl = await enforceRateLimit(clientIp(req), body.senderPublicKey);
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      const result = await sendLinkHandler(server, config, signer, {
+        xdr: body.xdr,
+        senderPublicKey: body.senderPublicKey,
+      });
+      return send(res, 200, result);
+    }
+
+    if (method === "POST" && url === "/faucet") {
+      if (!faucet) return send(res, 503, { error: "faucet not configured" });
+      const body = (await readJson(req)) as { recipientPublicKey?: string };
+      if (!body.recipientPublicKey) return send(res, 400, { error: "recipientPublicKey is required" });
+      const rl = await enforceRateLimit(clientIp(req), body.recipientPublicKey);
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      const result = await faucetHandler(server, config, faucet, { recipientPublicKey: body.recipientPublicKey });
       return send(res, 200, result);
     }
 

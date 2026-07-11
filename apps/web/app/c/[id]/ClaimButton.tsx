@@ -118,13 +118,18 @@ export default function ClaimButton({
         <div className="mt-2 flex w-full flex-col gap-2">
           <Link
             href="/home"
+            prefetch={false}
             className="flex h-12 w-full items-center justify-center rounded-full bg-money text-sm font-semibold text-primary-foreground"
           >
             See my money
           </Link>
-          <button disabled title="Coming soon" className="h-11 w-full rounded-full text-sm text-ink-soft opacity-60">
-            {copy.claim.ctaSend} · {copy.claim.soon}
-          </button>
+          <Link
+            href="/send"
+            prefetch={false}
+            className="flex h-11 w-full items-center justify-center rounded-full border border-line text-sm font-medium text-ink"
+          >
+            {copy.claim.ctaSend}
+          </Link>
           <button disabled title="Coming soon" className="h-11 w-full rounded-full text-sm text-ink-soft opacity-60">
             {copy.claim.ctaRequest} · {copy.claim.soon}
           </button>

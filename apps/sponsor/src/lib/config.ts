@@ -16,6 +16,11 @@ export interface SponsorConfig {
   horizonUrl: string;
   /** Hot sponsor secret (S...). KMS key id replaces this later — see lib/signer.ts. */
   sponsorSecret: string;
+  /**
+   * Test-USDC faucet secret (S...) — a SEPARATE key from the sponsor (two blast
+   * radii). Optional: if unset, the /faucet endpoint is disabled. Testnet only.
+   */
+  faucetSecret?: string;
   /** The one USDC asset the sponsor will open a trustline to. */
   usdc: Asset;
   /** Hard cap (stroops) on the fee the sponsor will pay for a single fee-bump. */
@@ -41,6 +46,7 @@ export function defaultHorizon(network: StellarNetwork): string {
 export function makeConfig(parts: {
   network: StellarNetwork;
   sponsorSecret: string;
+  faucetSecret?: string;
   usdcIssuer: string;
   usdcCode?: string;
   horizonUrl?: string;
@@ -53,6 +59,7 @@ export function makeConfig(parts: {
     networkPassphrase: passphraseFor(network),
     horizonUrl: parts.horizonUrl ?? defaultHorizon(network),
     sponsorSecret: parts.sponsorSecret,
+    faucetSecret: parts.faucetSecret,
     usdc: new Asset(parts.usdcCode ?? "USDC", parts.usdcIssuer),
     feeBumpMaxStroops: parts.feeBumpMaxStroops ?? "10000", // 0.001 XLM per tx
     port: parts.port ?? 8787,
@@ -68,6 +75,7 @@ export function loadConfig(): SponsorConfig {
   return makeConfig({
     network,
     sponsorSecret: required("SPONSOR_SECRET"),
+    faucetSecret: process.env.FAUCET_SECRET,
     usdcIssuer: required("USDC_ISSUER"),
     usdcCode: process.env.USDC_CODE,
     horizonUrl: process.env.HORIZON_URL,

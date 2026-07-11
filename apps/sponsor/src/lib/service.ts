@@ -12,6 +12,8 @@ import { checkRateLimitDurable, rateLimitConfigFromEnv, type RateLimitVerdict } 
 export interface Service {
   config: SponsorConfig;
   signer: SponsorSigner;
+  /** Test-USDC faucet signer — null when FAUCET_SECRET is unset (faucet disabled). */
+  faucet: SponsorSigner | null;
   server: Horizon.Server;
 }
 
@@ -20,7 +22,12 @@ let cached: Service | null = null;
 export function getService(): Service {
   if (!cached) {
     const config = loadConfig();
-    cached = { config, signer: signerFromSecret(config.sponsorSecret), server: horizon(config) };
+    cached = {
+      config,
+      signer: signerFromSecret(config.sponsorSecret),
+      faucet: config.faucetSecret ? signerFromSecret(config.faucetSecret) : null,
+      server: horizon(config),
+    };
   }
   return cached;
 }

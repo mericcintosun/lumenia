@@ -146,6 +146,34 @@ async function main() {
     const xlmBal = landed.balances.find((b) => b.asset_type === "native")?.balance;
     ok("USDC landed (20) + 0 XLM held", usdcBal === "20.0000000" && xlmBal === "0.0000000", `(usdc ${usdcBal}, xlm ${xlmBal})`);
 
+    /* ---------- TEST 1b: happy send (0-XLM sender creates a sponsor-reserved CB) ---------- */
+    console.log("\n[1b] happy send: the 0-XLM claimer sends $7 onward → /send-link → CB created");
+    const onwardBearer = Keypair.random();
+    const senderAcc = await server.loadAccount(claimKey.publicKey()); // 20 USDC, 0 XLM
+    const sendInner = new TransactionBuilder(senderAcc, { fee: BASE_FEE, networkPassphrase: NETWORK })
+      .addOperation(Operation.beginSponsoringFutureReserves({ sponsoredId: claimKey.publicKey(), source: sponsor.publicKey() }))
+      .addOperation(
+        Operation.createClaimableBalance({
+          asset: USDC,
+          amount: "7",
+          claimants: [
+            new Claimant(onwardBearer.publicKey(), Claimant.predicateUnconditional()),
+            new Claimant(claimKey.publicKey(), Claimant.predicateNot(Claimant.predicateBeforeRelativeTime(RECLAIM))),
+          ],
+          source: claimKey.publicKey(),
+        }),
+      )
+      .addOperation(Operation.endSponsoringFutureReserves({ source: claimKey.publicKey() }))
+      .setTimeout(180)
+      .build();
+    sendInner.sign(claimKey);
+    const sl = await post("/send-link", { xdr: sendInner.toXDR(), senderPublicKey: claimKey.publicKey() });
+    ok(
+      "send-link → 200 + balanceId (0-XLM sender, sponsor-reserved CB)",
+      sl.status === 200 && typeof sl.body.balanceId === "string",
+      `(got ${sl.status} ${JSON.stringify(sl.body)})`,
+    );
+
     /* ---------- TEST 2: drain rejection ---------- */
     console.log("\n[2] drain rejection: a malicious payment inner tx → anti-drain 400");
     const evil = Keypair.random();

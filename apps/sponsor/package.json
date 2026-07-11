@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "build:vercel": "node build-vercel.mjs",
     "bootstrap": "tsx src/cli/bootstrap.ts",
+    "faucet-bootstrap": "tsx src/cli/faucet-bootstrap.ts",
     "create-account": "tsx src/cli/create-account.ts",
     "claim": "tsx src/cli/claim.ts",
     "makelink": "tsx src/cli/link.ts",
@@ -15,6 +16,7 @@
     "spike1b": "tsx src/spike1b-kms-rawsign.ts",
     "spike1c": "tsx src/spike1c-wire-parity.ts",
     "spike4": "tsx src/spike4-cctp-bridge.ts",
+    "spike5": "tsx src/spike5-sponsored-send.ts",
     "test:antidrain": "tsx src/test-antidrain.ts",
     "test:integration": "tsx src/test-integration.ts"
   },

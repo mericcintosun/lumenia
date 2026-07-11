@@ -9,6 +9,8 @@
     { "source": "/health", "destination": "/api/health" },
     { "source": "/create-account", "destination": "/api/create-account" },
     { "source": "/feebump", "destination": "/api/feebump" },
+    { "source": "/send-link", "destination": "/api/send-link" },
+    { "source": "/faucet", "destination": "/api/faucet" },
     { "source": "/events", "destination": "/api/events" }
   ]
 }

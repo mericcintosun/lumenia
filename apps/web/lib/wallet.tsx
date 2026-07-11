@@ -3,12 +3,14 @@
 /**
  * WalletProvider — the one React context the app shell hangs off (FRONTEND_PLAN §0:
  * no Zustand, one context; everything else is server/Horizon state). It exposes the
- * local account (address + custody phase) read from the keystore; the seed itself
- * never enters the context (that stays behind lib/signer.ts + lib/keystore.ts).
- * The unlocked-signer session lands in Stage 5 (send), where signing is needed.
+ * local account (address + custody phase) read from the keystore, and — for signing
+ * (send) — an in-memory session seed set after unlock. The seed lives ONLY in memory
+ * here + behind lib/signer.ts; it is never persisted in the clear and never logged.
+ * v2 swaps the concrete signer without touching this shape.
  */
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { getRecordMeta, type Phase } from "./keystore";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { getRecordMeta, unlockPhase1, type Phase } from "./keystore";
+import { localSignerFromSeed, type Signer } from "./signer";
 
 export interface WalletAccount {
   address: string;
@@ -18,7 +20,17 @@ export interface WalletAccount {
 interface WalletState {
   status: "loading" | "ready";
   account: WalletAccount | null;
+  /** true once a Phase-2 account has been unlocked this session (a signer is available). */
+  unlocked: boolean;
   refresh: () => Promise<void>;
+  /** hold the decrypted seed for the session (called by /unlock after a Phase-2 decrypt). */
+  setSessionSeed: (seed: Uint8Array) => void;
+  /**
+   * A ready-to-use signer for the local account. Phase 1 unwraps the device key
+   * inline; Phase 2 uses the session seed (throws if not yet unlocked — the caller
+   * routes to /unlock). The seed never leaves this module.
+   */
+  getSigner: () => Promise<Signer>;
 }
 
 const WalletContext = createContext<WalletState | null>(null);
@@ -26,6 +38,8 @@ const WalletContext = createContext<WalletState | null>(null);
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const [account, setAccount] = useState<WalletAccount | null>(null);
+  const [unlocked, setUnlocked] = useState(false);
+  const sessionSeed = useRef<Uint8Array | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -42,7 +56,28 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  return <WalletContext.Provider value={{ status, account, refresh }}>{children}</WalletContext.Provider>;
+  const setSessionSeed = useCallback((seed: Uint8Array) => {
+    sessionSeed.current = seed;
+    setUnlocked(true);
+  }, []);
+
+  const getSigner = useCallback(async (): Promise<Signer> => {
+    if (!account) throw new Error("no local account");
+    if (account.phase === 1) {
+      const seed = await unlockPhase1();
+      const signer = localSignerFromSeed(seed);
+      seed.fill(0);
+      return signer;
+    }
+    if (!sessionSeed.current) throw new Error("locked");
+    return localSignerFromSeed(sessionSeed.current);
+  }, [account]);
+
+  return (
+    <WalletContext.Provider value={{ status, account, unlocked, refresh, setSessionSeed, getSigner }}>
+      {children}
+    </WalletContext.Provider>
+  );
 }
 
 export function useWallet(): WalletState {

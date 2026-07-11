@@ -19,6 +19,7 @@ import assert from "node:assert/strict";
 import {
   Account,
   Asset,
+  Claimant,
   Keypair,
   Networks,
   Operation,
@@ -28,7 +29,11 @@ import {
   type xdr,
 } from "@stellar/stellar-sdk";
 // the deployed validator (same module the live /feebump imports)
-import { validateInnerTransaction, type InnerTxPolicy } from "./lib/anti-drain.js";
+import {
+  validateInnerTransaction,
+  ALLOWED_SEND_OP_TYPES,
+  type InnerTxPolicy,
+} from "./lib/anti-drain.js";
 
 const NETWORK = Networks.TESTNET;
 
@@ -37,6 +42,7 @@ const sponsor = Keypair.random();
 const issuer = Keypair.random();
 const attacker = Keypair.random();
 const anchor = Keypair.random(); // an allow-listed payment destination
+const bearer = Keypair.random(); // the /send onward-recipient (CB claimant)
 
 const USDC = new Asset("USDC", issuer.publicKey());
 const WRONG = new Asset("DAI", issuer.publicKey());
@@ -296,6 +302,95 @@ check(
     { expectedSource: recipient.publicKey(), sponsor: sponsor.publicKey(), expectedBalanceId: BALANCE_ID, allowUncheckedAsset: true },
   ),
   true,
+);
+
+/* ---- /send SHAPE: a 0-XLM sender creates a sponsor-reserved Claimable Balance ---- */
+
+const RECLAIM = "604800"; // 7 days
+const goodClaimants = [
+  new Claimant(bearer.publicKey(), Claimant.predicateUnconditional()),
+  new Claimant(recipient.publicKey(), Claimant.predicateNot(Claimant.predicateBeforeRelativeTime(RECLAIM))),
+];
+function sendOps(claimants: Claimant[], asset: Asset = USDC, cbSource: string = recipient.publicKey()): xdr.Operation[] {
+  return [
+    Operation.beginSponsoringFutureReserves({ sponsoredId: recipient.publicKey(), source: sponsor.publicKey() }),
+    Operation.createClaimableBalance({ asset, amount: "20", claimants, source: cbSource }),
+    Operation.endSponsoringFutureReserves({ source: recipient.publicKey() }),
+  ];
+}
+const sendPolicy: InnerTxPolicy = {
+  expectedSource: recipient.publicKey(), // the sender sources the tx + the CB
+  sponsor: sponsor.publicKey(),
+  expectedAsset: USDC,
+  allowedOpTypes: ALLOWED_SEND_OP_TYPES,
+  expectedClaimantCount: 2,
+  maxOps: 3,
+};
+
+check(
+  "SEND-G valid send shape (begin/createCB[bearer-uncond + sender-reclaim]/end)",
+  validateInnerTransaction(buildTx(recipient.publicKey(), sendOps(goodClaimants)), sendPolicy),
+  true,
+);
+check(
+  "SEND-R1 createClaimableBalance sourced by the sponsor (spends sponsor USDC)",
+  validateInnerTransaction(buildTx(recipient.publicKey(), sendOps(goodClaimants, USDC, sponsor.publicKey())), sendPolicy),
+  false,
+  "sponsor",
+);
+check(
+  "SEND-R2 createClaimableBalance wrong asset",
+  validateInnerTransaction(buildTx(recipient.publicKey(), sendOps(goodClaimants, WRONG)), sendPolicy),
+  false,
+  "expected asset",
+);
+check(
+  "SEND-R3 too many claimants (reserve-lock griefing)",
+  validateInnerTransaction(
+    buildTx(
+      recipient.publicKey(),
+      sendOps([...goodClaimants, new Claimant(attacker.publicKey(), Claimant.predicateUnconditional())]),
+    ),
+    sendPolicy,
+  ),
+  false,
+  "claimants",
+);
+check(
+  "SEND-R4 no unconditional claimant (reserve could lock forever)",
+  validateInnerTransaction(
+    buildTx(
+      recipient.publicKey(),
+      sendOps([
+        new Claimant(bearer.publicKey(), Claimant.predicateBeforeRelativeTime("100")),
+        new Claimant(recipient.publicKey(), Claimant.predicateNot(Claimant.predicateBeforeRelativeTime(RECLAIM))),
+      ]),
+    ),
+    sendPolicy,
+  ),
+  false,
+  "unconditional",
+);
+check(
+  "SEND-R5 sender is not a claimant (no reclaim path)",
+  validateInnerTransaction(
+    buildTx(
+      recipient.publicKey(),
+      sendOps([
+        new Claimant(bearer.publicKey(), Claimant.predicateUnconditional()),
+        new Claimant(attacker.publicKey(), Claimant.predicateUnconditional()),
+      ]),
+    ),
+    sendPolicy,
+  ),
+  false,
+  "reclaim claimant",
+);
+check(
+  "SEND-R6 the CLAIM policy rejects createClaimableBalance (allowlist never widened)",
+  validateInnerTransaction(buildTx(recipient.publicKey(), sendOps(goodClaimants)), basePolicy),
+  false,
+  "disallowed op type",
 );
 
 console.log("\n============================================================");

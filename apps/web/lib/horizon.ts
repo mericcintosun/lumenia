@@ -38,6 +38,22 @@ export async function loadBalance(address: string): Promise<Balance | null> {
   }
 }
 
+/**
+ * A sent link's status straight from the ledger (FRONTEND_PLAN §1: /sent status =
+ * Horizon reads on the claimable-balance id — no DB). "pending" = the balance still
+ * exists (waiting to be claimed); "settled" = it's gone (claimed by the recipient,
+ * or reclaimed by the sender after 7 days).
+ */
+export async function loadLinkStatus(balanceId: string): Promise<"pending" | "settled"> {
+  try {
+    await server().claimableBalances().claimableBalance(balanceId).call();
+    return "pending";
+  } catch (e) {
+    if ((e as { response?: { status?: number } })?.response?.status === 404) return "settled";
+    throw e;
+  }
+}
+
 /** Money in/out for the account, newest first — derived from ledger effects. */
 export async function loadActivity(address: string, limit = 20): Promise<ActivityItem[]> {
   try {

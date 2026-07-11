@@ -1,23 +1,56 @@
 /**
- * Claim page — the hero, VALUE-FIRST (UX/product review + WhatsApp-webview research).
+ * Claim page — THE HERO, value-first (UX/product review + WhatsApp-webview research).
  *
- * The page shows the money IMMEDIATELY — "Alvin sent you money · $20" — with
- * NO credential, wallet, or crypto term in sight. The public claim metadata
- * (amount, sender, balanceId) rides in the URL query so the server can render it;
- * the bearer key rides in the #fragment and is read only client-side (ClaimButton).
- * The actual claim happens after the user has seen the value (deferred-credential).
+ * The money is shown IMMEDIATELY — "Alvin sent you money · $20.00" — with NO
+ * credential, wallet, or crypto term in sight (vocabulary law §8). The public claim
+ * metadata (amount, sender, balanceId) rides in the URL query so the server renders
+ * it value-first; the bearer key rides in the #fragment and is read only client-side
+ * (ClaimButton). Warm paper, light-only, CSS-only (no Motion/webfont on this route).
  */
+import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { getClaim, indicativeRate } from "../../../lib/claims";
+import { indicativeRate } from "../../../lib/rate";
 import { formatUsd, usdToTryIndicative } from "../../../lib/money";
 import { copy } from "../../../lib/copy";
+import { PersonChip } from "../../../components/brand/PersonChip";
 import ClaimButton from "./ClaimButton";
 
+type SP = Record<string, string | undefined>;
+
 interface ClaimView {
-  id: string;
   senderName: string;
   usd: string;
-  balanceId?: string;
+  balanceId: string;
+}
+
+/** A real claim link carries the public metadata in the query. No query → not a
+ *  claim link (the fake-data stub is gone — no-mock-data rule). */
+function readClaim(sp: SP): ClaimView | null {
+  if (sp.a && sp.b) return { senderName: sp.s ?? "Someone", usd: sp.a, balanceId: sp.b };
+  return null;
+}
+
+// The claim page ships light-only warm paper; override the root dark themeColor.
+export const viewport: Viewport = { themeColor: "#FAF6F0" };
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<SP>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const claim = readClaim(await searchParams);
+  if (!claim) return { title: copy.appName };
+  const qs = new URLSearchParams({ a: claim.usd, s: claim.senderName }).toString();
+  const title = `${claim.senderName} sent you ${formatUsd(claim.usd)}`;
+  const images = [`/c/${id}/og?${qs}`];
+  return {
+    title,
+    openGraph: { title, images },
+    twitter: { card: "summary_large_image", title, images },
+  };
 }
 
 export default async function ClaimPage({
@@ -25,31 +58,31 @@ export default async function ClaimPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string | undefined>>;
+  searchParams: Promise<SP>;
 }) {
   const { id } = await params;
-  const sp = await searchParams;
-
-  // A real claim link carries public metadata in the query. Fall back to the stub
-  // (demo / OG-card route) when it is absent.
-  let claim: ClaimView | null;
-  if (sp.a && sp.b) {
-    claim = { id, senderName: sp.s ?? "Someone", usd: sp.a, balanceId: sp.b };
-  } else {
-    const stub = await getClaim(id);
-    claim = stub ? { id: stub.id, senderName: stub.senderName, usd: stub.usd } : null;
-  }
+  const claim = readClaim(await searchParams);
   if (!claim) notFound();
 
   return (
-    <main className="center">
-      <div className="card">
-        <p className="muted">{copy.claim.youReceived(claim.senderName)}</p>
-        <div className="amount">{formatUsd(claim.usd)}</div>
-        <div className="amount-try">≈ {usdToTryIndicative(claim.usd, indicativeRate())}</div>
-        <p className="muted" style={{ marginTop: "1.5rem" }}>{copy.claim.amountNote}</p>
-        <ClaimButton claimId={claim.id} balanceId={claim.balanceId} />
-        <p className="muted" style={{ fontSize: "0.85rem", marginTop: "1rem" }}>{copy.claim.holdHint}</p>
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-paper px-6 py-10 text-ink">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center">
+        <PersonChip name={claim.senderName} size="lg" nameless joyRing />
+        <p className="text-xl text-ink-soft">{copy.claim.youReceived(claim.senderName)}</p>
+
+        {/* value-first: the money, huge, tabular, before any action or hydration */}
+        <div className="text-[3.5rem] font-bold leading-none tracking-tight tabular-nums text-money">
+          {formatUsd(claim.usd)}
+        </div>
+        <p className="text-sm text-ink-soft">
+          ≈ {usdToTryIndicative(claim.usd, indicativeRate())} <span className="opacity-70">indicative</span>
+        </p>
+
+        <div className="mt-4 w-full">
+          <ClaimButton claimId={id} balanceId={claim.balanceId} sender={claim.senderName} />
+        </div>
+
+        <p className="mt-1 text-sm text-ink-soft">{copy.claim.safetyLine}</p>
       </div>
     </main>
   );

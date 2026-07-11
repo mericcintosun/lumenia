@@ -12,6 +12,10 @@ const SPONSOR = process.env.SPONSOR_URL ?? "https://lumenia-sponsor.vercel.app";
 const WEB = process.env.WEB_URL ?? "https://lumenia-chi.vercel.app";
 
 test("fresh makelink → claim in a real browser → USDC lands (tx hash)", async ({ page }) => {
+  page.on("pageerror", (e) => console.log("[pageerror]", e.message));
+  page.on("requestfailed", (r) =>
+    console.log("[requestfailed]", r.method(), r.url(), r.failure()?.errorText),
+  );
   const link = await mintClaimLink({ sponsor: SPONSOR, web: WEB, amount: "20", from: "Alvin" });
   test.info().annotations.push({ type: "claim-url", description: link.url });
 
@@ -20,14 +24,23 @@ test("fresh makelink → claim in a real browser → USDC lands (tx hash)", asyn
   await expect(page.getByText(/sent you money/i)).toBeVisible();
   await expect(page.getByText("$20.00")).toBeVisible();
 
-  // 2. claim — one decision, one button.
+  // 2. wait for hydration BEFORE clicking (avoids a click-before-hydration race on a
+  //    cold first load). ClaimButton strips the #fragment on mount (C3), so an empty
+  //    location.hash is a reliable "hydrated" signal — and asserts C3 at the same time.
+  expect(link.url).toContain("#");
+  await page.waitForFunction(() => window.location.hash === "", null, { timeout: 20_000 });
+
+  // 3. claim — one decision, one button.
   await page.getByRole("button", { name: /claim my money/i }).click();
 
-  // 3. success: the money landed + a real on-chain tx hash is surfaced.
+  // 4. success: the money landed. Vocabulary-law clean UI (no visible crypto), so
+  // the on-chain tx hash is surfaced via the "public record" link href + a
+  // data-tx-hash attribute — assert on those, not on visible hash text.
   await expect(page.getByText(/in your account/i)).toBeVisible({ timeout: 120_000 });
-  const hashLink = page.getByRole("link", { name: /^[a-f0-9]{64}$/i });
-  await expect(hashLink).toBeVisible();
-  const hash = (await hashLink.textContent())?.trim() ?? "";
+  const receipt = page.getByRole("link", { name: /public record/i });
+  await expect(receipt).toBeVisible();
+  const href = (await receipt.getAttribute("href")) ?? "";
+  const hash = /\/tx\/([a-f0-9]{64})/i.exec(href)?.[1] ?? "";
   expect(hash).toMatch(/^[a-f0-9]{64}$/i);
   console.log(`\n✅ live claim OK — tx https://stellar.expert/explorer/testnet/tx/${hash}\n`);
 });

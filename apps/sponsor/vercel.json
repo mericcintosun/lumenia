@@ -8,6 +8,7 @@
   "rewrites": [
     { "source": "/health", "destination": "/api/health" },
     { "source": "/create-account", "destination": "/api/create-account" },
-    { "source": "/feebump", "destination": "/api/feebump" }
+    { "source": "/feebump", "destination": "/api/feebump" },
+    { "source": "/events", "destination": "/api/events" }
   ]
 }

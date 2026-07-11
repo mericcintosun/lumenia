@@ -11,6 +11,28 @@ const nextConfig: NextConfig = {
   ...(process.env.VERCEL
     ? {}
     : { turbopack: { root: path.resolve(import.meta.dirname, "..", "..") } }),
+
+  // The OG route reads the embedded font from ./assets via fs at runtime — make
+  // sure that file is traced into the serverless function bundle on Vercel.
+  outputFileTracingIncludes: {
+    "/c/**": ["./assets/**"],
+  },
+
+  // The bearer key rides in the #fragment (never sent to a server), but the claim
+  // route must also not leak its full URL via the Referer header to the sponsor,
+  // the explorer, or any third party. Cover the page and its /og sub-path.
+  async headers() {
+    return [
+      {
+        source: "/c/:id",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+      {
+        source: "/c/:id/:path*",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -18,6 +18,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { getService, enforceRateLimit } from "./lib/service.js";
 import { createAccountHandler } from "./lib/create-account.js";
 import { feebumpHandler } from "./lib/feebump.js";
+import { handleEvent } from "./lib/events.js";
 
 const { config, signer, server } = getService();
 const allowedOrigin = process.env.ALLOWED_ORIGIN ?? "*";
@@ -95,6 +96,17 @@ const httpServer = createServer(async (req, res) => {
         balanceId: body.balanceId,
       });
       return send(res, 200, result);
+    }
+
+    if (method === "POST" && url === "/events") {
+      const rl = await enforceRateLimit(clientIp(req));
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      try {
+        handleEvent((await readJson(req)) as { event?: string; cid?: string });
+      } catch {
+        /* ignore an unknown/bad event — the beacon is fire-and-forget */
+      }
+      return send(res, 200, { ok: true });
     }
 
     return send(res, 404, { error: "not found" });

@@ -1,8 +1,10 @@
 /**
- * User-facing copy — English (repo language policy: everything in English;
- * a Turkish locale returns as an i18n pass when the TR corridor launches).
- * Positioning rule: the user only ever sees money ($ / ₺) and people.
- * NEVER expose "wallet / crypto / USDC / Stellar / blockchain / gas".
+ * User-facing copy — English (repo language policy: everything English; a Turkish
+ * locale returns as an i18n pass when the TR corridor launches).
+ * Vocabulary law (FRONTEND_PLAN §8): product UI shows only money + people —
+ * NEVER wallet / crypto / USDC / Stellar / blockchain / gas / on-chain. Approved:
+ * money, send, receive, claim, link, held in dollars, "we cover the network cost",
+ * "public record" / "publicly verifiable", reclaim / "comes back to you after 7 days".
  */
 export const copy = {
   appName: "Lumenia",
@@ -13,25 +15,39 @@ export const copy = {
   },
   claim: {
     youReceived: (name: string) => `${name} sent you money`,
-    amountNote: "It's your money. Tap to claim it.",
+    amountNote: "It's yours to keep.",
+    safetyLine: "No app, no sign-up — just tap.",
     claimCta: "Claim my money",
-    claiming: "Getting your money ready…",
-    done: "The money is in your account 🎉",
-    holdHint: "Your dollars stay right here — no melting away. Spend them whenever you like.",
-    spend: "Spend with a card",
-    fromSender: "From",
+    claiming: "Moving your money to you…",
+    slow: "Almost there — your money is safe.",
+    doneLabel: "Your money",
+    doneSub: "It's in your account.",
+    receipt: "See the public record",
+    error: (name: string) => `We couldn't finish — your money from ${name} is still safe. Try again.`,
+    retry: "Try again",
+    holdHint: "Your dollars stay right here — spend them whenever you like.",
+    // post-claim next action (the north-star hand-off)
+    ctaSend: "Send money to someone",
+    ctaRequest: "Ask someone to pay you",
+    soon: "soon",
+  },
+  lock: {
+    title: "Lock this money to you",
+    body: "Add a password so only you can spend it. You can do this anytime.",
+    cta: "Lock it",
+    skip: "Maybe later",
   },
   /**
-   * Delegated cash-out placeholder (Instawards SOW §4.1 note + W4): conversion to
-   * local currency is handled by a licensed provider, never by Lumenia. These are
-   * UI placeholders only — no live conversion in this sprint.
+   * Delegated cash-out placeholder (Instawards SOW note): conversion to local
+   * currency is handled by a licensed provider, never by Lumenia. UI placeholder
+   * only. Lives on /home + /cash-out now — NOT on the claim success screen.
    */
   cashOut: {
     title: "Use your money",
     spendCard: "Spend with a card",
     toTry: "Convert to Turkish lira",
     soon: "Coming soon",
-    delegatedNote: "Conversion is handled by a licensed provider — coming very soon.",
+    delegatedNote: "Conversion is handled by a licensed provider — coming soon.",
   },
   errors: {
     notFound: "This link is invalid or has expired.",

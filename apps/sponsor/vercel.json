@@ -11,6 +11,8 @@
     { "source": "/feebump", "destination": "/api/feebump" },
     { "source": "/send-link", "destination": "/api/send-link" },
     { "source": "/faucet", "destination": "/api/faucet" },
+    { "source": "/demo-link", "destination": "/api/demo-link" },
+    { "source": "/waitlist", "destination": "/api/waitlist" },
     { "source": "/events", "destination": "/api/events" }
   ]
 }

@@ -111,7 +111,9 @@
   --radius-xl: 1.25rem;      /* 20px — cards (envelope-soft) */
 
   --font-sans: var(--font-sans);
-  --font-heading: var(--font-sans);
+  /* Humanist heading font is scoped to the (marketing) layout via --font-jakarta;
+     everywhere else (incl. the webfont-free claim route) falls back to system sans. */
+  --font-heading: var(--font-jakarta, var(--font-sans));
 }
 
 @layer base {
@@ -122,46 +124,4 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
   }
-}
-
-/* =========================================================================
-   FROZEN legacy claim/landing styles (Stage 1 ONLY).
-   Kept byte-identical to the pre-redesign dark look so the LIVE claim page
-   (grant evidence) is untouched while the design system lands around it.
-   Self-contained (hardcoded values, no token refs). Stage 2 restyles
-   /c/[id] to warm paper and DELETES this entire block.
-   ========================================================================= */
-.center {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  text-align: center;
-  background: #0b0b0f;
-  color: #f5f5f7;
-}
-.amount { font-size: 3.5rem; font-weight: 700; letter-spacing: -0.02em; }
-.amount-try { color: #9a9aa5; font-size: 1.1rem; }
-.muted { color: #9a9aa5; }
-.btn {
-  appearance: none;
-  border: 0;
-  border-radius: 999px;
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  background: #4ade80;
-  color: #04210f;
-  cursor: pointer;
-}
-.btn:disabled { opacity: 0.6; cursor: default; }
-.card {
-  background: #15151c;
-  border-radius: 1.25rem;
-  padding: 2rem;
-  width: 100%;
-  max-width: 420px;
 }

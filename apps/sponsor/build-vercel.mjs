@@ -18,6 +18,8 @@ await build({
     feebump: "src/vercel/feebump.ts",
     "send-link": "src/vercel/send-link.ts",
     faucet: "src/vercel/faucet.ts",
+    "demo-link": "src/vercel/demo-link.ts",
+    waitlist: "src/vercel/waitlist.ts",
     events: "src/vercel/events.ts",
   },
   outdir: "api",

@@ -20,6 +20,8 @@ import { createAccountHandler } from "./lib/create-account.js";
 import { feebumpHandler } from "./lib/feebump.js";
 import { sendLinkHandler } from "./lib/send.js";
 import { faucetHandler } from "./lib/faucet.js";
+import { demoLinkHandler } from "./lib/demo-link.js";
+import { saveContact } from "./lib/waitlist.js";
 import { handleEvent } from "./lib/events.js";
 
 const { config, signer, faucet, server } = getService();
@@ -122,6 +124,23 @@ const httpServer = createServer(async (req, res) => {
       if (rl.limited) return send(res, 429, { error: rl.reason });
       const result = await faucetHandler(server, config, faucet, { recipientPublicKey: body.recipientPublicKey });
       return send(res, 200, result);
+    }
+
+    if (method === "POST" && url === "/demo-link") {
+      if (!faucet) return send(res, 503, { error: "demo not configured" });
+      const rl = await enforceRateLimit(clientIp(req));
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      const result = await demoLinkHandler(server, config, faucet);
+      return send(res, 200, result);
+    }
+
+    if (method === "POST" && url === "/waitlist") {
+      const rl = await enforceRateLimit(clientIp(req));
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      const body = (await readJson(req)) as { list?: string; email?: string };
+      if (!body.list || !body.email) return send(res, 400, { error: "list and email are required" });
+      await saveContact(body.list, body.email);
+      return send(res, 200, { ok: true });
     }
 
     if (method === "POST" && url === "/events") {

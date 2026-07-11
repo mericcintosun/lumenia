@@ -39,6 +39,22 @@ export async function loadBalance(address: string): Promise<Balance | null> {
 }
 
 /**
+ * A public transfer record by its transaction hash (for /tools/verify). Returns
+ * null if there's no such transaction. Plain "was it real + when", no jargon.
+ */
+export async function loadTransfer(
+  hash: string,
+): Promise<{ successful: boolean; createdAt: string } | null> {
+  try {
+    const tx = await server().transactions().transaction(hash).call();
+    return { successful: tx.successful, createdAt: tx.created_at };
+  } catch (e) {
+    if ((e as { response?: { status?: number } })?.response?.status === 404) return null;
+    throw e;
+  }
+}
+
+/**
  * A sent link's status straight from the ledger (FRONTEND_PLAN §1: /sent status =
  * Horizon reads on the claimable-balance id — no DB). "pending" = the balance still
  * exists (waiting to be claimed); "settled" = it's gone (claimed by the recipient,

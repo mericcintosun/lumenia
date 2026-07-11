@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { tr } from "../lib/copy";
+import { copy } from "../lib/copy";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: tr.appName,
-  description: tr.landing.sub,
-  applicationName: tr.appName,
-  appleWebApp: { capable: true, statusBarStyle: "default", title: tr.appName },
+  title: copy.appName,
+  description: copy.landing.sub,
+  applicationName: copy.appName,
+  appleWebApp: { capable: true, statusBarStyle: "default", title: copy.appName },
 };
 
 export const viewport: Viewport = {
@@ -18,7 +18,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr">
+    <html lang="en">
       <body>{children}</body>
     </html>
   );

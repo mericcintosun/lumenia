@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { tr } from "../../../lib/copy";
+import { copy } from "../../../lib/copy";
 import { runClaim } from "../../../lib/sponsor";
 
 /**
@@ -26,8 +26,8 @@ export default function ClaimButton({ claimId, balanceId }: { claimId: string; b
     setError("");
     try {
       const bearerSecret = window.location.hash.slice(1);
-      if (!bearerSecret) throw new Error("Bu link geçersiz (anahtar yok).");
-      if (!balanceId) throw new Error("Bu link geçersiz (bakiye bilgisi yok).");
+      if (!bearerSecret) throw new Error("This link is invalid (missing key).");
+      if (!balanceId) throw new Error("This link is invalid (missing balance info).");
       const { hash } = await runClaim({ sponsorUrl: SPONSOR_URL, bearerSecret, balanceId });
       setHash(hash);
       setState("done");
@@ -40,7 +40,7 @@ export default function ClaimButton({ claimId, balanceId }: { claimId: string; b
   if (state === "done") {
     return (
       <div>
-        <p style={{ fontWeight: 600 }}>{tr.claim.done}</p>
+        <p style={{ fontWeight: 600 }}>{copy.claim.done}</p>
         <a
           className="muted"
           href={explorer(hash)}
@@ -53,16 +53,16 @@ export default function ClaimButton({ claimId, balanceId }: { claimId: string; b
         {/* Delegated cash-out placeholder (SOW W4) — a licensed provider converts,
             Lumenia never does; no live conversion in this sprint. */}
         <div style={{ marginTop: "1.5rem" }}>
-          <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>{tr.cashOut.title}</p>
+          <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>{copy.cashOut.title}</p>
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <button className="btn" disabled title={tr.cashOut.soon} style={{ opacity: 0.5 }}>
-              {tr.cashOut.spendCard} · {tr.cashOut.soon.toLowerCase()}
+            <button className="btn" disabled title={copy.cashOut.soon} style={{ opacity: 0.5 }}>
+              {copy.cashOut.spendCard} · {copy.cashOut.soon.toLowerCase()}
             </button>
-            <button className="btn" disabled title={tr.cashOut.soon} style={{ opacity: 0.5 }}>
-              {tr.cashOut.toTry} · {tr.cashOut.soon.toLowerCase()}
+            <button className="btn" disabled title={copy.cashOut.soon} style={{ opacity: 0.5 }}>
+              {copy.cashOut.toTry} · {copy.cashOut.soon.toLowerCase()}
             </button>
           </div>
-          <p className="muted" style={{ fontSize: "0.75rem", marginTop: "0.5rem" }}>{tr.cashOut.delegatedNote}</p>
+          <p className="muted" style={{ fontSize: "0.75rem", marginTop: "0.5rem" }}>{copy.cashOut.delegatedNote}</p>
         </div>
       </div>
     );
@@ -71,7 +71,7 @@ export default function ClaimButton({ claimId, balanceId }: { claimId: string; b
   return (
     <>
       <button className="btn" onClick={onClaim} disabled={state === "claiming"} data-claim-id={claimId}>
-        {state === "claiming" ? tr.claim.claiming : tr.claim.claimCta}
+        {state === "claiming" ? copy.claim.claiming : copy.claim.claimCta}
       </button>
       {state === "error" && (
         <p style={{ color: "#c0392b", fontSize: "0.8rem", marginTop: "0.75rem" }}>{error}</p>

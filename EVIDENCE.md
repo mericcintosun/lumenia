@@ -40,7 +40,7 @@ held 0 XLM throughout and paid no fee** — no wallet, no seed phrase, no setup.
 | On-chain claim | tx `b9ef1844…` above (the binary metric) |
 | Live claim page | <https://lumenia-chi.vercel.app> — value-first: the amount is shown **before** any credential or action; the bearer key travels in the URL `#fragment` and is never sent to a server |
 | 60-second demo video | *to be attached with submission* |
-| Flow | link tap → value-first page → "Paramı al" → `/create-account` → client-signed claim → `/feebump` → on-screen explorer tx link |
+| Flow | link tap → value-first page → "Claim my money" → `/create-account` → client-signed claim → `/feebump` → on-screen explorer tx link |
 
 ## D3 — Anti-drain protection, wired and tested
 

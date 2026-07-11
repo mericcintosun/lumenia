@@ -15,7 +15,7 @@ export default async function Image({ params }: { params: { id: string } }) {
   const claim = await getClaim(params.id);
   const usd = claim ? formatUsd(claim.usd) : "$—";
   const tryStr = claim ? `≈ ${usdToTryIndicative(claim.usd, indicativeRate())}` : "";
-  const sender = claim?.senderName ?? "Birisi";
+  const sender = claim?.senderName ?? "Someone";
 
   return new ImageResponse(
     (
@@ -33,10 +33,10 @@ export default async function Image({ params }: { params: { id: string } }) {
           gap: 16,
         }}
       >
-        <div style={{ fontSize: 40, color: "#9a9aa5" }}>{sender} sana para gönderdi</div>
+        <div style={{ fontSize: 40, color: "#9a9aa5" }}>{sender} sent you money</div>
         <div style={{ fontSize: 140, fontWeight: 700 }}>{usd}</div>
         <div style={{ fontSize: 36, color: "#9a9aa5" }}>{tryStr}</div>
-        <div style={{ fontSize: 30, color: "#4ade80", marginTop: 24 }}>Almak için dokun · Lumenia</div>
+        <div style={{ fontSize: 30, color: "#4ade80", marginTop: 24 }}>Tap to claim · Lumenia</div>
       </div>
     ),
     size,

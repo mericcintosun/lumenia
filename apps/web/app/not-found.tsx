@@ -1,9 +1,9 @@
-import { tr } from "../lib/copy";
+import { copy } from "../lib/copy";
 
 export default function NotFound() {
   return (
     <main className="center">
-      <p className="muted">{tr.errors.notFound}</p>
+      <p className="muted">{copy.errors.notFound}</p>
     </main>
   );
 }

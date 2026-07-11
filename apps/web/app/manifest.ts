@@ -1,12 +1,12 @@
 import type { MetadataRoute } from "next";
-import { tr } from "../lib/copy";
+import { copy } from "../lib/copy";
 
 /** PWA manifest (Next native). Icons are placeholders to add under /public. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: tr.appName,
-    short_name: tr.appName,
-    description: tr.landing.sub,
+    name: copy.appName,
+    short_name: copy.appName,
+    description: copy.landing.sub,
     start_url: "/",
     display: "standalone",
     background_color: "#0b0b0f",

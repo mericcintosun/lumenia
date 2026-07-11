@@ -7,7 +7,8 @@
  * address (see ./account.ts). The rest of the app must never know which
  * concrete signer is in use.
  */
-import type { Transaction } from "@stellar/stellar-sdk";
+import { Buffer } from "buffer";
+import { Keypair, type Transaction } from "@stellar/stellar-sdk";
 
 export interface Signer {
   /** Stellar public key (G...) of the account this signer controls. */
@@ -19,11 +20,41 @@ export interface Signer {
 }
 
 /**
- * v1 placeholder: a local Ed25519 signer. The real implementation keeps the
- * secret encrypted at rest (Argon2id-wrapped, PRF upgrade) and only decrypts
- * it transiently after biometric/password unlock. Stubbed here so the
- * skeleton compiles and the claim flow can be wired against the interface.
+ * v1 local Ed25519 signer. The account's public key is known up-front (stored as
+ * data — see ./account.ts, address-stable), while the 32-byte seed is produced
+ * transiently by `unlock` (a keystore decrypt) only at signing time and wiped
+ * afterwards. The seed never leaves this function. v2 swaps in a passkey
+ * smart-account signer WITHOUT changing this interface or the account address.
  */
-export function createLocalSigner(_unlock: () => Promise<Uint8Array>): Signer {
-  throw new Error("not implemented — v1 local Ed25519 signer (Argon2id-wrapped)");
+export function createLocalSigner(publicKey: string, unlock: () => Promise<Uint8Array>): Signer {
+  return {
+    kind: "local-ed25519",
+    publicKey: () => publicKey,
+    sign: async (tx) => {
+      const seed = await unlock();
+      try {
+        const kp = Keypair.fromRawEd25519Seed(Buffer.from(seed));
+        if (kp.publicKey() !== publicKey) {
+          throw new Error("unlocked key does not match this account");
+        }
+        tx.sign(kp);
+        return tx;
+      } finally {
+        seed.fill(0); // best-effort wipe of the transient seed
+      }
+    },
+  };
+}
+
+/** Direct seed → signer (used by the key-lifecycle spike; the seed is already in hand). */
+export function localSignerFromSeed(seed: Uint8Array): Signer {
+  const kp = Keypair.fromRawEd25519Seed(Buffer.from(seed));
+  return {
+    kind: "local-ed25519",
+    publicKey: () => kp.publicKey(),
+    sign: async (tx) => {
+      tx.sign(kp);
+      return tx;
+    },
+  };
 }

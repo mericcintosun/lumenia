@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Keypair } from "@stellar/stellar-sdk";
 import { copy } from "../../../lib/copy";
 import { runClaim } from "../../../lib/sponsor";
 import { sendEvent } from "../../../lib/events";
+import { savePhase1 } from "../../../lib/keystore";
 import { MoneyMovingAnimation } from "../../../components/brand/MoneyMovingAnimation";
 import { Confetti } from "../../../components/brand/Confetti";
 
@@ -68,6 +71,14 @@ export default function ClaimButton({
       setState("done");
       void sendEvent("claim_succeeded", claimId);
       if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(30);
+      // Phase 1 — persist the claimed account locally (WebCrypto-wrapped seed in
+      // IndexedDB) so /home has it. Best-effort: never block the success screen.
+      try {
+        const kp = Keypair.fromSecret(bearerSecret);
+        await savePhase1(kp.publicKey(), new Uint8Array(kp.rawSecretKey()));
+      } catch {
+        /* the money still landed; /home just won't show it on this device */
+      }
     } catch {
       setState("error");
       void sendEvent("claim_failed", claimId);
@@ -101,15 +112,17 @@ export default function ClaimButton({
         >
           {copy.claim.receipt} ↗
         </a>
-        {/* Post-claim next action — the north-star hand-off. Enabled in Stage 5
-            (/send lands with the sponsor faucet + validator extension); honest
+        {/* Post-claim next action. "See my money" → /home is live (the claimed
+            account is persisted locally). Send/Ask go live in Stage 5; honest
             "soon" until then, never a dead link. */}
         <div className="mt-2 flex w-full flex-col gap-2">
-          <button
-            disabled
-            title="Coming soon"
-            className="h-12 w-full rounded-full bg-secondary text-sm font-semibold text-ink-soft opacity-80"
+          <Link
+            href="/home"
+            className="flex h-12 w-full items-center justify-center rounded-full bg-money text-sm font-semibold text-primary-foreground"
           >
+            See my money
+          </Link>
+          <button disabled title="Coming soon" className="h-11 w-full rounded-full text-sm text-ink-soft opacity-60">
             {copy.claim.ctaSend} · {copy.claim.soon}
           </button>
           <button disabled title="Coming soon" className="h-11 w-full rounded-full text-sm text-ink-soft opacity-60">

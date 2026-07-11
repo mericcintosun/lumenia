@@ -19,7 +19,7 @@ export default async function handler(req: VercelReq, res: VercelRes): Promise<v
     if (typeof recipientPublicKey !== "string" || !recipientPublicKey) {
       return res.status(400).json({ error: "recipientPublicKey is required" });
     }
-    const rl = enforceRateLimit(clientIpFrom(req.headers), recipientPublicKey);
+    const rl = await enforceRateLimit(clientIpFrom(req.headers), recipientPublicKey);
     if (rl.limited) return res.status(429).json({ error: rl.reason });
     const { config, signer, server } = getService();
     const result = await createAccountHandler(server, config, signer, { recipientPublicKey });

@@ -178,7 +178,9 @@ async function main() {
   console.log("\n============================================================");
   console.log(failed === 0 ? ` ✅ INTEGRATION TESTS PASS (${passed}/${passed + failed})` : ` ❌ INTEGRATION TESTS FAIL (${failed} failed)`);
   console.log("============================================================");
-  if (failed > 0) process.exit(1);
+  // Exit explicitly: lingering keep-alive sockets/stdio pipes otherwise hold the
+  // event loop open after PASS and the command never returns.
+  process.exit(failed > 0 ? 1 : 0);
 }
 
 main().catch((e) => {

@@ -7,7 +7,7 @@ import type { Horizon } from "@stellar/stellar-sdk";
 import { loadConfig, type SponsorConfig } from "./config.js";
 import { signerFromSecret, type SponsorSigner } from "./signer.js";
 import { horizon } from "./stellar.js";
-import { checkRateLimit, rateLimitConfigFromEnv, type RateLimitVerdict } from "./rate-limit.js";
+import { checkRateLimitDurable, rateLimitConfigFromEnv, type RateLimitVerdict } from "./rate-limit.js";
 
 export interface Service {
   config: SponsorConfig;
@@ -70,7 +70,10 @@ export function clientIpFrom(headers: Record<string, string | string[] | undefin
   return "unknown";
 }
 
-/** Enforce per-IP + per-account rate limits (env-configured) for this request. */
-export function enforceRateLimit(ip: string, account?: string): RateLimitVerdict {
-  return checkRateLimit(ip, account, rateLimitConfigFromEnv(), Date.now());
+/**
+ * Enforce per-IP + per-account rate limits (env-configured) for this request.
+ * Durable (KV/Upstash) when the store env is set; in-memory otherwise.
+ */
+export function enforceRateLimit(ip: string, account?: string): Promise<RateLimitVerdict> {
+  return checkRateLimitDurable(ip, account, rateLimitConfigFromEnv(), Date.now());
 }

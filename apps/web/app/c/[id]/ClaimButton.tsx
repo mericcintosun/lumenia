@@ -50,6 +50,20 @@ export default function ClaimButton({ claimId, balanceId }: { claimId: string; b
         >
           {hash}
         </a>
+        {/* Delegated cash-out placeholder (SOW W4) — a licensed provider converts,
+            Lumenia never does; no live conversion in this sprint. */}
+        <div style={{ marginTop: "1.5rem" }}>
+          <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>{tr.cashOut.title}</p>
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+            <button className="btn" disabled title={tr.cashOut.soon} style={{ opacity: 0.5 }}>
+              {tr.cashOut.spendCard} · {tr.cashOut.soon.toLowerCase()}
+            </button>
+            <button className="btn" disabled title={tr.cashOut.soon} style={{ opacity: 0.5 }}>
+              {tr.cashOut.toTry} · {tr.cashOut.soon.toLowerCase()}
+            </button>
+          </div>
+          <p className="muted" style={{ fontSize: "0.75rem", marginTop: "0.5rem" }}>{tr.cashOut.delegatedNote}</p>
+        </div>
       </div>
     );
   }

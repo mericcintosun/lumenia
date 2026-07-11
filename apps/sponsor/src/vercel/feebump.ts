@@ -23,7 +23,7 @@ export default async function handler(req: VercelReq, res: VercelRes): Promise<v
     if (!xdr || !recipientPublicKey || !balanceId) {
       return res.status(400).json({ error: "xdr, recipientPublicKey and balanceId are required" });
     }
-    const rl = enforceRateLimit(clientIpFrom(req.headers), recipientPublicKey);
+    const rl = await enforceRateLimit(clientIpFrom(req.headers), recipientPublicKey);
     if (rl.limited) return res.status(429).json({ error: rl.reason });
     const { config, signer, server } = getService();
     const result = await feebumpHandler(server, config, signer, { xdr, recipientPublicKey, balanceId });

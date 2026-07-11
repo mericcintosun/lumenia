@@ -1,12 +1,17 @@
 /**
- * Rate limiting — per-IP and per-account token buckets (SOW D1 hardening).
+ * Rate limiting — per-IP and per-account (SOW D1 hardening).
  *
- * SCOPE NOTE: this is in-memory / per-instance. On serverless it protects against
- * bursts that hit a warm instance (the realistic drain-by-spam vector and the
- * integration test). Durable cross-instance limiting (Vercel KV / Upstash) is the
- * mainnet upgrade — the SOW explicitly puts "abuse-at-scale handling" out of scope
- * for this testnet sprint. Fee-abuse is also bounded structurally: the fee cap in
- * /feebump means each accepted request costs the sponsor a fixed, tiny maximum.
+ * Two backends, picked per request:
+ *  - DURABLE (cross-instance): a fixed-window counter in Upstash Redis / Vercel KV
+ *    over its REST API, enabled when `KV_REST_API_URL`/`KV_REST_API_TOKEN` (or the
+ *    `UPSTASH_REDIS_REST_*` pair) are set. This is what makes a concurrent burst
+ *    against serverless reliably 429.
+ *  - IN-MEMORY fallback: per-instance token buckets — used when no store is
+ *    configured (local dev, integration test) or if the store errors mid-request.
+ *
+ * Fee-abuse is also bounded structurally: the fee cap in /feebump means each
+ * accepted request costs the sponsor a fixed, tiny maximum. Full abuse-at-scale
+ * handling stays out of SOW scope (mainnet upgrade).
  */
 
 interface Bucket {
@@ -75,4 +80,62 @@ export function checkRateLimit(
     return { limited: true, reason: "per-account rate limit exceeded" };
   }
   return { limited: false };
+}
+
+/* ---------- durable (cross-instance) backend: Upstash Redis / Vercel KV REST ---------- */
+
+interface KvConfig {
+  url: string;
+  token: string;
+}
+
+/** Vercel KV exposes the Upstash REST pair under KV_*; plain Upstash under UPSTASH_*. */
+export function kvConfigFromEnv(): KvConfig | null {
+  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+  return url && token ? { url, token } : null;
+}
+
+/** Fixed-window counter in the shared store: `true` = this request is over the limit. */
+async function kvLimited(kv: KvConfig, key: string, cap: number, windowMs: number, now: number): Promise<boolean> {
+  const windowKey = `rl:${key}:${Math.floor(now / windowMs)}`;
+  const res = await fetch(`${kv.url}/pipeline`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${kv.token}`, "content-type": "application/json" },
+    body: JSON.stringify([
+      ["INCR", windowKey],
+      ["PEXPIRE", windowKey, String(windowMs)],
+    ]),
+  });
+  if (!res.ok) throw new Error(`KV rate-limit store returned ${res.status}`);
+  const [first] = (await res.json()) as Array<{ result?: unknown; error?: string }>;
+  if (!first || first.error) throw new Error(`KV rate-limit store error: ${first?.error}`);
+  return Number(first.result) > cap;
+}
+
+/**
+ * Durable per-IP + per-account limits when a KV store is configured; otherwise the
+ * in-memory buckets. A store failure degrades to in-memory (never blocks a claim
+ * on the limiter's own infrastructure).
+ */
+export async function checkRateLimitDurable(
+  ip: string,
+  account: string | undefined,
+  cfg: RateLimitConfig,
+  now: number,
+): Promise<RateLimitVerdict> {
+  const kv = kvConfigFromEnv();
+  if (!kv) return checkRateLimit(ip, account, cfg, now);
+  try {
+    if (await kvLimited(kv, `ip:${ip}`, cfg.ipCap, cfg.ipWindowMs, now)) {
+      return { limited: true, reason: "per-IP rate limit exceeded" };
+    }
+    if (account && (await kvLimited(kv, `acct:${account}`, cfg.accountCap, cfg.accountWindowMs, now))) {
+      return { limited: true, reason: "per-account rate limit exceeded" };
+    }
+    return { limited: false };
+  } catch (e) {
+    console.warn(`rate-limit store unavailable, falling back to in-memory: ${(e as Error).message}`);
+    return checkRateLimit(ip, account, cfg, now);
+  }
 }

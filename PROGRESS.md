@@ -2,7 +2,11 @@
 
 This file records **only the work that has actually been done** (not plans or decisions — those live in [README.md](README.md) and [stack.md](stack.md)). The next agent reads this to see "what really exists." Be honest about the line between *proven* and *unverified* (the §6 table is the single source of truth for that).
 
-Last updated: 2026-06-17 · Network: **testnet** · No real money used.
+Last updated: 2026-07-11 · Network: **testnet** · No real money used.
+
+> **Instawards sprint (25.06 → ~24.07): see §10** — the live sponsor service, the
+> end-to-end browser claim (binary metric MET on-chain) and the hardened anti-drain
+> (18/18 + 5/5) supersede the pre-award state below where they conflict.
 
 > Naming note: the product is **Lumenia**; packages are `@lumenia/*`. The working directory is historically named `faceid-wallet` (cosmetic). Stelvin is a **separate, independent project** — not part of Lumenia and not used as its credential.
 
@@ -44,7 +48,7 @@ lumenia/  (working dir: faceid-wallet)
 │           ├── spike1-sponsored-claim.ts   # ✅ Spike #1  — sponsored 0-XLM claim economics
 │           ├── spike1b-kms-rawsign.ts      # ✅ Spike #1b — external raw Ed25519 → DecoratedSignature
 │           ├── spike1c-wire-parity.ts      # ✅ Spike #1c — web→sponsor XDR wire-parity + fee-bump
-│           └── test-antidrain.ts           # ✅ anti-drain validator tests (14/14)
+│           └── test-antidrain.ts           # ✅ anti-drain validator tests (now 18/18 — §10)
 └── packages/
     └── shared/
         ├── package.json                 # @lumenia/shared
@@ -82,7 +86,7 @@ The primitives shared by web + sponsor:
 
 > ⚠️ **Correction (don't overclaim):** Spike #1 signs with a **local in-memory `Keypair`** (`tx.sign`) in a **single process**. It does **NOT** prove (a) that the sponsor key can live in an HSM/KMS, or (b) that the inner tx survives the web→sponsor wire, or (c) fee-abuse/economic anti-drain. Those are covered by §4b–§4d below; what remains open is in 6.
 
-## 4b. ✅ Anti-drain validator hardening + tests (14/14)
+## 4b. ✅ Anti-drain validator hardening + tests (14/14 → 18/18, see §10)
 
 **File:** [apps/sponsor/src/test-antidrain.ts](apps/sponsor/src/test-antidrain.ts) · **Run:** `pnpm test:antidrain` · no network needed.
 
@@ -123,10 +127,11 @@ Proves the Stellar-specific half of the CCTP bridge leg (off-ramp Path 3) on liv
 | Item | Status |
 |---|---|
 | Sponsored 0-XLM onboarding + fee-bumped claim economics | ✅ PROVEN (Spike #1, testnet) |
-| Anti-drain validator rejects reserve/principal drain vectors | ✅ PROVEN (14/14 tests) |
-| Sponsor key behind external raw-Ed25519 signer (KMS path) | ✅ PROVEN mechanically (Spike #1b); real AWS KMS call not yet wired |
-| web→sponsor XDR wire-parity + fee-bump of re-parsed tx | ✅ PROVEN (Spike #1c) |
-| Fee-abuse / rate-limit economic defense | ⚠️ DESIGNED, not yet built (needs the HTTP service + rate-limit) |
+| Anti-drain validator rejects reserve/principal drain vectors | ✅ PROVEN (**18/18** unit + **5/5** integration tests; gates the live `/feebump` — §10) |
+| Sponsor key behind external raw-Ed25519 signer (KMS path) | ✅ PROVEN mechanically (Spike #1b); the deployed testnet service uses an env hot-key (SOW scope) |
+| web→sponsor XDR wire-parity + fee-bump of re-parsed tx | ✅ PROVEN (Spike #1c + live browser claim — §10) |
+| **Live sponsor service + end-to-end walletless browser claim** | ✅ **PROVEN on-chain** (§10: tx `b9ef1844…` — 20 USDC landed, 0 XLM held, sponsor paid the fee) |
+| Fee-abuse / rate-limit economic defense | ✅ PROVEN live — durable cross-instance 429 on the deployed service (Upstash store; §10) + integration test |
 | 🔑 Recipient can turn Stellar-USDC into spendable TRY (off-ramp) | ⚠️ PATHS IDENTIFIED, real-world unconfirmed. **CCTP V2 is live on Stellar testnet+mainnet** (bridge leg is **testnet-testable now**, no money/KYC). Two **direct** Stellar-USDC exits need no bridge: **KAST card** (TRY spend) and **Binance Global→Binance TR→IBAN**. MASAK: ~$3k/day, 72h first withdrawal. Official anchor directory (anchors.stellar.org) checked 2026-06-18: TR anchors = Banxa/BiLira/Onramp.money/Digibank/Arf, but **Banxa rejects Stellar-USDC** (XLM buy-only) and **no anchor offers a direct TRY off-ramp for Stellar-USDC** — Banxa/BiLira are BD leads ("accept USDC on Stellar?"), not a ready path. Plan: [OFF_RAMP_VERIFICATION.md](OFF_RAMP_VERIFICATION.md) — Spike #4 (CCTP testnet) = [ME]; KAST/Binance real-account checks = [YOU]. |
 | WebAuthn PRF round-trip on real devices (Spike #2) | ❌ UNVERIFIED (needs hardware); Argon2id is the mandatory floor |
 | WhatsApp webview claim + escape-to-browser + Argon2id (Spike #3) | ❌ UNVERIFIED (needs hardware); architecture researched (value-first + escape-to-browser) |
@@ -149,11 +154,8 @@ Six deep research briefs were produced to de-risk the persona-flagged unknowns. 
 
 ## 8. NOT DONE YET (for the next agent)
 
-- 🟡 `apps/web` **skeleton written** (landing, value-first claim page + `ClaimButton`, per-claim OG card, manifest, and the architecture seams `lib/signer.ts` / `lib/account.ts` / `lib/offramp.ts`). **NOT yet built/run** (`next dev` not executed); the real signer/recovery, sponsor HTTP wiring, off-ramp adapters and Serwist SW are still stubbed/TODO. Run: `pnpm install && pnpm --filter @lumenia/web dev`.
-- ❌ `apps/sponsor/src/index.ts` real HTTP service (`/create-account`, `/feebump`) with rate-limit + the KMS call wired in. When building it, also close the items below.
-  - **Fee-abuse / rate-limit (Elliot):** the anti-drain validator guards the reserve/principal but NOT fee-grind; add per-account/per-IP rate-limit + fee caps in the HTTP layer.
-  - **Exact-shape matcher (Tyler):** the validator allows any subset/permutation of the allowed ops; add an expected op-sequence/count template (and watch for double-`payment` once `allowedPaymentDestinations` is enabled in prod).
-  - **Published-package parity (Elliot):** the spikes import the validator via a relative path; the HTTP service must import the built `@lumenia/shared` package and a test must prove dual-package (ESM web / CJS sponsor) parity, incl. `Asset.equals`/`instanceof` after bundling.
+- ✅ ~~`apps/web` skeleton~~ → **built, deployed and wired** (value-first claim page → live sponsor; §10). Recovery/passkeys, off-ramp adapters and the Serwist SW remain stubs (SOW out-of-scope).
+- ✅ ~~`apps/sponsor` HTTP service~~ → **live on Vercel** with anti-drain gate, fee cap and per-IP/per-account rate limit (§10). Still open from the old sub-list: the KMS call (env hot-key for the sprint), and Tyler's exact op-sequence matcher (the live `/feebump` policy pins `maxOps: 1`, which covers the claim path).
 - ❌ **Spike #2** (WebAuthn PRF round-trip on a real device) — requires hardware.
 - ❌ **Spike #3** (WhatsApp webview claim + escape-to-browser + Argon2id fallback) — requires hardware.
 - ❌ 🔑 **CASP / off-ramp confirmation** — still the highest-leverage off-code task; research narrowed it to "confirm a CCTP-bridged or card cash-out actually works for a TR recipient."
@@ -167,10 +169,24 @@ Six deep research briefs were produced to de-risk the persona-flagged unknowns. 
 # at the repo root
 pnpm install        # entire workspace; includes the argon2 native build
 pnpm spike1         # Spike #1   → testnet → "✅ SPIKE #1 PASS"
-pnpm test:antidrain # validator  → "✅ ANTI-DRAIN TESTS PASS (14/14)" (no network)
+pnpm test:antidrain # validator  → "✅ ANTI-DRAIN TESTS PASS (18/18)" (no network)
+pnpm --filter @lumenia/sponsor test:integration  # → "✅ INTEGRATION TESTS PASS (5/5)" (testnet)
 pnpm spike1b        # Spike #1b  → testnet → "✅ SPIKE #1b PASS"
 pnpm spike1c        # Spike #1c  → testnet → "✅ SPIKE #1c PASS"
 pnpm spike4         # Spike #4   → testnet → "✅ SPIKE #4 PASS" (CCTP Stellar-side interface)
 ```
 
 > `node_modules/` is gitignored. Network is required (npm registry + Horizon testnet + friendbot).
+
+---
+
+## 10. ✅ Instawards sprint (started 25.06.2026) — live service + e2e claim
+
+The 30-day SOW ([INSTAWARDS_SOW.md](INSTAWARDS_SOW.md)) integrates the proven spikes into one live flow. Status per deliverable — see [EVIDENCE.md](EVIDENCE.md) for the reviewer-facing package:
+
+- **D1 — live sponsor service:** deployed at `https://lumenia-sponsor.vercel.app` (`/health`, `/create-account`, `/feebump`) as esbuild-bundled CJS functions; env hot-key signer; fee cap; per-IP + per-account rate limiting on both POST endpoints, **durable across serverless instances** (Upstash Redis via Vercel Marketplace, `KV_REST_API_URL/TOKEN`; in-memory fallback). Proven live 2026-07-11: 12 concurrent `/create-account` for one account → exactly 5×200 (cap) + 7×429.
+- **D2 — end-to-end walletless claim:** ✅ **binary metric MET.** A real browser tapped a claim link on `https://lumenia-chi.vercel.app`, the sponsor created a 0-XLM account + USDC trustline, and the fee-bumped claim landed **20 USDC with the recipient holding 0 XLM** — tx `b9ef1844c6ca2df732648b965a2f991ba0197643057b2c9e2a60ab52c3e23746` (fee paid by the sponsor; verify on stellar.expert).
+- **D3 — anti-drain, wired and tested:** the validator (`apps/sponsor/src/lib/anti-drain.ts`, moved out of `packages/shared` for the Vercel deploy boundary, hardened to **strict-by-default**) gates every live `/feebump`. **18/18** unit tests + **5/5** integration tests (happy claim / drain rejection / rate-limit 429 over real HTTP); a live drain attempt against the deployed endpoint returns `400 — "op 'payment' sourced from sponsor (drain attempt)"`. Write-up: [ANTI_DRAIN.md](ANTI_DRAIN.md).
+- **Web claim UI:** value-first page (amount before any credential; bearer key in the `#fragment`, never sent to a server), on-screen explorer tx link after the claim, and the delegated cash-out **placeholder** (disabled "Kartla harca / Türk lirasına çevir" — a licensed provider converts, Lumenia never does; SOW §4.1 note).
+- **Evidence:** [EVIDENCE.md](EVIDENCE.md) + the test-output capture `evidence/tests-18-18-and-5-5.png`.
+- **Still open (W4):** the 60-second demo video (user-recorded).

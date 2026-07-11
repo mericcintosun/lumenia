@@ -21,6 +21,18 @@ export const tr = {
     spend: "Kartla harca",
     fromSender: "Gönderen",
   },
+  /**
+   * Delegated cash-out placeholder (Instawards SOW §4.1 note + W4): conversion to
+   * local currency is handled by a licensed provider, never by Lumenia. These are
+   * UI placeholders only — no live conversion in this sprint.
+   */
+  cashOut: {
+    title: "Paranı kullan",
+    spendCard: "Kartla harca",
+    toTry: "Türk lirasına çevir",
+    soon: "Yakında",
+    delegatedNote: "Dönüşüm, lisanslı bir sağlayıcı üzerinden yapılır — çok yakında.",
+  },
   errors: {
     notFound: "Bu link geçersiz ya da süresi dolmuş.",
     generic: "Bir şeyler ters gitti. Tekrar dene.",

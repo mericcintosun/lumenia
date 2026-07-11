@@ -74,7 +74,7 @@ const httpServer = createServer(async (req, res) => {
     if (method === "POST" && url === "/create-account") {
       const body = (await readJson(req)) as { recipientPublicKey?: string };
       if (!body.recipientPublicKey) return send(res, 400, { error: "recipientPublicKey is required" });
-      const rl = enforceRateLimit(clientIp(req), body.recipientPublicKey);
+      const rl = await enforceRateLimit(clientIp(req), body.recipientPublicKey);
       if (rl.limited) return send(res, 429, { error: rl.reason });
       const result = await createAccountHandler(server, config, signer, {
         recipientPublicKey: body.recipientPublicKey,
@@ -87,7 +87,7 @@ const httpServer = createServer(async (req, res) => {
       if (!body.xdr || !body.recipientPublicKey || !body.balanceId) {
         return send(res, 400, { error: "xdr, recipientPublicKey and balanceId are required" });
       }
-      const rl = enforceRateLimit(clientIp(req), body.recipientPublicKey);
+      const rl = await enforceRateLimit(clientIp(req), body.recipientPublicKey);
       if (rl.limited) return send(res, 429, { error: rl.reason });
       const result = await feebumpHandler(server, config, signer, {
         xdr: body.xdr,

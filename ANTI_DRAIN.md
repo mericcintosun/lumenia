@@ -24,7 +24,7 @@ But a service that hands out reserves and pays fees is a natural target: if an a
 
 **2. A fee cap.** Every fee-bump is bounded to a small fixed maximum (`FEE_BUMP_MAX_STROOPS`). Even a flood of *valid* claims can only ever cost the sponsor a tiny, capped fee per request.
 
-**3. Per-IP + per-account rate limiting** ([`apps/sponsor/src/lib/rate-limit.ts`](apps/sponsor/src/lib/rate-limit.ts)) throttles bursts on both `/create-account` and `/feebump`.
+**3. Per-IP + per-account rate limiting** ([`apps/sponsor/src/lib/rate-limit.ts`](apps/sponsor/src/lib/rate-limit.ts)) throttles bursts on both `/create-account` and `/feebump`. The deployed limiter is **durable across serverless instances** (a fixed-window counter in Upstash Redis via Vercel Marketplace); it degrades to in-memory per-instance buckets if the store is unset or unavailable, so the limiter's own infrastructure can never block a legitimate claim.
 
 ## What is proven
 
@@ -34,7 +34,7 @@ But a service that hands out reserves and pays fees is a natural target: if an a
 
 ## Honest scope (testnet sprint)
 
-- The rate limiter is **in-memory / per-instance**. On serverless it stops bursts that hit a warm instance (the realistic spam vector). Durable cross-instance limiting (Vercel KV / Upstash) and full abuse-at-scale handling are the **mainnet upgrade** — explicitly out of scope for this SOW.
+- The live rate limit was proven with a real concurrent burst against the deployed service (2026-07-11): 12 simultaneous `/create-account` requests for one account → exactly 5×200 (the per-account cap) + 7×429, across serverless instances. Full **abuse-at-scale** handling (bot farms, IP rotation, proof-of-humanity) remains the mainnet upgrade — explicitly out of scope for this SOW.
 - The sponsor key is an **env hot-key** for testnet; a KMS raw-signer drops in behind the same interface later (mechanically proven by Spike #1b).
 
 ## Re-run the tests

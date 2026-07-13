@@ -345,13 +345,15 @@ export default function OpeningPage() {
       <div className="op">
         <style>{CSS}</style>
         <Greeting />
-        <ScrubHero />
-        <section className="op-after">
-          <h2 className="op-after-h">Money home, in a link.</h2>
-          <p className="op-after-p">
-            The recipient claims it walletless, seedless, and pays no gas — in a target ~30s.
-          </p>
-        </section>
+        <div className="op-over">
+          <ScrubHero />
+          <section className="op-after">
+            <h2 className="op-after-h">Money home, in a link.</h2>
+            <p className="op-after-p">
+              The recipient claims it walletless, seedless, and pays no gas — in a target ~30s.
+            </p>
+          </section>
+        </div>
       </div>
     </SmoothScroll>
   );
@@ -397,8 +399,9 @@ const CSS = `
 .op-reduce-copy p{font-family:"Sentient",Georgia,serif;font-size:clamp(22px,3.5vw,40px);color:#B7ACE8;margin-top:10px}
 
 /* greeting */
-.op-greet{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+.op-greet{position:sticky;top:0;z-index:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:40px 24px 0;overflow:hidden;background:var(--paper)}
+.op-over{position:relative;z-index:1}
 .op-particles{position:absolute;inset:-30px;width:calc(100% + 60px);height:calc(100% + 60px);z-index:0;pointer-events:none;will-change:transform}
 .op-bg-layer{position:absolute;inset:0;z-index:0;pointer-events:none;will-change:transform}
 .op-bigspark{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:min(560px,64vw);aspect-ratio:1;

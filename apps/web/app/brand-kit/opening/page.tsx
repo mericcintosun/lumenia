@@ -217,21 +217,123 @@ function ScrubHero() {
 }
 
 function Greeting() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const mascotRef = useRef<HTMLDivElement>(null);
+
+  // Ambient "lumen" particle field + mouse-parallax depth.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+    const N = 46;
+    const parts = Array.from({ length: N }, (_, i) => ({
+      x: Math.random(), y: Math.random(), r: rnd(0.8, 2.8), sp: rnd(4, 15),
+      sway: rnd(0, Math.PI * 2), swAmp: rnd(4, 15), a: rnd(0.05, 0.4),
+      tw: rnd(0, Math.PI * 2), twSp: rnd(0.4, 1.3), star: i % 6 === 0,
+    }));
+    let w = 0, h = 0, raf = 0, last = 0;
+    let tx = 0, ty = 0, cx = 0, cy = 0; // parallax target + current
+    const onMove = (e: PointerEvent) => {
+      tx = (e.clientX / window.innerWidth - 0.5) * 2;
+      ty = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
+    const onLeave = () => { tx = 0; ty = 0; };
+    const size = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = canvas.clientWidth; h = canvas.clientHeight;
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const dot = (px: number, py: number, r: number, alpha: number, star: boolean) => {
+      const g = ctx.createRadialGradient(px, py, 0, px, py, r * 4);
+      g.addColorStop(0, `rgba(110,95,206,${alpha})`);
+      g.addColorStop(1, "rgba(110,95,206,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(px, py, r * 4, 0, Math.PI * 2); ctx.fill();
+      if (star) {
+        ctx.strokeStyle = `rgba(123,108,222,${alpha * 0.85})`;
+        ctx.lineWidth = 0.9;
+        const L = r * 4.6;
+        ctx.beginPath();
+        ctx.moveTo(px - L, py); ctx.lineTo(px + L, py);
+        ctx.moveTo(px, py - L); ctx.lineTo(px, py + L);
+        ctx.stroke();
+      }
+    };
+    const parallax = () => {
+      cx += (tx - cx) * 0.07; cy += (ty - cy) * 0.07;
+      canvas.style.transform = `translate(${cx * -8}px, ${cy * -8}px)`;
+      if (bgRef.current) bgRef.current.style.transform = `translate(${cx * -16}px, ${cy * -16}px)`;
+      if (bubbleRef.current) bubbleRef.current.style.transform = `translate(${cx * 7}px, ${cy * 7}px)`;
+      if (mascotRef.current) mascotRef.current.style.transform = `translate(${cx * 16}px, ${cy * 16}px)`;
+    };
+    const frame = (t: number) => {
+      if (!last) last = t;
+      const dt = Math.min((t - last) / 1000, 0.05); last = t;
+      ctx.clearRect(0, 0, w, h);
+      for (const p of parts) {
+        p.y -= (p.sp / h) * dt;
+        if (p.y < -0.03) { p.y = 1.03; p.x = Math.random(); }
+        const px = p.x * w + Math.sin(p.sway + t / 1400) * p.swAmp;
+        const alpha = Math.max(0, p.a * (0.55 + 0.45 * Math.sin(p.tw + (t / 1000) * p.twSp)));
+        dot(px, p.y * h, p.r, alpha, p.star);
+      }
+      parallax();
+      raf = requestAnimationFrame(frame);
+    };
+    size();
+    window.addEventListener("resize", size);
+    if (reduce) {
+      ctx.clearRect(0, 0, w, h);
+      for (const p of parts) dot(p.x * w, p.y * h, p.r, p.a * 0.7, p.star);
+    } else {
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerout", onLeave);
+      raf = requestAnimationFrame(frame);
+    }
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", size);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerout", onLeave);
+    };
+  }, []);
+
   return (
     <section className="op-greet">
+      <canvas ref={canvasRef} className="op-particles" aria-hidden="true" />
+      <div ref={bgRef} className="op-bg-layer" aria-hidden="true">
+        <span className="op-bigspark" />
+        <div className="op-glow-back" />
+      </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="op-brandlogo" src="/brand-kit-assets/logo-wordmark-t.svg" alt="Lumenia" />
       <div className="op-greet-stage">
-        <div className="op-bubble">
-          Hey — I&rsquo;ve got a message for you.
-          <span className="op-bubble-tail" />
+        <div ref={bubbleRef} className="op-px-bubble">
+          <div className="op-bubble">
+            <div className="op-bubble-top">
+              <span className="op-bubble-spark" aria-hidden="true" />
+              <span className="op-bubble-name">Lumenia</span>
+              <span className="op-bubble-time">now</span>
+            </div>
+            <p className="op-bubble-text">Hey — I&rsquo;ve got a message for you.</p>
+            <span className="op-bubble-tail" />
+          </div>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="op-mascot" src="/brand-kit-assets/mascot-messenger-cut.webp" alt="The Lumenia messenger, holding an envelope" />
-      </div>
-      <div className="op-cue2" aria-hidden="true">
-        <span className="op-cue2-label">scroll to explore</span>
-        <span className="op-cue2-line"><span className="op-cue2-lumen" /></span>
+        <div ref={mascotRef} className="op-px-mascot">
+          <div className="op-mascot-wrap">
+            <span className="op-mascot-halo" aria-hidden="true" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="op-mascot" src="/brand-kit-assets/mascot-messenger-cut.webp" alt="The Lumenia messenger, holding an envelope" />
+            <span className="op-envglow" aria-hidden="true" />
+            <span className="op-groundpool" aria-hidden="true" />
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -296,25 +398,54 @@ const CSS = `
 
 /* greeting */
 .op-greet{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:40px 24px 0;overflow:hidden;background:var(--paper);
-  background-image:radial-gradient(72% 60% at 50% 32%, color-mix(in srgb,var(--accent) 15%,transparent), transparent 70%)}
-.op-brandlogo{position:absolute;top:30px;left:50%;transform:translateX(-50%);height:30px;width:auto;display:block}
-.op-greet-stage{position:relative;display:flex;flex-direction:column;align-items:center}
-.op-bubble{position:relative;max-width:min(560px,86vw);background:var(--accent);color:#F6F4FD;
-  font-family:"Switzer",ui-sans-serif,sans-serif;font-weight:500;font-size:clamp(19px,2.5vw,30px);line-height:1.32;letter-spacing:-.01em;
-  text-align:center;padding:20px 30px;border-radius:26px;margin-bottom:20px;
-  box-shadow:0 24px 50px -24px color-mix(in srgb,var(--accent) 65%,transparent)}
-.op-bubble-tail{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%) rotate(45deg);width:20px;height:20px;
-  background:var(--accent);border-radius:0 0 6px 0}
-.op-mascot{width:clamp(230px,32vw,392px);height:auto;display:block;margin-top:-26px;
-  filter:drop-shadow(0 26px 30px rgba(110,95,206,.20));animation:opfloat 4.6s ease-in-out infinite;
+  padding:40px 24px 0;overflow:hidden;background:var(--paper)}
+.op-particles{position:absolute;inset:-30px;width:calc(100% + 60px);height:calc(100% + 60px);z-index:0;pointer-events:none;will-change:transform}
+.op-bg-layer{position:absolute;inset:0;z-index:0;pointer-events:none;will-change:transform}
+.op-bigspark{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:min(560px,64vw);aspect-ratio:1;
+  background:var(--accent);opacity:.055;filter:blur(2px);
+  clip-path:polygon(50% 0%,57% 43%,100% 50%,57% 57%,50% 100%,43% 57%,0% 50%,43% 43%)}
+.op-glow-back{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:min(820px,90vw);height:min(820px,90vw);
+  border-radius:50%;background:radial-gradient(circle, color-mix(in srgb,var(--accent) 18%,transparent), transparent 60%);
+  filter:blur(6px);animation:opbreath 7.5s ease-in-out infinite}
+.op-brandlogo{position:absolute;top:30px;left:50%;transform:translateX(-50%);height:30px;width:auto;display:block;z-index:2;
+  animation:opfadein 1s ease .15s both}
+.op-greet-stage{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;
+  animation:opreveal .95s cubic-bezier(.2,.75,.2,1) both}
+.op-px-bubble{display:flex;justify-content:center;margin-bottom:24px;will-change:transform}
+.op-px-mascot{display:flex;justify-content:center;will-change:transform}
+.op-bubble{position:relative;max-width:min(500px,86vw);min-width:min(340px,80vw);
+  background:linear-gradient(152deg,#7f70e4 0%,#6E5FCE 52%,#5f50c2 100%);color:#F6F4FD;
+  padding:16px 24px 20px;border-radius:24px;transform-origin:bottom center;
+  box-shadow:0 26px 54px -22px rgba(110,95,206,.62), 0 2px 8px rgba(78,64,168,.25), inset 0 1px 0 rgba(255,255,255,.28);
+  animation:opbubble 1.05s cubic-bezier(.2,.8,.25,1) .5s both}
+.op-bubble-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;
+  font-family:"Switzer",ui-sans-serif,sans-serif;font-size:13px;font-weight:600}
+.op-bubble-spark{width:14px;height:14px;flex:none;background:#EFEBFF;
+  clip-path:polygon(50% 0%,58% 42%,100% 50%,58% 58%,50% 100%,42% 58%,0% 50%,42% 42%);
+  filter:drop-shadow(0 0 4px rgba(255,255,255,.7))}
+.op-bubble-name{color:#fff;letter-spacing:-.01em}
+.op-bubble-time{margin-left:auto;font-weight:500;font-size:12px;color:rgba(246,244,253,.62)}
+.op-bubble-text{margin:0;font-family:"Switzer",ui-sans-serif,sans-serif;font-weight:500;
+  font-size:clamp(19px,2.5vw,29px);line-height:1.3;letter-spacing:-.01em;color:#fff;text-align:left}
+.op-bubble-tail{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%) rotate(45deg);width:20px;height:20px;
+  background:#5f50c2;border-radius:0 0 6px 0}
+.op-mascot-wrap{position:relative;display:flex;justify-content:center}
+.op-mascot-halo{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);width:80%;height:84%;z-index:0;pointer-events:none;
+  border-radius:50%;background:radial-gradient(circle, color-mix(in srgb,var(--accent) 24%,transparent), transparent 64%);
+  filter:blur(20px);animation:opbreath 6s ease-in-out infinite}
+.op-envglow{position:absolute;left:39%;top:70%;transform:translate(-50%,-50%);width:38%;aspect-ratio:1;z-index:2;pointer-events:none;
+  border-radius:50%;background:radial-gradient(circle, color-mix(in srgb,var(--accent) 62%,white), transparent 66%);
+  filter:blur(7px);animation:openv 2.6s ease-in-out infinite}
+.op-groundpool{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);width:58%;height:32px;z-index:0;pointer-events:none;
+  border-radius:50%;background:radial-gradient(ellipse at center, color-mix(in srgb,var(--accent) 32%,transparent), transparent 70%);filter:blur(8px)}
+.op-mascot{position:relative;z-index:1;width:clamp(230px,32vw,392px);height:auto;display:block;margin-top:-26px;
+  filter:drop-shadow(0 22px 26px rgba(110,95,206,.18));animation:opfloat 4.6s ease-in-out infinite;
   -webkit-mask-image:linear-gradient(to bottom,#000 66%,transparent 83%);mask-image:linear-gradient(to bottom,#000 66%,transparent 83%)}
 @keyframes opfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-13px)}}
-.op-cue2{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px}
-.op-cue2-label{font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.op-cue2-line{position:relative;width:2px;height:56px;border-radius:2px;background:linear-gradient(var(--line),transparent);overflow:hidden}
-.op-cue2-lumen{position:absolute;left:50%;top:0;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:var(--accent);
-  box-shadow:0 0 10px 2px color-mix(in srgb,var(--accent) 70%,transparent);animation:oplumen 2.1s ease-in-out infinite}
-@keyframes oplumen{0%{transform:translateY(-8px);opacity:0}20%{opacity:1}80%{opacity:1}100%{transform:translateY(56px);opacity:0}}
-@media (prefers-reduced-motion:reduce){.op-mascot,.op-cue2-lumen{animation:none}}
+@keyframes opbreath{0%,100%{opacity:.68;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}
+@keyframes opreveal{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes opfadein{from{opacity:0}to{opacity:1}}
+@keyframes opbubble{0%{opacity:0;transform:translateY(8px) scale(.78)}55%{opacity:1;transform:translateY(0) scale(1.05)}100%{transform:translateY(0) scale(1)}}
+@keyframes openv{0%,100%{opacity:.28;transform:translate(-50%,-50%) scale(.9)}50%{opacity:.85;transform:translate(-50%,-50%) scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.op-mascot,.op-glow-back,.op-mascot-halo,.op-greet-stage,.op-brandlogo,.op-bubble,.op-envglow{animation:none}}
 `;

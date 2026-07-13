@@ -17,10 +17,10 @@ import SmoothScroll from "../../../components/brand/SmoothScroll";
 const cl = (v: number) => Math.max(0, Math.min(1, v));
 
 const STEPS = [
-  { img: "/brand-kit-assets/story-1-share.png", vid: "/brand-kit-assets/video/story-1.mp4", n: "01", t: "You send a link.", b: "Choose an amount and share it in a chat, like anything else. That’s the whole transfer." },
-  { img: "/brand-kit-assets/story-2-travel.png", vid: "/brand-kit-assets/video/story-2.mp4", n: "02", t: "It’s on its way.", b: "The money moves into escrow on a public ledger — held safely, never by us." },
-  { img: "/brand-kit-assets/story-3-tap.png", vid: "/brand-kit-assets/video/story-3.mp4", n: "03", t: "They tap it.", b: "Your recipient sees the money the moment they tap — before creating anything." },
-  { img: "/brand-kit-assets/story-4-received.png", vid: "/brand-kit-assets/video/story-4.mp4", n: "04", t: "It’s theirs.", b: "They claim it with their face or a password. Receiving is free. Done." },
+  { img: "/brand-kit-assets/story-1-share.webp", vid: "/brand-kit-assets/video/story-1.mp4", n: "01", t: "You send a link.", b: "Choose an amount and share it in a chat, like anything else. That’s the whole transfer." },
+  { img: "/brand-kit-assets/story-2-travel.webp", vid: "/brand-kit-assets/video/story-2.mp4", n: "02", t: "It’s on its way.", b: "The money moves into escrow on a public ledger — held safely, never by us." },
+  { img: "/brand-kit-assets/story-3-tap.webp", vid: "/brand-kit-assets/video/story-3.mp4", n: "03", t: "They tap it.", b: "Your recipient sees the money the moment they tap — before creating anything." },
+  { img: "/brand-kit-assets/story-4-received.webp", vid: "/brand-kit-assets/video/story-4.mp4", n: "04", t: "It’s theirs.", b: "They claim it with their face or a password. Receiving is free. Done." },
 ];
 
 function Frame({ i, vid, poster, p }: { i: number; vid: string; poster: string; p: MotionValue<number> }) {
@@ -37,14 +37,16 @@ function Frame({ i, vid, poster, p }: { i: number; vid: string; poster: string; 
     <motion.video
       className="fr-img"
       style={{ opacity, scale, y }}
-      src={vid}
       poster={poster}
       autoPlay
       loop
       muted
       playsInline
       aria-hidden="true"
-    />
+    >
+      <source src={vid.replace(/\.mp4$/, ".webm")} type="video/webm" />
+      <source src={vid} type="video/mp4" />
+    </motion.video>
   );
 }
 
@@ -88,7 +90,10 @@ function StaticStory() {
       {STEPS.map((s) => (
         <div key={s.n} className="ss-step">
           <div className="ss-frame">
-            <video src={s.vid} poster={s.img} autoPlay loop muted playsInline className="ss-img" />
+            <video poster={s.img} autoPlay loop muted playsInline className="ss-img">
+              <source src={s.vid.replace(/\.mp4$/, ".webm")} type="video/webm" />
+              <source src={s.vid} type="video/mp4" />
+            </video>
           </div>
           <div>
             <span className="st-n">{s.n}</span>

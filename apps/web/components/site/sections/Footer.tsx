@@ -17,10 +17,15 @@ const COLS = [
 export function Footer() {
   return (
     <footer className="foot">
-      {/* Living footer glow (brand-kit bg-footer) — periwinkle smoke rising behind the sign-off. */}
+      {/* Living footer glow — theme-aware: bg-footer (dark navy smoke) in dark, bg-soft (light lavender
+          drift) in light. Only the theme's video is shown (CSS); reduced-motion drops both. */}
       <video className="foot-bg" poster="/brand-kit-assets/bg-footer.png" autoPlay loop muted playsInline aria-hidden="true">
         <source src="/brand-kit-assets/video/bg-footer.webm" type="video/webm" />
         <source src="/brand-kit-assets/video/bg-footer.mp4" type="video/mp4" />
+      </video>
+      <video className="foot-bg-light" poster="/brand-kit-assets/bg-soft.png" autoPlay loop muted playsInline aria-hidden="true">
+        <source src="/brand-kit-assets/video/bg-soft.webm" type="video/webm" />
+        <source src="/brand-kit-assets/video/bg-soft.mp4" type="video/mp4" />
       </video>
       <div className="foot-scrim" aria-hidden="true" />
 

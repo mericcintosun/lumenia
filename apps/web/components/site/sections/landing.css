@@ -206,7 +206,10 @@
 .close-cta{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:34px}
 
 .foot{position:relative;z-index:1;isolation:isolate;background:#15121c;color:#EDEAF3;overflow:hidden;padding:clamp(64px,9vh,110px) clamp(24px,6vw,64px) 36px}
-.foot-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:.5}
+/* bg-footer has a grey studio floor around the dark panel; object-fit:cover shows those edges as
+   side gaps on wide screens. Scale it up (clipped by .foot overflow:hidden) so only the dark panel
+   fills the width — the bg has no text, so scaling can't break the layout. */
+.foot-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:.5;transform:scale(1.42);transform-origin:center}
 .foot-scrim{position:absolute;inset:0;z-index:-1;
   background:linear-gradient(180deg, color-mix(in srgb,#15121c 82%,transparent) 0%, color-mix(in srgb,#15121c 58%,transparent) 58%, color-mix(in srgb,#15121c 78%,transparent) 100%)}
 .foot-inner{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1fr 1.25fr;gap:clamp(40px,6vw,90px);align-items:start}

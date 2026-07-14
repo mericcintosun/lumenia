@@ -125,3 +125,60 @@
     font-family: var(--font-sans);
   }
 }
+
+/* Periwinkle theme scope — maps shadcn/Tailwind semantic tokens to brand.md's LOCKED
+   "Periwinkle" palette. Wrap any shadcn component / landing surface in `.site-theme` so it
+   renders Periwinkle without touching the global (legacy warm-paper) theme other routes use.
+   Tailwind v4 utilities resolve --color-*, so we set both --* and --color-* here. */
+.site-theme {
+  --background: #F5F3EF; --color-background: #F5F3EF;
+  --foreground: #1E1B22; --color-foreground: #1E1B22;
+  --card: #FBFAF8; --color-card: #FBFAF8;
+  --card-foreground: #1E1B22; --color-card-foreground: #1E1B22;
+  --popover: #FBFAF8; --color-popover: #FBFAF8;
+  --popover-foreground: #1E1B22; --color-popover-foreground: #1E1B22;
+  --primary: #6E5FCE; --color-primary: #6E5FCE;
+  --primary-foreground: #F6F4FD; --color-primary-foreground: #F6F4FD;
+  --secondary: #E8E3F7; --color-secondary: #E8E3F7;
+  --secondary-foreground: #1E1B22; --color-secondary-foreground: #1E1B22;
+  --muted: #ECE8F0; --color-muted: #ECE8F0;
+  --muted-foreground: #67626E; --color-muted-foreground: #67626E;
+  --accent: #E8E3F7; --color-accent: #E8E3F7;
+  --accent-foreground: #1E1B22; --color-accent-foreground: #1E1B22;
+  --border: #E5DFE8; --color-border: #E5DFE8;
+  --input: #E5DFE8; --color-input: #E5DFE8;
+  --ring: #6E5FCE; --color-ring: #6E5FCE;
+  --destructive: #C4362B; --color-destructive: #C4362B;
+  --radius: 0.875rem;
+}
+
+/* Periwinkle DARK — brand.md dark palette, applied when the (site) ThemeProvider sets
+   data-theme="dark" on <html>. Keyed off data-theme (NOT the legacy .dark class), so the shadcn
+   primitives on `.site-theme` (the landing nav + toggle) flip to dark without touching any other
+   route. Overrides both --* and --color-* (Tailwind v4 utilities resolve --color-*). */
+:root[data-theme="dark"] .site-theme {
+  --background: #15121C; --color-background: #15121C;
+  --foreground: #EDEAF3; --color-foreground: #EDEAF3;
+  --card: #1D1926; --color-card: #1D1926;
+  --card-foreground: #EDEAF3; --color-card-foreground: #EDEAF3;
+  --popover: #1D1926; --color-popover: #1D1926;
+  --popover-foreground: #EDEAF3; --color-popover-foreground: #EDEAF3;
+  --primary: #B7ACE8; --color-primary: #B7ACE8;
+  --primary-foreground: #1A1622; --color-primary-foreground: #1A1622;
+  --secondary: #2A2338; --color-secondary: #2A2338;
+  --secondary-foreground: #EDEAF3; --color-secondary-foreground: #EDEAF3;
+  --muted: #241E30; --color-muted: #241E30;
+  --muted-foreground: #A59DB2; --color-muted-foreground: #A59DB2;
+  --accent: #2A2338; --color-accent: #2A2338;
+  --accent-foreground: #EDEAF3; --color-accent-foreground: #EDEAF3;
+  --border: #2C2536; --color-border: #2C2536;
+  --input: #2C2536; --color-input: #2C2536;
+  --ring: #B7ACE8; --color-ring: #B7ACE8;
+  --destructive: #E5695F; --color-destructive: #E5695F;
+}
+
+/* SiteNav wordmark: light-only mark by default; swap to the dark-safe variant in dark mode.
+   Keyed off data-theme (matches the (site) ThemeProvider), scoped to the nav's swap classes. */
+.site-wordmark-dark { display: none; }
+:root[data-theme="dark"] .site-wordmark-light { display: none; }
+:root[data-theme="dark"] .site-wordmark-dark { display: block; }

@@ -7,6 +7,8 @@
  * outside this group and stays webfont-free.
  */
 import type { Metadata } from "next";
+import { SiteNav } from "../../components/site/SiteNav";
+import { ThemeProvider } from "../../components/site/ThemeProvider";
 
 const FONTSHARE =
   "https://api.fontshare.com/v2/css?f[]=sentient@500,600&f[]=switzer@400,500,600&display=swap";
@@ -19,10 +21,11 @@ export const metadata: Metadata = {
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <ThemeProvider>
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link rel="stylesheet" href={FONTSHARE} />
+      <SiteNav />
       {children}
-    </>
+    </ThemeProvider>
   );
 }

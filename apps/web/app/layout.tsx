@@ -26,7 +26,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the (site) ThemeProvider sets data-theme on <html> before React
+    // hydrates. It is a dev-only React hint (never serialized to HTML), so the frozen claim route's
+    // output stays byte-identical. The theme script itself is scoped to (site), not this layout.
+    <html lang="en" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

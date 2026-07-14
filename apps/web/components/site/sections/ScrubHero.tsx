@@ -168,7 +168,7 @@ export function ScrubHero() {
   if (reduce) {
     return (
       <section className="op-reduce">
-        <video poster="/brand-kit-assets/story-2-travel.webp" autoPlay loop muted playsInline className="op-reduce-v">
+        <video poster="/brand-kit-assets/story-1-share.webp" autoPlay loop muted playsInline className="op-reduce-v">
           <source src="/brand-kit-assets/video/lumenia-story-reel.webm" type="video/webm" />
           <source src="/brand-kit-assets/video/lumenia-story-reel.mp4" type="video/mp4" />
         </video>

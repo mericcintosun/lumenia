@@ -7,6 +7,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { Badge } from "@/components/ui/badge";
 
 const PROOF_TX = "b9ef1844c6ca2df732648b965a2f991ba0197643057b2c9e2a60ab52c3e23746";
 const PROOF_URL = `https://stellar.expert/explorer/testnet/tx/${PROOF_TX}`;
@@ -30,10 +31,10 @@ export function Proof() {
             company controls. We can’t hide it, freeze it, or quietly change it. Open any transfer
             and check it yourself.
           </p>
-          <span className="proof-seal">
+          <Badge className="proof-seal">
             <span className="proof-seal-star" aria-hidden="true" />
             Backed by the Stellar Community Fund
-          </span>
+          </Badge>
         </motion.div>
 
         <motion.a

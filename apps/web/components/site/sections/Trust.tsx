@@ -1,17 +1,26 @@
 /**
- * Trust — section 6, trust + FAQ. The comms-approved §6 copy, re-skinned to Periwinkle. Trust is
- * a narrative essay (not a card grid, brand.md §8); the FAQ is a native <details> accordion
- * (a candidate for the shadcn <Accordion> swap in the later shadcn-expansion pass).
+ * Trust — section 6, "Where is my money, exactly?". Redesigned to be compact + interactive: the
+ * escrow model is four soft-3D-iconed cards (shadcn <Card>, hover-lift, whileInView stagger) instead
+ * of a text wall, and the questions are a proper shadcn <Accordion>. il-trust anchors the heading.
  */
 "use client";
 
 import { motion } from "motion/react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
+// Four trust facts — condensed from the comms §6 copy for the card format; the FAQ carries the depth.
 const TRUST_POINTS = [
-  { lead: "Not with us.", body: "The moment you send, your money moves into escrow on a public ledger — a shared record no single company controls, where every transfer can be independently verified. Lumenia never holds your money, so we can’t lend it, invest it, or lose it. Our system only does two jobs: it sets up your recipient’s account, and it pays the network’s operating costs so your recipient doesn’t have to." },
-  { lead: "Only two people can move it.", body: "Your recipient can claim it. And if they don’t within 7 days, you can take it back. Nobody else — including us." },
-  { lead: "Every claim is checkable.", body: "Each transfer produces a public record. We don’t ask you to believe this page; you can verify it." },
-  { lead: "What we are not.", body: "Lumenia is not a bank and doesn’t want to be one. We don’t take deposits, we don’t pay interest, and your money is not sitting in an account with our name on it. We move money from you to someone you love, and then we get out of the way." },
+  { icon: "/brand-kit-assets/icon-shield.webp", lead: "Not with us.", body: "Your money moves into escrow on a public ledger the moment you send. We never hold it — so we can’t lend it, invest it, or lose it." },
+  { icon: "/brand-kit-assets/icon-key.webp", lead: "Only two people can move it.", body: "Your recipient can claim it. If they don’t within 7 days, you take it back. Nobody else — including us." },
+  { icon: "/brand-kit-assets/icon-check.webp", lead: "Every claim is checkable.", body: "Each transfer is a public record. Don’t believe this page — open it and verify it yourself." },
+  { icon: "/brand-kit-assets/icon-hand.webp", lead: "Not a bank.", body: "No deposits, no interest, no account with our name on it. We move money from you to someone you love, then get out of the way." },
 ];
 
 const FAQ = [
@@ -25,43 +34,76 @@ const FAQ = [
   { q: "Is this real, or a demo?", a: "Both, honestly. The technology is live and every claim in this page’s proof is backed by real, publicly verifiable transfers — currently on a test network with test money. We’d rather show you a working pilot and say so plainly than launch quietly with your rent money." },
 ];
 
+const EASE = [0.2, 0.7, 0.2, 1] as const;
+
 export function Trust() {
   return (
     <section className="trust">
       <div className="trust-inner">
+        <div className="trust-head">
+          <motion.div
+            className="trust-headcopy"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 0.6, ease: EASE }}
+          >
+            <p className="trust-eyebrow"><span className="trust-dot" />The honest answer</p>
+            <h2 className="trust-h">Where is my money, exactly?</h2>
+            <p className="trust-intro">Fair question. Four facts, then anything else you want to ask.</p>
+            <Badge variant="secondary" className="trust-badge">
+              <span className="trust-badge-star" aria-hidden="true" />
+              Publicly verifiable
+            </Badge>
+          </motion.div>
+          <motion.figure
+            className="trust-il"
+            initial={{ opacity: 0, scale: 0.92, rotate: -3 }}
+            whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.7, ease: EASE }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand-kit-assets/il-trust.png" alt="A shield of soft periwinkle light around a calm centre — your money, held safe in escrow" />
+          </motion.figure>
+        </div>
+
+        <div className="trust-cards">
+          {TRUST_POINTS.map((p, i) => (
+            <motion.div
+              key={p.lead}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.5, delay: i * 0.08, ease: EASE }}
+            >
+              <Card className="trust-card">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="trust-card-icon" src={p.icon} alt="" aria-hidden="true" />
+                <h3 className="trust-card-lead">{p.lead}</h3>
+                <p className="trust-card-body">{p.body}</p>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
         <motion.div
-          className="trust-essay"
+          className="faq"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.35 }}
-          transition={{ duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.5, ease: EASE }}
         >
-          <p className="trust-eyebrow"><span className="trust-dot" />The honest answer</p>
-          <h2 className="trust-h">Where is my money, exactly?</h2>
-          <p className="trust-intro">Fair question. Here’s the honest answer:</p>
-          <div className="trust-points">
-            {TRUST_POINTS.map((p) => (
-              <p key={p.lead} className="trust-point">
-                <strong>{p.lead}</strong> {p.body}
-              </p>
+          <h3 className="faq-h">Questions</h3>
+          <Accordion type="single" collapsible className="faq-acc">
+            {FAQ.map((f, i) => (
+              <AccordionItem key={f.q} value={`faq-${i}`} className="faq-acc-item">
+                <AccordionTrigger className="faq-acc-trigger">{f.q}</AccordionTrigger>
+                <AccordionContent className="faq-acc-content">{f.a}</AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         </motion.div>
-
-        <div className="faq">
-          <h2 className="faq-h">Questions</h2>
-          <div className="faq-list">
-            {FAQ.map((f) => (
-              <details key={f.q} className="faq-item">
-                <summary className="faq-q">
-                  {f.q}
-                  <span className="faq-mark" aria-hidden="true" />
-                </summary>
-                <p className="faq-a">{f.a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );

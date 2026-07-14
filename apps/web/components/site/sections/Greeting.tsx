@@ -6,13 +6,26 @@
  */
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
 
 export function Greeting() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const mascotRef = useRef<HTMLDivElement>(null);
+  const [reduce, setReduce] = useState(false);
+
+  useEffect(() => {
+    setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
+
+  // Recede transition (brand-kit variant 02): as the content scrolls up over the pinned greeting,
+  // the greeting scales back, dims and blurs — receding into depth instead of a flat overlay.
+  const { scrollY } = useScroll();
+  const scale = useTransform(scrollY, [0, 760], [1, 0.9]);
+  const opacity = useTransform(scrollY, [0, 560, 760], [1, 0.7, 0.3]);
+  const filter = useTransform(scrollY, [0, 760], ["blur(0px)", "blur(5px)"]);
 
   // Ambient "lumen" particle field + mouse-parallax depth.
   useEffect(() => {
@@ -109,6 +122,7 @@ export function Greeting() {
       <img className="op-brandlogo op-brandlogo--light" src="/brand-kit-assets/logo-wordmark-t.svg" alt="Lumenia" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="op-brandlogo op-brandlogo--dark" src="/brand-kit-assets/logo-wordmark-dark.svg" alt="" aria-hidden="true" />
+      <motion.div className="op-greet-recede" style={reduce ? undefined : { scale, opacity, filter }}>
       <div className="op-greet-stage">
         <div ref={bubbleRef} className="op-px-bubble">
           <div className="op-bubble">
@@ -131,6 +145,7 @@ export function Greeting() {
           </div>
         </div>
       </div>
+      </motion.div>
     </section>
   );
 }

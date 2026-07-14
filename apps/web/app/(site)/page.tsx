@@ -30,7 +30,9 @@ import { Footer } from "../../components/site/sections/Footer";
 export default function Landing() {
   return (
     <SmoothScroll>
-      <div className="op">
+      {/* `site-theme` maps shadcn semantic tokens to Periwinkle so shadcn primitives placed inside the
+          landing render on-brand; the landing's own styles use the collision-free `--pw-*` namespace. */}
+      <div className="op site-theme">
         <Greeting />
         <div className="op-over">
           <ScrubHero />

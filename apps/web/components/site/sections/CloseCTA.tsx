@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
+import { AvatarReveal } from "./AvatarReveal";
 
 export function CloseCTA() {
   return (
@@ -15,6 +16,14 @@ export function CloseCTA() {
         <source src="/brand-kit-assets/video/bg-cta.mp4" type="video/mp4" />
       </video>
       <div className="close-scrim" aria-hidden="true" />
+      {/* Brand-kit messenger (var-celebrate, bg-removed) pops in cheering from the corner — a joyful
+          nudge to try the demo. Bottom-fade grounds it; hidden on small screens. */}
+      <AvatarReveal
+        src="/brand-kit-assets/mascot-celebrate-cut.webp"
+        variant="pop"
+        wrapClassName="close-mascot-wrap"
+        className="close-mascot"
+      />
       <motion.div
         className="close-copy"
         initial={{ opacity: 0, y: 20 }}

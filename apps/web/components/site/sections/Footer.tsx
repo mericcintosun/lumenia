@@ -1,44 +1,61 @@
 /**
- * Footer — the dark Periwinkle footer closing the landing: the link mark, tagline, nav columns,
- * and the SCF seal. Per the owner logo rule, no text "Lumenia" — the link mark stands in for it.
+ * Footer — the dark Periwinkle footer closing the landing, over the living bg-footer glow. The
+ * brand-kit messenger (avatar-heart, bg-removed + watermark cleaned) stands on a soft ground-glow
+ * as a warm sign-off. Per the owner logo rule, no text "Lumenia" — the link mark stands in for it.
+ * The SCF seal is a shadcn <Badge>.
  */
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { AvatarReveal } from "./AvatarReveal";
+
+const COLS = [
+  { title: "Product", links: [["How it works", "/how-it-works"], ["Live demo", "/demo"], ["Waitlist", "/waitlist"]] },
+  { title: "Company", links: [["About", "/about"], ["Roadmap", "/roadmap"], ["Developers", "/developers"]] },
+  { title: "Legal", links: [["Privacy", "/privacy"], ["Terms", "/terms"]] },
+];
 
 export function Footer() {
   return (
     <footer className="foot">
+      {/* Living footer glow (brand-kit bg-footer) — periwinkle smoke rising behind the sign-off. */}
+      <video className="foot-bg" poster="/brand-kit-assets/bg-footer.png" autoPlay loop muted playsInline aria-hidden="true">
+        <source src="/brand-kit-assets/video/bg-footer.webm" type="video/webm" />
+        <source src="/brand-kit-assets/video/bg-footer.mp4" type="video/mp4" />
+      </video>
+      <div className="foot-scrim" aria-hidden="true" />
+
       <div className="foot-inner">
         <div className="foot-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="foot-mark" src="/brand-kit-assets/mark-link.webp" alt="Lumenia" />
           <p className="foot-tag">Money home, without the ordeal.</p>
+          <AvatarReveal
+            src="/brand-kit-assets/avatar-heart-cut.webp"
+            variant="rise"
+            wrapClassName="foot-mascot-wrap"
+            glowClassName="foot-mascot-glow"
+            className="foot-mascot"
+          />
         </div>
+
         <nav className="foot-nav">
-          <div className="foot-col">
-            <span className="foot-ct">Product</span>
-            <Link href="/how-it-works">How it works</Link>
-            <Link href="/demo">Live demo</Link>
-            <Link href="/waitlist">Waitlist</Link>
-          </div>
-          <div className="foot-col">
-            <span className="foot-ct">Company</span>
-            <Link href="/about">About</Link>
-            <Link href="/roadmap">Roadmap</Link>
-            <Link href="/developers">Developers</Link>
-          </div>
-          <div className="foot-col">
-            <span className="foot-ct">Legal</span>
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/terms">Terms</Link>
-          </div>
+          {COLS.map((c) => (
+            <div className="foot-col" key={c.title}>
+              <span className="foot-ct">{c.title}</span>
+              {c.links.map(([label, href]) => (
+                <Link key={href} href={href}>{label}</Link>
+              ))}
+            </div>
+          ))}
         </nav>
       </div>
+
       <div className="foot-bottom">
-        <span>Your money is never ours. That’s the point.</span>
-        <span className="foot-seal">
+        <span>Your money is never ours. That&rsquo;s the point.</span>
+        <Badge variant="secondary" className="foot-seal">
           <span className="foot-seal-star" aria-hidden="true" />
           Backed by the Stellar Community Fund
-        </span>
+        </Badge>
       </div>
     </footer>
   );

@@ -11,7 +11,7 @@
  * The recipient holds 0 XLM throughout — the sponsor pays the fee via the bump.
  * The anti-drain validator is the sponsor-local ./anti-drain.js module, so esbuild
  * inlines it into the deployed function (no workspace:* dependency, which
- * npm/Vercel can't resolve); the SAME module runs in test-antidrain (18/18).
+ * npm/Vercel can't resolve); the SAME module runs in test-antidrain (25/25).
  */
 import { TransactionBuilder, type Transaction, type Horizon } from "@stellar/stellar-sdk";
 import { validateInnerTransaction, type InnerTxPolicy } from "./anti-drain.js";

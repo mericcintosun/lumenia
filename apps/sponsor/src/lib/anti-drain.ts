@@ -12,7 +12,7 @@
  * `payment` to an arbitrary destination all drain the sponsor while passing a
  * type-only check. So we validate every op's SOURCE and its sensitive PARAMETERS.
  *
- * Covered by test-antidrain.ts (18/18) — the same file that tests the deployed gate.
+ * Covered by test-antidrain.ts (25/25) — the same file that tests the deployed gate.
  */
 import type { Asset, Transaction } from "@stellar/stellar-sdk";
 

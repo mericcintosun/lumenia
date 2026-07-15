@@ -6,7 +6,7 @@ Last updated: 2026-07-11 · Network: **testnet** · No real money used.
 
 > **Instawards sprint (25.06 → ~24.07): see §10** — the live sponsor service, the
 > end-to-end browser claim (binary metric MET on-chain) and the hardened anti-drain
-> (18/18 + 5/5) supersede the pre-award state below where they conflict.
+> (25/25 + 6/6) supersede the pre-award state below where they conflict.
 
 > Naming note: the product is **Lumenia**; packages are `@lumenia/*`. The working directory is historically named `faceid-wallet` (cosmetic). Stelvin is a **separate, independent project** — not part of Lumenia and not used as its credential.
 
@@ -88,7 +88,7 @@ The primitives shared by web + sponsor:
 
 > ⚠️ **Correction (don't overclaim):** Spike #1 signs with a **local in-memory `Keypair`** (`tx.sign`) in a **single process**. It does **NOT** prove (a) that the sponsor key can live in an HSM/KMS, or (b) that the inner tx survives the web→sponsor wire, or (c) fee-abuse/economic anti-drain. Those are covered by §4b–§4d below; what remains open is in 6.
 
-## 4b. ✅ Anti-drain validator hardening + tests (14/14 → 18/18, see §10)
+## 4b. ✅ Anti-drain validator hardening + tests (14/14 → 18/18 → 25/25, see §10)
 
 **File:** [apps/sponsor/src/test-antidrain.ts](apps/sponsor/src/test-antidrain.ts) · **Run:** `pnpm test:antidrain` · no network needed.
 
@@ -129,7 +129,7 @@ Proves the Stellar-specific half of the CCTP bridge leg (off-ramp Path 3) on liv
 | Item | Status |
 |---|---|
 | Sponsored 0-XLM onboarding + fee-bumped claim economics | ✅ PROVEN (Spike #1, testnet) |
-| Anti-drain validator rejects reserve/principal drain vectors | ✅ PROVEN (**18/18** unit + **5/5** integration tests; gates the live `/feebump` — §10) |
+| Anti-drain validator rejects reserve/principal drain vectors | ✅ PROVEN (**25/25** unit + **6/6** integration tests; gates the live `/feebump` — §10) |
 | Sponsor key behind external raw-Ed25519 signer (KMS path) | ✅ PROVEN mechanically (Spike #1b); the deployed testnet service uses an env hot-key (SOW scope) |
 | web→sponsor XDR wire-parity + fee-bump of re-parsed tx | ✅ PROVEN (Spike #1c + live browser claim — §10) |
 | **Live sponsor service + end-to-end walletless browser claim** | ✅ **PROVEN on-chain** (§10: tx `b9ef1844…` — 20 USDC landed, 0 XLM held, sponsor paid the fee) |
@@ -171,8 +171,8 @@ Six deep research briefs were produced to de-risk the review-flagged unknowns. H
 # at the repo root
 pnpm install        # entire workspace
 pnpm spike1         # Spike #1   → testnet → "✅ SPIKE #1 PASS"
-pnpm test:antidrain # validator  → "✅ ANTI-DRAIN TESTS PASS (18/18)" (no network)
-pnpm --filter @lumenia/sponsor test:integration  # → "✅ INTEGRATION TESTS PASS (5/5)" (testnet)
+pnpm test:antidrain # validator  → "✅ ANTI-DRAIN TESTS PASS (25/25)" (no network)
+pnpm --filter @lumenia/sponsor test:integration  # → "✅ INTEGRATION TESTS PASS (6/6)" (testnet)
 pnpm spike1b        # Spike #1b  → testnet → "✅ SPIKE #1b PASS"
 pnpm spike1c        # Spike #1c  → testnet → "✅ SPIKE #1c PASS"
 pnpm spike4         # Spike #4   → testnet → "✅ SPIKE #4 PASS" (CCTP Stellar-side interface)
@@ -188,7 +188,7 @@ The 30-day SOW ([INSTAWARDS_SOW.md](INSTAWARDS_SOW.md)) integrates the proven sp
 
 - **D1 — live sponsor service:** deployed at `https://lumenia-sponsor.vercel.app` (`/health`, `/create-account`, `/feebump`) as esbuild-bundled CJS functions; env hot-key signer; fee cap; per-IP + per-account rate limiting on both POST endpoints, **durable across serverless instances** (Upstash Redis via Vercel Marketplace, `KV_REST_API_URL/TOKEN`; in-memory fallback). Proven live 2026-07-11: 12 concurrent `/create-account` for one account → exactly 5×200 (cap) + 7×429.
 - **D2 — end-to-end walletless claim:** ✅ **binary metric MET.** A real browser tapped a claim link on `https://lumenia-chi.vercel.app`, the sponsor created a 0-XLM account + USDC trustline, and the fee-bumped claim landed **20 USDC with the recipient holding 0 XLM** — tx `b9ef1844c6ca2df732648b965a2f991ba0197643057b2c9e2a60ab52c3e23746` (fee paid by the sponsor; verify on stellar.expert).
-- **D3 — anti-drain, wired and tested:** the validator (`apps/sponsor/src/lib/anti-drain.ts`, moved out of `packages/shared` for the Vercel deploy boundary, hardened to **strict-by-default**) gates every live `/feebump`. **18/18** unit tests + **5/5** integration tests (happy claim / drain rejection / rate-limit 429 over real HTTP); a live drain attempt against the deployed endpoint returns `400 — "op 'payment' sourced from sponsor (drain attempt)"`. Write-up: [ANTI_DRAIN.md](ANTI_DRAIN.md).
+- **D3 — anti-drain, wired and tested:** the validator (`apps/sponsor/src/lib/anti-drain.ts`, moved out of `packages/shared` for the Vercel deploy boundary, hardened to **strict-by-default**) gates every live `/feebump`. **25/25** unit tests + **6/6** integration tests (happy claim / happy send / drain rejection / rate-limit 429 over real HTTP); a live drain attempt against the deployed endpoint returns `400 — "op 'payment' sourced from sponsor (drain attempt)"`. Write-up: [ANTI_DRAIN.md](ANTI_DRAIN.md).
 - **Web claim UI:** value-first page (amount before any credential; bearer key in the `#fragment`, never sent to a server), on-screen explorer tx link after the claim, and the delegated cash-out **placeholder** (disabled "Spend with a card / Convert to Turkish lira" — a licensed provider converts, Lumenia never does; SOW §4.1 note).
-- **Evidence:** [EVIDENCE.md](EVIDENCE.md) + the test-output capture `evidence/tests-18-18-and-5-5.png`.
+- **Evidence:** [EVIDENCE.md](EVIDENCE.md) + the test-output capture `evidence/tests-25-25-and-6-6.png`.
 - **Still open (W4):** the 60-second demo video (user-recorded).

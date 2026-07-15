@@ -1,9 +1,13 @@
 /**
- * (marketing) route group — the public site (landing + trust + tools + learn +
- * legal orbit). Header + four-column footer + the site-wide testnet banner, plus
- * the humanist heading font (Plus Jakarta Sans) scoped HERE via --font-jakarta —
- * so it never reaches the webfont-free claim route (which lives outside this group).
- * Route groups don't affect URLs: (marketing)/how-it-works → /how-it-works.
+ * (marketing) route group — what is LEFT of the public site on the retired warm-paper system:
+ * the tools + learn + legal orbit. Header + four-column footer + the site-wide testnet banner,
+ * plus the humanist heading font (Plus Jakarta Sans) scoped HERE via --font-jakarta — so it never
+ * reaches the webfont-free claim route (which lives outside this group).
+ *
+ * This group is being emptied, not restyled. Each page moves to (site) as it is rebuilt on the
+ * LOCKED Periwinkle system; route groups don't affect URLs, so a page keeps its URL and arrives
+ * with the right chrome around it ((site)/how-it-works → /how-it-works was the first). When the
+ * last page leaves, this layout, SiteHeader, SiteFooter and the warm-paper tokens go with it.
  */
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { TestnetBanner } from "../../components/brand/TestnetBanner";

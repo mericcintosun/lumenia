@@ -1,0 +1,39 @@
+/*
+ * The Periwinkle token scope (brand.md §4) — the single source of truth for the `--pw-*` palette
+ * the (site) group's own styles are written against.
+ *
+ * Extracted from landing.css so a second route can carry the system without restating the palette.
+ * Two scopes, identical tokens:
+ *   .op — the landing's root (it also owns its own background/type, which stay in landing.css)
+ *   .pw — every other (site) page's root
+ *
+ * Specificity is unchanged from when these lived on `.op` alone: a selector list gives each
+ * selector its own score, and `:is()` takes its most specific argument — so `.op` (0,1,0) and
+ * `:root[data-theme="dark"] :is(.op,.pw)` (0,3,0) match the originals exactly. The landing's
+ * cascade is byte-identical to before the extraction.
+ *
+ * Dark is driven by data-theme on <html> (the (site) ThemeProvider), never the legacy `.dark`
+ * class — so nothing here can reach the frozen claim route or the legacy warm-paper chrome.
+ */
+.op,
+.pw {
+  --pw-paper: #f5f3ef;
+  --pw-surface: #fbfaf8;
+  --pw-ink: #1e1b22;
+  --pw-muted: #67626e;
+  --pw-line: #e5dfe8;
+  --pw-accent: #6e5fce;
+  --pw-accent-hover: #5f50c2;
+  --pw-on-accent: #f6f4fd;
+}
+
+:root[data-theme="dark"] :is(.op, .pw) {
+  --pw-paper: #15121c;
+  --pw-surface: #1d1926;
+  --pw-ink: #edeaf3;
+  --pw-muted: #a59db2;
+  --pw-line: #2c2536;
+  --pw-accent: #b7ace8;
+  --pw-accent-hover: #c7bef0;
+  --pw-on-accent: #1a1622;
+}

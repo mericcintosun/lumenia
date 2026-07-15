@@ -1,9 +1,10 @@
 /**
- * Footer — the dark Periwinkle footer closing the landing, over the living bg-footer glow. The
- * brand-kit messenger (avatar-heart, bg-removed + watermark cleaned) stands on a soft ground-glow
- * as a warm sign-off. Per the owner logo rule, no text "Lumenia" — the link mark stands in for it.
- * The SCF seal is a shadcn <Badge>.
+ * Footer — the Periwinkle footer closing every page in the (site) group, over the living bg-footer
+ * glow. The brand-kit messenger (avatar-heart, bg-removed + watermark cleaned) stands on a soft
+ * ground-glow as a warm sign-off. Per the owner logo rule, no text "Lumenia" — the link mark stands
+ * in for it. The SCF seal is a shadcn <Badge>.
  */
+import "./footer.css";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { AvatarReveal } from "./AvatarReveal";

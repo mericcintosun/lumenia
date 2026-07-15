@@ -124,6 +124,19 @@ export function ScrubHero() {
       lastIdx = -1;
     };
 
+    /**
+     * The reel is a 1280×720 composition — a landscape scene, framed as one. Filling the canvas
+     * (cover) is right on a laptop, where the shapes barely differ. On a portrait phone it is not:
+     * at 393×852 covering means scaling the frame to 1516px wide, so 74% of the scene is cropped
+     * away and what is left reads as an anonymous blob rather than the shot.
+     *
+     * So past a point we stop cropping and fit the whole frame instead, letterboxed against the
+     * section's own dark. A cinematic band showing the composition beats a close-up of its middle.
+     * The threshold is the aspect MISMATCH, not a device guess: it lets landscape tablets keep cover
+     * (1024×768 overflows by only 1.34×) and catches portrait ones (768×1024 → 2.37×) too.
+     */
+    /** How far past the viewport's width a frame may spill before we stop covering. */
+    const MAX_CROP = 1.6;
     const draw = (idx: number) => {
       const img = framesRef.current[idx];
       if (!img || !img.width) return;
@@ -131,9 +144,18 @@ export function ScrubHero() {
       const cr = cssW / cssH;
       let dw: number, dh: number, dx: number, dy: number;
       if (cr > ir) {
+        // Wider than the frame: cover by width; the overflow is vertical and mild.
         dw = cssW;
         dh = cssW / ir;
         dx = 0;
+        dy = (cssH - dh) / 2;
+      } else if (ir / cr > MAX_CROP) {
+        // Covering here would spill 3.9× the width on a 393×852 phone and throw away 74% of the
+        // shot — you get an anonymous close-up of the blob instead of the scene. Cap the crop at
+        // MAX_CROP and letterbox the rest: still a cinematic band, but the composition survives.
+        dw = cssW * MAX_CROP;
+        dh = dw / ir;
+        dx = (cssW - dw) / 2;
         dy = (cssH - dh) / 2;
       } else {
         dh = cssH;
@@ -141,6 +163,11 @@ export function ScrubHero() {
         dx = (cssW - dw) / 2;
         dy = 0;
       }
+      // The letterbox has to be the section's dark, not the canvas's default black — alpha:false
+      // starts pure #000, and #15121C is a warm near-black. Unpainted bars gave the band a hard
+      // black frame that read as a bug against the surrounding section.
+      ctx.fillStyle = "#15121C";
+      ctx.fillRect(0, 0, cssW, cssH);
       ctx.drawImage(img, dx, dy, dw, dh);
     };
 

@@ -1,0 +1,92 @@
+/*
+ * Footer — the (site) group's shared sign-off, extracted from landing.css so every page in the
+ * group can close with it, not just the landing. Imported by Footer.tsx itself, so the styles
+ * travel with the component.
+ *
+ * Written against the --pw-* tokens (components/site/pw-tokens.css, imported by the (site) layout).
+ *
+ * ORDER-INDEPENDENCE, deliberately. These rules used to sit inside landing.css and relied on
+ * appearing after it; as a separate file, nothing guarantees which of the two the bundler emits
+ * first. Two rules were load-bearing on order and are now pinned by specificity instead:
+ *   .foot .foot-tag  (0,2,0) — outranks landing.css's `.op :where(h1,h2,p){margin:0}` (0,1,0),
+ *                              which would otherwise erase the tagline's margin-top if it landed later.
+ *   .op-over .foot   (0,2,0) — the landing's sticky-overlap z-index, hardened and left in landing.css
+ *                              where that stack is defined; it outranks this file's base z-index:1.
+ * Every other .foot* rule is the sole declaration of its property, so it cannot lose a tie.
+ * Relative order WITHIN this file is preserved exactly as it was in landing.css.
+ */
+
+/* Theme-aware: light paper + a soft periwinkle glow in light mode; dark paper (+ the dark bg-footer
+   video, dark-only) in dark mode. */
+.foot{position:relative;z-index:1;isolation:isolate;color:var(--pw-ink);overflow:hidden;padding:clamp(64px,9vh,110px) clamp(24px,6vw,64px) 36px;
+  background:radial-gradient(96% 130% at 50% 100%, color-mix(in srgb,var(--pw-accent) 10%,transparent), transparent 60%), var(--pw-paper)}
+/* bg-footer has a grey studio floor around the dark panel; object-fit:cover shows those edges as
+   side gaps on wide screens. Scale it up (clipped by .foot overflow:hidden) so only the dark panel
+   fills the width — the bg has no text, so scaling can't break the layout. It's a dark video, so it
+   only shows in dark mode; light mode uses the paper + glow above. */
+.foot-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:.5;transform:scale(1.42);transform-origin:center}
+:root[data-theme="light"] .foot-bg{display:none}
+/* Light-mode living bg: bg-soft (lavender drift). Full-bleed gradient, so no scale needed. */
+.foot-bg-light{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:.5;display:none}
+:root[data-theme="light"] .foot-bg-light{display:block}
+/* Scrim is a paper veil in the current theme (var(--pw-paper) flips light/dark) so the text stays
+   readable over whichever video is playing. */
+.foot-scrim{position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg, color-mix(in srgb,var(--pw-paper) 58%,transparent) 0%, color-mix(in srgb,var(--pw-paper) 30%,transparent) 50%, color-mix(in srgb,var(--pw-paper) 66%,transparent) 100%)}
+.foot-inner{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1fr 1.25fr;gap:clamp(40px,6vw,90px);align-items:start}
+@media (max-width:760px){.foot-inner{grid-template-columns:1fr;gap:40px}}
+.foot-mark{height:40px;width:auto;display:block}
+.foot .foot-tag{margin-top:16px;font-family:"Sentient",Georgia,serif;font-weight:500;font-size:clamp(20px,2.5vw,29px);color:var(--pw-ink);max-width:15ch;line-height:1.12;letter-spacing:-.01em}
+.foot-mascot-wrap{position:relative;width:-moz-fit-content;width:fit-content;margin-top:22px}
+.foot-mascot-glow{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);width:78%;height:30%;z-index:0;pointer-events:none;
+  border-radius:50%;background:radial-gradient(ellipse at center, color-mix(in srgb,#B7ACE8 42%,transparent), transparent 70%);filter:blur(15px)}
+.foot-mascot{position:relative;z-index:1;width:clamp(158px,19vw,224px);height:auto;display:block;
+  filter:drop-shadow(0 26px 34px rgba(110,95,206,.42));animation:footfloat 5.4s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.foot-mascot{animation:none}}
+/* The footer's own copy of the float, so the component does not depend on landing.css being
+   present for its keyframes. Identical to the landing's `opfloat`; named apart to avoid two
+   same-named @keyframes racing when both files load on the landing. */
+@keyframes footfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-13px)}}
+.foot-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;padding-top:6px}
+@media (max-width:520px){.foot-nav{grid-template-columns:repeat(2,1fr)}}
+.foot-col{display:flex;flex-direction:column;gap:13px}
+.foot-ct{font-family:"Switzer",ui-sans-serif,sans-serif;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--pw-muted);margin-bottom:4px}
+.foot-col a{font-family:"Switzer",ui-sans-serif,sans-serif;color:var(--pw-muted);text-decoration:none;font-size:15px;width:-moz-fit-content;width:fit-content;transition:color .18s,transform .18s}
+.foot-col a:hover{color:var(--pw-accent);transform:translateX(3px)}
+.foot-bottom{position:relative;z-index:1;max-width:1120px;margin:clamp(40px,6vh,64px) auto 0;padding-top:24px;border-top:1px solid var(--pw-line);
+  display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;font-family:"Switzer",ui-sans-serif,sans-serif;font-size:13px;color:var(--pw-muted)}
+.foot-seal{gap:8px;color:var(--pw-ink);background:color-mix(in srgb,var(--pw-accent) 12%,transparent);border:1px solid color-mix(in srgb,var(--pw-accent) 30%,transparent);border-radius:999px;padding:6px 13px}
+.foot-seal-star{width:11px;height:11px;flex:none;background:#FDDA24;clip-path:polygon(50% 0%,58% 42%,100% 50%,58% 58%,50% 100%,42% 58%,0% 50%,42% 42%)}
+
+/* Honour reduced-motion: drop the ambient bg videos (the footer keeps its flat paper base + poster).
+   Scoped to `video` because the poster <img> shares these classes — a still poster has no motion to
+   reduce, so it stays. AmbientVideo does not mount the <video> under reduced motion anyway, so this
+   is belt-and-braces. */
+@media (prefers-reduced-motion:reduce){video.foot-bg,video.foot-bg-light{display:none!important}}
+
+/* Large screens (roughly 1900px and up) — same pattern as the landing's own large-screen block:
+   the container becomes clamp(<today>, Xvw, <ceiling>), continuous and crossing over near 1900px,
+   so nothing below that moves by a pixel. */
+.foot-inner,.foot-bottom{max-width:clamp(1120px,58vw,1640px)}
+
+/* Phones: still ambience, but no video decode. The gate is in AmbientVideo.tsx, not here — CSS
+   cannot do it (`preload="none"` is ignored when autoplay is set, and `display:none` does not stop
+   the fetch; both measured). What is left for CSS is making the poster <img> and the <video>
+   interchangeable: they share a class, so every rule above already applies to whichever is present. */
+img.foot-bg,img.foot-bg-light{
+  /* The poster is a real image, so it needs the fit the video got for free. */
+  object-fit:cover}
+/* Tablet and up the video mounts on top of its own poster; one layer is enough.
+   The theme selector has to be repeated, not just the class: `:root[data-theme="light"]
+   .foot-bg-light{display:block}` above scores (0,3,0) and would beat a plain `img.foot-bg-light`
+   (0,1,1) — which is exactly what happened, leaving the poster stacked under the video in light. */
+@media (min-width:641px){
+  img.foot-bg,img.foot-bg-light,
+  :root[data-theme="light"] img.foot-bg-light,
+  :root[data-theme="dark"] img.foot-bg{display:none}
+}
+/* Reduced motion never mounts the video (AmbientVideo checks it), so the poster has to stay —
+   the old rule blanked these layers outright and left the section bare. */
+@media (prefers-reduced-motion:reduce){
+  img.foot-bg,img.foot-bg-light{display:block}
+}

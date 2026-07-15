@@ -14,6 +14,7 @@
  *   6 Trust        — "Where is my money, exactly?" essay + FAQ
  *   7 CloseCTA + Footer — dual CTA over the living video + the dark footer
  */
+import type { Metadata } from "next";
 import SmoothScroll from "../../components/brand/SmoothScroll";
 import "../../components/site/sections/landing.css";
 import { BootOpening } from "../../components/site/sections/BootOpening";
@@ -27,6 +28,49 @@ import { Proof } from "../../components/site/sections/Proof";
 import { Trust } from "../../components/site/sections/Trust";
 import { CloseCTA } from "../../components/site/sections/CloseCTA";
 import { Footer } from "../../components/site/sections/Footer";
+
+const TITLE = "Lumenia — money home, in a link";
+const DESCRIPTION =
+  "Send money by link. They tap it and it's theirs — no wallet, no seed phrase, no app. Held in dollars until they need it.";
+
+/**
+ * The landing's metadata. It lives here rather than in the group layout because (site) now holds
+ * more than one route, and canonical/OG are per-route.
+ *
+ * The OG/Twitter card is a real asset (public/og.png), not a screenshot: the wordmark, the locked
+ * §6 hero line and the messenger, on the landing's own paper. Both are absolute via the root
+ * layout's metadataBase — link crawlers reject relative image URLs.
+ *
+ * Vocabulary law (lib/copy.ts) applies here as much as in the UI: no wallet/crypto/Stellar/gas.
+ * "no wallet, no seed phrase" is the approved subtraction line — it names what you DON'T need.
+ */
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Lumenia",
+    title: TITLE,
+    description: DESCRIPTION,
+    locale: "en_US",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Lumenia — money home, in a link. The Lumenia messenger holding an envelope.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/og.png"],
+  },
+};
 
 /**
  * Structured data. Organization + WebSite let a search engine name the product and its mark rather

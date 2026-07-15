@@ -22,7 +22,7 @@ export function Moment() {
     <section className="moment" ref={ref}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        className="moment-img"
+        className="moment-img" loading="lazy" decoding="async"
         src="/brand-kit-assets/moment-hands.webp"
         alt="Two people at a sunlit table; one holds a phone glowing softly as money arrives"
       />
@@ -51,7 +51,7 @@ export function Moment() {
               transition={{ duration: 0.45, delay: 0.25 + i * 0.1, ease: EASE }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand-kit-assets/icon-check.webp" alt="" aria-hidden="true" />
+              <img src="/brand-kit-assets/icon-check.webp" loading="lazy" decoding="async" alt="" aria-hidden="true" />
               {r}
             </motion.span>
           ))}

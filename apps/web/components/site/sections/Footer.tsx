@@ -19,11 +19,11 @@ export function Footer() {
     <footer className="foot">
       {/* Living footer glow — theme-aware: bg-footer (dark navy smoke) in dark, bg-soft (light lavender
           drift) in light. Only the theme's video is shown (CSS); reduced-motion drops both. */}
-      <video className="foot-bg" poster="/brand-kit-assets/bg-footer.png" autoPlay loop muted playsInline aria-hidden="true">
+      <video className="foot-bg" poster="/brand-kit-assets/bg-footer.webp" autoPlay loop muted playsInline preload="none" aria-hidden="true">
         <source src="/brand-kit-assets/video/bg-footer.webm" type="video/webm" />
         <source src="/brand-kit-assets/video/bg-footer.mp4" type="video/mp4" />
       </video>
-      <video className="foot-bg-light" poster="/brand-kit-assets/bg-soft.png" autoPlay loop muted playsInline aria-hidden="true">
+      <video className="foot-bg-light" poster="/brand-kit-assets/bg-soft.webp" autoPlay loop muted playsInline preload="none" aria-hidden="true">
         <source src="/brand-kit-assets/video/bg-soft.webm" type="video/webm" />
         <source src="/brand-kit-assets/video/bg-soft.mp4" type="video/mp4" />
       </video>
@@ -32,7 +32,7 @@ export function Footer() {
       <div className="foot-inner">
         <div className="foot-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="foot-mark" src="/brand-kit-assets/mark-link.webp" alt="Lumenia" />
+          <img className="foot-mark" src="/brand-kit-assets/mark-link.webp" loading="lazy" decoding="async" alt="Lumenia" />
           <p className="foot-tag">Money home, without the ordeal.</p>
           <AvatarReveal
             src="/brand-kit-assets/avatar-heart-cut.webp"

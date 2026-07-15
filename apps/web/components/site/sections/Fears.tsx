@@ -50,7 +50,7 @@ function FearBeat({ worry, lead, rest, icon, i }: { worry: string; lead: string;
       transition={{ duration: 0.5, delay: (i % 2) * 0.08, ease: [0.2, 0.7, 0.2, 1] }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="fear-icon" src={icon} alt="" aria-hidden="true" />
+      <img className="fear-icon" src={icon} loading="lazy" decoding="async" alt="" aria-hidden="true" />
       <p className="fear-worry">{worry}</p>
       <p className="fear-answer">
         <strong>{lead}</strong> {rest}
@@ -64,7 +64,7 @@ export function Fears() {
     <section className="fears">
       {/* Living lavender field (brand-kit bg-soft) drifting behind the fears — ambient motion for a
           text-heavy section. Paper scrim keeps the editorial crisp; reduced-motion drops it. */}
-      <video className="fears-bg" poster="/brand-kit-assets/bg-soft.png" autoPlay loop muted playsInline aria-hidden="true">
+      <video className="fears-bg" poster="/brand-kit-assets/bg-soft.webp" autoPlay loop muted playsInline preload="none" aria-hidden="true">
         <source src="/brand-kit-assets/video/bg-soft.webm" type="video/webm" />
         <source src="/brand-kit-assets/video/bg-soft.mp4" type="video/mp4" />
       </video>

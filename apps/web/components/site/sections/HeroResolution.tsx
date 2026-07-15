@@ -22,7 +22,7 @@ export function HeroResolution() {
     <section className="op-after">
       {/* Living hero backdrop (brand-kit bg-hero-bloom) — a soft periwinkle bloom behind the promise.
           Muted by a paper scrim so the headline stays crisp; reduced-motion falls back to the still. */}
-      <video className="op-after-bg" poster="/brand-kit-assets/bg-hero.png" autoPlay loop muted playsInline aria-hidden="true">
+      <video className="op-after-bg" poster="/brand-kit-assets/bg-hero.webp" autoPlay loop muted playsInline preload="none" aria-hidden="true">
         <source src="/brand-kit-assets/video/bg-hero-bloom.webm" type="video/webm" />
         <source src="/brand-kit-assets/video/bg-hero-bloom.mp4" type="video/mp4" />
       </video>

@@ -5,15 +5,15 @@
  */
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { motion, useScroll, useTransform, type MotionValue } from "motion/react";
+import { motion, useMotionValueEvent, useScroll, useTransform, type MotionValue } from "motion/react";
 import { clamp } from "./utils";
 
 const HIW = [
-  { img: "/brand-kit-assets/il-abstract.png", t: "You send a link.", b: "Choose an amount and share it in a chat, like anything else. That’s the whole transfer." },
-  { img: "/brand-kit-assets/il-phone.png", t: "They tap it.", b: "Your recipient sees the money the moment they tap — before creating anything." },
-  { img: "/brand-kit-assets/il-celebrate.png", t: "It’s theirs.", b: "They claim it with their face or a password. Receiving is free. Done." },
+  { img: "/brand-kit-assets/il-abstract.webp", t: "You send a link.", b: "Choose an amount and share it in a chat, like anything else. That’s the whole transfer." },
+  { img: "/brand-kit-assets/il-phone.webp", t: "They tap it.", b: "Your recipient sees the money the moment they tap — before creating anything." },
+  { img: "/brand-kit-assets/il-celebrate.webp", t: "It’s theirs.", b: "They claim it with their face or a password. Receiving is free. Done." },
 ];
 
 function HiwFrame({ i, last, step, p }: { i: number; last: number; step: (typeof HIW)[number]; p: MotionValue<number> }) {
@@ -29,18 +29,30 @@ function HiwFrame({ i, last, step, p }: { i: number; last: number; step: (typeof
   const scale = useTransform(p, [clamp(c - w - 0.05), clamp(c + w + 0.05)], [1.06, 1.0]);
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <motion.img className="hiw-fr" style={{ opacity, scale }} src={step.img} alt="" aria-hidden="true" />
+    <motion.img className="hiw-fr" style={{ opacity, scale }} src={step.img} loading="lazy" decoding="async" alt="" aria-hidden="true" />
   );
 }
 
+/**
+ * The inactive steps are quietened with COLOUR, not opacity.
+ *
+ * They used to fade to opacity .3, which blends the text into the paper: 2.45:1 on the title and
+ * 1.72:1 on the body — both far under WCAG AA. There is no opacity floor that fixes it either;
+ * --pw-muted is only 5.34:1 at FULL strength, so any fade at all drops the body under 4.5:1.
+ * Swapping the colour instead keeps every state at the token's own contrast (ink 15.3:1 active,
+ * muted 5.3:1 / 7.1:1 quiet) while reading the same: the live step is the black one.
+ * The illustration still cross-fades on opacity — it is aria-hidden, so it owes no contrast.
+ */
 function HiwStep({ i, step, p }: { i: number; step: (typeof HIW)[number]; p: MotionValue<number> }) {
   const c = (i + 0.5) / HIW.length;
-  const opacity = useTransform(p, [clamp(c - 0.16), c, clamp(c + 0.16)], [0.3, 1, 0.3]);
+  const [active, setActive] = useState(i === 0);
+  // Same window the opacity ramp used, so the step lights up on exactly the same beat as before.
+  useMotionValueEvent(p, "change", (v) => setActive(Math.abs(v - c) < 0.16));
   return (
-    <motion.div className="hiw-strow" style={{ opacity }}>
+    <div className="hiw-strow" data-active={active}>
       <h3 className="hiw-stt">{step.t}</h3>
       <p className="hiw-stb">{step.b}</p>
-    </motion.div>
+    </div>
   );
 }
 

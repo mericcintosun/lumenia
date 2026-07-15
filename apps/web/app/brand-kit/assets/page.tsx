@@ -29,20 +29,20 @@ const ICONS: Item[] = [
 ];
 
 const BACKGROUNDS: Item[] = [
-  { src: "/brand-kit-assets/bg-hero.png", label: "Hero", note: "warm paper + periwinkle glow, space to rest an object", ratio: "16 / 9" },
+  { src: "/brand-kit-assets/bg-hero.webp", label: "Hero", note: "warm paper + periwinkle glow, space to rest an object", ratio: "16 / 9" },
   { src: "/brand-kit-assets/bg-howitworks.png", label: "How-it-works", note: "dark aurora — the Stellar/proof strip", ratio: "16 / 9" },
-  { src: "/brand-kit-assets/bg-soft.png", label: "Soft field", note: "periwinkle gradient — section dividers", ratio: "16 / 9" },
+  { src: "/brand-kit-assets/bg-soft.webp", label: "Soft field", note: "periwinkle gradient — section dividers", ratio: "16 / 9" },
   { src: "/brand-kit-assets/bg-cta.png", label: "CTA band", note: "bright periwinkle glow — call-to-action", ratio: "16 / 9" },
-  { src: "/brand-kit-assets/bg-footer.png", label: "Footer", note: "dark low-glow — footer / close", ratio: "16 / 9" },
+  { src: "/brand-kit-assets/bg-footer.webp", label: "Footer", note: "dark low-glow — footer / close", ratio: "16 / 9" },
 ];
 
 const ILLUSTRATIONS: Item[] = [
   { src: "/brand-kit-assets/il-hands.png", label: "Passing light", note: "hands passing a glowing light — the transfer", ratio: "4 / 3" },
-  { src: "/brand-kit-assets/il-phone.png", label: "Tap the link", note: "hand tapping a phone, periwinkle bloom", ratio: "4 / 3" },
-  { src: "/brand-kit-assets/il-abstract.png", label: "Connection", note: "abstract ribbons connecting two points", ratio: "4 / 3" },
+  { src: "/brand-kit-assets/il-phone.webp", label: "Tap the link", note: "hand tapping a phone, periwinkle bloom", ratio: "4 / 3" },
+  { src: "/brand-kit-assets/il-abstract.webp", label: "Connection", note: "abstract ribbons connecting two points", ratio: "4 / 3" },
   { src: "/brand-kit-assets/il-home.png", label: "Home", note: "cozy home, golden hour — arrival", ratio: "4 / 3" },
-  { src: "/brand-kit-assets/il-celebrate.png", label: "Celebrate", note: "soft confetti — success / received", ratio: "4 / 3" },
-  { src: "/brand-kit-assets/il-trust.png", label: "Safe", note: "a shield of light — trust", ratio: "4 / 3" },
+  { src: "/brand-kit-assets/il-celebrate.webp", label: "Celebrate", note: "soft confetti — success / received", ratio: "4 / 3" },
+  { src: "/brand-kit-assets/il-trust.webp", label: "Safe", note: "a shield of light — trust", ratio: "4 / 3" },
   { src: "/brand-kit-assets/il-request.png", label: "Request", note: "an open hand — ask to be paid", ratio: "4 / 3" },
   { src: "/brand-kit-assets/il-onboard.png", label: "Welcome", note: "a doorway of light — onboarding", ratio: "4 / 3" },
 ];

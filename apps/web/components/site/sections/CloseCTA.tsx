@@ -11,7 +11,7 @@ import { AvatarReveal } from "./AvatarReveal";
 export function CloseCTA() {
   return (
     <section className="close">
-      <video className="close-bg" autoPlay loop muted playsInline aria-hidden="true">
+      <video className="close-bg" autoPlay loop muted playsInline preload="none" aria-hidden="true">
         <source src="/brand-kit-assets/video/bg-cta.webm" type="video/webm" />
         <source src="/brand-kit-assets/video/bg-cta.mp4" type="video/mp4" />
       </video>

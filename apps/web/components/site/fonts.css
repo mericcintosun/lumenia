@@ -1,0 +1,17 @@
+/*
+ * Sentient + Switzer, self-hosted.
+ *
+ * These used to come from api.fontshare.com, which put two extra origins on the critical path: a
+ * render-blocking stylesheet (~367 ms) that then chained to the font files on a second host. Every
+ * origin costs a DNS lookup, a TCP connect and a TLS handshake before a byte of font moves, and it
+ * all landed in front of the first paint. Served from our own origin the connection is already open.
+ *
+ * The family names are kept EXACTLY as Fontshare declares them ("Sentient" / "Switzer"), so every
+ * font-family in landing.css and the brand-kit keeps working untouched. Regenerate with the same
+ * weights the (site) layout used to request: sentient@500,600 + switzer@400,500,600.
+ * woff2 only — every browser that can run this landing supports it.
+ */
+@font-face{font-family:'Sentient';src:url('/fonts/sentient-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Switzer';src:url('/fonts/switzer-400.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Switzer';src:url('/fonts/switzer-500.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Switzer';src:url('/fonts/switzer-600.woff2') format('woff2');font-weight:600;font-style:normal;font-display:swap}

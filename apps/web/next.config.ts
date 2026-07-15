@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
     ? {}
     : { turbopack: { root: path.resolve(import.meta.dirname, "..", "..") } }),
 
+  // NOT inlining CSS (experimental.inlineCss). Lighthouse flags the three stylesheets as ~900 ms of
+  // render-blocking, but inlining them was measured WORSE — Performance 94 → 88, LCP 2.94 s → 3.77 s.
+  // The 18 KB moves into the document, so the HTML itself lands later and every metric waits on it.
+  // The linked files are cacheable and parallel; the audit's "savings" do not survive contact.
+
   // The OG route reads the embedded font from ./assets via fs at runtime — make
   // sure that file is traced into the serverless function bundle on Vercel.
   outputFileTracingIncludes: {

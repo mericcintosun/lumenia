@@ -64,7 +64,7 @@ export function Trust() {
             transition={{ duration: 0.7, ease: EASE }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand-kit-assets/il-trust.png" alt="A shield of soft periwinkle light around a calm centre — your money, held safe in escrow" />
+            <img src="/brand-kit-assets/il-trust.webp" loading="lazy" decoding="async" alt="A shield of soft periwinkle light around a calm centre — your money, held safe in escrow" />
           </motion.figure>
         </div>
 
@@ -79,7 +79,7 @@ export function Trust() {
             >
               <Card className="trust-card">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="trust-card-icon" src={p.icon} alt="" aria-hidden="true" />
+                <img className="trust-card-icon" src={p.icon} loading="lazy" decoding="async" alt="" aria-hidden="true" />
                 <h3 className="trust-card-lead">{p.lead}</h3>
                 <p className="trust-card-body">{p.body}</p>
               </Card>

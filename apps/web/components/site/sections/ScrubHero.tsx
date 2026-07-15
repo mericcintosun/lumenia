@@ -2,8 +2,8 @@
  * ScrubHero — the Apple-style scroll-scrub hero (section 1 of the §12 narrative). A 536-frame
  * WebP image sequence is drawn to <canvas> as you scroll (zero decode jank; 60fps
  * motion-interpolated) while the subtraction beats ("No wallet. / No seed phrase. / No app. /
- * Just a link.") fade over it. The frame preload is DEFERRED (requestIdleCallback + first-scroll)
- * so it never blocks first paint. Reduced-motion falls back to the looping reel video.
+ * Just a link.") fade over it. The frame preload waits for a sign the visitor is actually here
+ * (see the note above the preload effect). Reduced-motion falls back to the looping reel video.
  */
 "use client";
 
@@ -44,9 +44,17 @@ export function ScrubHero() {
     setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  // preload + decode all frames — DEFERRED. The 536 frames are only needed once you reach the
-  // scrub, so we let the hero/greeting paint first, then stream them in on browser idle (or on
-  // the first scroll intent, whichever comes first) so they never block first paint.
+  // Preload + decode all frames — deferred until the visitor shows they are actually here.
+  //
+  // This is 536 frames / ~10.5 MB: real money on a phone. It used to start on requestIdleCallback
+  // (timeout 2500), which fires DURING load — 536 requests would flood the connection and everything
+  // else queued behind them. It cost the wordmark, a 7.5 KB SVG, an LCP of 24.3 s.
+  //
+  // So the trigger is now intent, not a timer: the first pointer move, wheel, touch, key or scroll.
+  // Anyone who reaches the scrub has crossed a full viewport of greeting first, so the head start is
+  // still there — and someone who lands, reads, and leaves never pays for frames they never saw.
+  // (A side effect worth naming: automated audits neither move nor scroll, so they no longer measure
+  // a 10 MB download the visitor would not have paid for at that moment either.)
   useEffect(() => {
     if (reduce) return;
     let cancelled = false;
@@ -58,13 +66,16 @@ export function ScrubHero() {
       if (!cancelled) setPct(Math.round((done / N) * 100));
       if (done === N && !cancelled) setReady(true);
     };
+    const INTENT = ["pointermove", "wheel", "touchstart", "keydown", "scroll"] as const;
     const startLoad = () => {
       if (started || cancelled) return;
       started = true;
-      window.removeEventListener("scroll", startLoad);
+      INTENT.forEach((e) => window.removeEventListener(e, startLoad));
       for (let i = 0; i < N; i++) {
         const img = new Image();
         img.decoding = "async";
+        // Low priority: the reel must always yield to the wordmark, the mascot and the CSS.
+        img.fetchPriority = "low";
         img.src = framePath(i + 1);
         const finish = () => {
           if (typeof img.decode === "function") img.decode().then(bump, bump);
@@ -79,13 +90,10 @@ export function ScrubHero() {
       }
       framesRef.current = imgs;
     };
-    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
-    const idleId = ric ? ric(startLoad, { timeout: 2500 }) : window.setTimeout(startLoad, 1000);
-    window.addEventListener("scroll", startLoad, { passive: true });
+    INTENT.forEach((e) => window.addEventListener(e, startLoad, { passive: true, once: true }));
     return () => {
       cancelled = true;
-      window.removeEventListener("scroll", startLoad);
-      if (ric && "cancelIdleCallback" in window) (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(idleId);
+      INTENT.forEach((e) => window.removeEventListener(e, startLoad));
     };
   }, [reduce]);
 
@@ -168,7 +176,7 @@ export function ScrubHero() {
   if (reduce) {
     return (
       <section className="op-reduce">
-        <video poster="/brand-kit-assets/bg-hero.png" autoPlay loop muted playsInline className="op-reduce-v">
+        <video poster="/brand-kit-assets/bg-hero.webp" autoPlay loop muted playsInline preload="none" className="op-reduce-v">
           <source src="/brand-kit-assets/video/bg-hero-bloom.webm" type="video/webm" />
           <source src="/brand-kit-assets/video/bg-hero-bloom.mp4" type="video/mp4" />
         </video>

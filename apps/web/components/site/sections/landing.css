@@ -115,8 +115,14 @@
 .hiw-rail-fill{position:absolute;top:0;left:0;width:100%;background:var(--pw-accent);border-radius:3px}
 .hiw-rows{display:flex;flex-direction:column;gap:clamp(20px,3.4vh,40px)}
 .hiw-strow{will-change:opacity}
-.hiw-stt{font-family:"Sentient",Georgia,serif;font-weight:600;font-size:clamp(20px,2.4vw,30px);letter-spacing:-.015em;line-height:1.1}
+/* Quieting the inactive steps is a COLOUR change, not an opacity one — see HowItWorks.tsx.
+   Every state stays at its token's own contrast, so no step is ever dimmed under WCAG AA. */
+.hiw-strow{--step-title:var(--pw-muted)}
+.hiw-strow[data-active="true"]{--step-title:var(--pw-ink)}
+.hiw-stt{font-family:"Sentient",Georgia,serif;font-weight:600;font-size:clamp(20px,2.4vw,30px);letter-spacing:-.015em;line-height:1.1;
+  color:var(--step-title);transition:color .38s cubic-bezier(.2,.75,.2,1)}
 .hiw-stb{color:var(--pw-muted);font-size:clamp(14px,1.5vw,16px);line-height:1.55;margin-top:6px;max-width:40ch}
+@media (prefers-reduced-motion:reduce){.hiw-stt{transition:none}}
 .hiw-more{display:inline-block;margin-top:30px;font-weight:600;font-size:15px;color:var(--pw-accent);text-decoration:none}
 .hiw-more:hover{text-decoration:underline;text-underline-offset:3px}
 .hiw-frames{position:relative;height:min(74vh,620px)}
@@ -311,39 +317,69 @@
    light / #B7ACE8 dark), so it stays theme-correct with no second source of truth.
    The script drives clip-path/left/top inline; these rules own the look + the phase gating.
    ------------------------------------------------------------------------- */
-.op-boot{position:fixed;inset:0;z-index:80;background:var(--pw-accent);
-  clip-path:circle(150% at 50% 50%);will-change:clip-path;
-  /* Fail-safe: the field is server-rendered to cover the first paint, so it must be able to leave
-     on CSS alone if its script never runs. The component removes it long before this fires. */
-  animation:op-boot-failsafe 0s linear 3.2s forwards}
-@keyframes op-boot-failsafe{to{opacity:0;visibility:hidden}}
+/* The "i"'s lumen tittle, in viewport coordinates — the point the field drains into.
+   Derived, not guessed: the wordmark is <circle cx="1504" cy="556"> inside viewBox
+   "300 450 1470 460", so the spark sits at 81.90% across / 23.04% down its box. The box is
+   height:30px, width:auto over a meet-fit viewBox → 95.87 × 30px, centred, top:30px. Hence
+   x = 50% + (95.87 × .8190 − 95.87/2) = 50% + 30.59px, and y = 30 + 30 × .2304 = 36.91px.
+   Asserted against the live rect by e2e/boot.spec.ts — if the logo's box changes, that test fails.
+   Keep in sync with SPARK_FX/SPARK_FY in BootOpening.tsx. */
+.op{--i-x:calc(50% + 30.59px);--i-y:36.91px}
 
-/* The spark lives OUTSIDE the field — it has to survive the field being clipped to nothing.
+/* The opening runs on CSS alone, deliberately.
+   It used to be driven from an effect, which meant the field sat there until React hydrated —
+   ~4.9 s of flat colour on a throttled phone, and an LCP to match. Nothing here needs to know
+   anything JS knows, so nothing here waits for it: the drain starts at first paint, and a visitor
+   whose JS is slow, broken or off still gets the page. vmax on both ends so the radius interpolates. */
+/* The field is a giant CIRCLE that scales down, not a rectangle clipped by an animated clip-path.
+   Same picture; very different cost. clip-path is a paint-level property, so animating it repainted
+   the whole viewport every frame for .9 s — right at load, on the main thread, exactly where LCP is
+   decided. transform is compositor-level: the layer is rasterised once and scaled.
+   220vmax of diameter always reaches the farthest corner from the "i" (the worst case is the
+   viewport diagonal, < 1.5 vmax from any point in it). */
+.op-boot{position:fixed;z-index:80;left:var(--i-x);top:var(--i-y);
+  width:220vmax;height:220vmax;margin:-110vmax 0 0 -110vmax;border-radius:50%;
+  background:var(--pw-accent);pointer-events:none;will-change:transform;
+  animation:op-boot-drain .9s cubic-bezier(.66,0,.2,1) .35s both}
+@keyframes op-boot-drain{from{transform:scale(1)}to{transform:scale(0)}}
+
+/* The spark sits OUTSIDE the field — it has to survive the field being clipped to nothing.
    Stops mirror the SVG's own radial `lumen` gradient (warm on light, lavender on dark).
-   Lit by a class, NOT by [data-boot]: the phase attribute is dropped the moment the field lands
-   (to release the greeting), and a selector keyed on it would cancel this mid-flash. */
+   Sized against the tittle it belongs to (~12px on screen), not the viewport: the whole wordmark is
+   only ~96px wide, so this peaks at ~25px — the "i" lighting up, then blooming out as it fades.
+   Anything larger eclipses "nia" instead of igniting the dot over it.
+   Delay ≈ where the field has collapsed onto the "i": the light arrives, THEN it ignites. Fired
+   earlier it just reads as a sun floating in the field. */
 .op-boot-spark{--lumen-core:#FFF7DE;--lumen-mid:#FDE7B0;--lumen-edge:#F9DCA0;
-  /* Sized against the tittle it belongs to (~12px on screen), not the viewport: the whole wordmark
-     is only ~96px wide, so this peaks at ~25px — the "i" lighting up, then blooming out as it
-     fades. Anything larger eclipses "nia" instead of igniting the dot over it. */
-  position:fixed;z-index:81;left:-9999px;top:-9999px;width:48px;height:48px;margin:-24px 0 0 -24px;
+  position:fixed;z-index:81;left:var(--i-x);top:var(--i-y);width:48px;height:48px;margin:-24px 0 0 -24px;
   border-radius:50%;pointer-events:none;opacity:0;
-  background:radial-gradient(circle,var(--lumen-core) 0%,var(--lumen-mid) 28%,var(--lumen-edge) 55%,transparent 72%)}
+  background:radial-gradient(circle,var(--lumen-core) 0%,var(--lumen-mid) 28%,var(--lumen-edge) 55%,transparent 72%);
+  animation:op-boot-spark .7s ease-out .95s both}
 :root[data-theme="dark"] .op-boot-spark{--lumen-core:#D4CCF2;--lumen-mid:#B7ACE8;--lumen-edge:#B7ACE8}
-/* Delay ≈ the point where the field has collapsed onto the "i" — the light arrives, THEN it ignites.
-   Fired earlier it just reads as a sun floating in the field. */
-.op-boot-spark--lit{animation:op-boot-spark .7s ease-out .5s forwards}
 @keyframes op-boot-spark{0%{opacity:0;transform:scale(.14)}32%{opacity:1;transform:scale(.52)}100%{opacity:0;transform:scale(1.5)}}
 
-/* Hold the greeting's EXISTING entrance animations at their first frame instead of restaging them.
-   Keyed off .op (which ships data-boot in the SSR markup) so the hold is in force from the first
-   paint — an effect-set attribute would arrive after opreveal/opbubble had already run.
-   In `focus` the wordmark is released early so it materialises as the light drains into it. */
-.op[data-boot="hold"] .op-brandlogo,
-.op[data-boot="hold"] .op-greet-stage,
-.op[data-boot="hold"] .op-bubble,
-.op[data-boot="focus"] .op-greet-stage,
-.op[data-boot="focus"] .op-bubble{animation-play-state:paused}
+/* The greeting's entrance is choreographed against the drain by DELAY: the stage opens once the
+   field has landed (1.3s), the bubble last (1.8s). The clock is first paint, not hydration.
+ *
+ * The wordmark does NOT fade — it is painted and simply waits under the field for the light to
+ * uncover it. That is deliberate on two counts. Its own fade was invisible anyway (the field was
+ * over it), and holding it at opacity 0 cost the page its LCP entirely: Chrome will not make an
+ * element an LCP candidate if its content paints while opacity is 0, and it never reconsiders it
+ * once it fades up. On a fast connection the image arrived inside the delay, so the wordmark — the
+ * largest thing that paints early here — was never a candidate at all, and the metric came back
+ * empty rather than good. Honest caveat: LCP now marks when the wordmark PAINTS (~0.4 s), while a
+ * visitor SEES it when the drain finishes (~1.25 s). Chrome does not model occlusion; the ~0.85 s
+ * the opening costs is real and deliberate, and no audit will show it. */
+.op-brandlogo{animation:none}
+.op-greet-stage{animation-delay:1.3s}
+.op-bubble{animation-delay:1.8s}
+/* Reduced motion: no drain, no flash — the field simply leaves, and landing.css already drops the
+   greeting's animations, so the page is just there. */
+@media (prefers-reduced-motion:reduce){
+  .op-boot{animation:op-boot-leave .3s linear .1s both}
+  .op-boot-spark{animation:none;opacity:0}
+}
+@keyframes op-boot-leave{to{opacity:0;visibility:hidden}}
 
 /* =========================================================================
    Dark theme (brand.md dark palette). Driven by data-theme on <html> (the (site)

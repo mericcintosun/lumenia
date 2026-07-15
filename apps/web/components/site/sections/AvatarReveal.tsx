@@ -51,7 +51,7 @@ export function AvatarReveal({
     >
       {glowClassName && <span className={glowClassName} aria-hidden="true" />}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} className={className} alt="" aria-hidden="true" />
+      <img src={src} loading="lazy" decoding="async" className={className} alt="" aria-hidden="true" />
     </motion.div>
   );
 }

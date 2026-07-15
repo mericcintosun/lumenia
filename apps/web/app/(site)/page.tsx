@@ -28,24 +28,50 @@ import { Trust } from "../../components/site/sections/Trust";
 import { CloseCTA } from "../../components/site/sections/CloseCTA";
 import { Footer } from "../../components/site/sections/Footer";
 
+/**
+ * Structured data. Organization + WebSite let a search engine name the product and its mark rather
+ * than guessing from the DOM. Kept minimal and TRUE: no aggregateRating, no fabricated review or
+ * price markup — the same honesty rule the rest of the repo runs on applies to what we tell crawlers.
+ */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lumenia-chi.vercel.app";
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "Lumenia",
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon-512.png`,
+      description:
+        "Send money by link. They tap it and it's theirs — no wallet, no seed phrase, no app.",
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: "Lumenia",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+      inLanguage: "en",
+    },
+  ],
+};
+
 export default function Landing() {
   return (
     <SmoothScroll>
+      <script
+        type="application/ld+json"
+        // Static, authored-here object — no user input reaches this.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       {/* `site-theme` maps shadcn semantic tokens to Periwinkle so shadcn primitives placed inside the
           landing render on-brand; the landing's own styles use the collision-free `--pw-*` namespace. */}
-      {/* data-boot ships in the SSR markup, not from an effect: it holds the greeting's entrance at
-          its first frame from the very first paint. Set after hydration it would land too late —
-          opreveal/opbubble would already have played under the field and freeze half-open. */}
-      <div className="op site-theme" data-boot="hold">
-        {/* First frame: a flat field of the wordmark's "i" colour that contracts into the "i"
-            itself, then releases the greeting's own entrance. Inside .op so it inherits
-            --pw-accent (the letters' fill) and flips with the theme. */}
+      <div className="op site-theme">
+        {/* First frame: a flat field of the wordmark's "i" colour that drains into the "i" itself.
+            Inside .op so it inherits --pw-accent (the letters' fill) and flips with the theme.
+            Pure CSS — it opens at first paint, with or without JS. */}
         <BootOpening />
-        {/* Without JS nothing clears the hold, so the greeting would sit invisible behind a field
-            that only a CSS failsafe removes. Hand no-JS readers the settled page instead. */}
-        <noscript>
-          <style>{`.op[data-boot]{--boot-noscript:1}.op[data-boot] .op-brandlogo,.op[data-boot] .op-greet-stage,.op[data-boot] .op-bubble{animation-play-state:running}.op-boot,.op-boot-spark{display:none}`}</style>
-        </noscript>
         <Greeting />
         {/* Section transitions = the brand-kit sticky-overlap (each section is position:sticky;top:0
             with a rising z-index, so the NEXT section slides up over the pinned previous one). The

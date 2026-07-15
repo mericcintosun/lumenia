@@ -163,7 +163,7 @@ function ScrubHero() {
     return (
       <section className="op-reduce">
         <video
-          poster="/brand-kit-assets/bg-hero.png"
+          poster="/brand-kit-assets/bg-hero.webp"
           autoPlay
           loop
           muted

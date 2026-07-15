@@ -1,8 +1,14 @@
 /**
- * Moment — section 3, "the moment": the real human beat (brand.md §12.3). A treated photograph
- * (hands + a lavender-lit phone, no faces) with the copy in a soft glass panel over a periwinkle
- * scrim + slow Ken-Burns. Enriched with three "friction removed" chips (soft-3D check icon) that
- * stagger in — the human-relief payoff, now supported by brand-kit assets.
+ * Moment — section 3, "the moment": the human beat (brand.md §12.3). The brand's own soft-3D
+ * "passing light" illustration — one pair of hands giving a glowing orb to another — with the copy
+ * in a soft glass panel over a periwinkle scrim + slow Ken-Burns. Three "friction removed" chips
+ * (soft-3D check icon) stagger in as the human-relief payoff.
+ *
+ * This used to be a photoreal stock image of hands and a phone. It sat in /brand-kit-assets but was
+ * not OF the brand kit: photography against a system built from soft-3D illustration, papercraft
+ * and the mascot — and its phone screen carried the garbled pseudo-text that gives generated
+ * imagery away. il-hands is the brand's own asset and says the line better: the money is literally
+ * being handed over.
  */
 "use client";
 
@@ -23,8 +29,8 @@ export function Moment() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         className="moment-img" loading="lazy" decoding="async"
-        src="/brand-kit-assets/moment-hands.webp"
-        alt="Two people at a sunlit table; one holds a phone glowing softly as money arrives"
+        src="/brand-kit-assets/il-hands.webp"
+        alt="One pair of hands passing a softly glowing light into another pair, across a table at home"
       />
       <div className="moment-scrim" aria-hidden="true" />
       <motion.div

@@ -113,6 +113,10 @@ export default function SendPage() {
         from: from.trim(),
         at: new Date().toISOString(),
       });
+      // The sponsor has always allowed this one; nothing ever fired it. Paired with send_started it
+      // is the only way to see the send flow's own drop-off — how many people who begin a send end
+      // up with a link they can share.
+      void sendEvent("send_link_created", account!.address);
       setReady({ link: result.link, balanceId: result.balanceId });
     } catch (e) {
       setError((e as Error).message);

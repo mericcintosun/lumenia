@@ -37,7 +37,7 @@ const BACKGROUNDS: Item[] = [
 ];
 
 const ILLUSTRATIONS: Item[] = [
-  { src: "/brand-kit-assets/il-hands.png", label: "Passing light", note: "hands passing a glowing light — the transfer", ratio: "4 / 3" },
+  { src: "/brand-kit-assets/il-hands.webp", label: "Passing light", note: "hands passing a glowing light — the transfer", ratio: "4 / 3" },
   { src: "/brand-kit-assets/il-phone.webp", label: "Tap the link", note: "hand tapping a phone, periwinkle bloom", ratio: "4 / 3" },
   { src: "/brand-kit-assets/il-abstract.webp", label: "Connection", note: "abstract ribbons connecting two points", ratio: "4 / 3" },
   { src: "/brand-kit-assets/il-home.png", label: "Home", note: "cozy home, golden hour — arrival", ratio: "4 / 3" },

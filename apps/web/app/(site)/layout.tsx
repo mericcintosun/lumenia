@@ -7,6 +7,9 @@
  * outside this group and stays webfont-free.
  */
 import type { Metadata } from "next";
+// Scoped here, not in the root layout: the ::view-transition rules are document-level, but only
+// this group has a ThemeToggle to start one — so the frozen claim route never loads them.
+import "../../components/site/theme-transition.css";
 import { SiteNav } from "../../components/site/SiteNav";
 import { ThemeProvider } from "../../components/site/ThemeProvider";
 

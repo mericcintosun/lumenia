@@ -40,6 +40,7 @@
     "@tailwindcss/postcss": "4.3.2",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.2.3",
     "@types/three": "^0.185.1",
     "postcss": "8.5.16",
     "tailwindcss": "4.3.2",

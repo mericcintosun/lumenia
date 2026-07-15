@@ -1,0 +1,86 @@
+/*
+ * Theme transition — the sibling of the boot opening (components/site/sections/BootOpening.tsx).
+ * The boot pulls a circle of light INTO the wordmark's "i"; this pushes one OUT of the toggle, in
+ * the same grammar: one circle() clip-path, the same cubic-bezier(.66,0,.2,1), the same lumen spark.
+ *
+ * Driven by the View Transitions API. Both root snapshots are stripped of their default cross-fade
+ * so the ONLY motion is the clip-path the toggle animates on ::view-transition-new(root): the old
+ * theme sits still while the new one is wiped over it from the button.
+ *
+ * Loaded from the (site) layout — the only group with a ThemeToggle. The pseudo-elements are
+ * document-level, but a view transition only ever starts from that toggle, so nothing else is
+ * touched (the frozen claim route never loads this file).
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  /* Kill the default cross-fade — it would haze the wipe into a dissolve. */
+  animation: none;
+  mix-blend-mode: normal;
+}
+/* The incoming theme is wiped over the outgoing one, so it has to sit on top. */
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/*
+ * The lumen spark, fired at the toggle as the wipe leaves it. Stops mirror the wordmark SVG's own
+ * radial `lumen` gradient — the same source .op-boot-spark mirrors (warm on light, lavender on
+ * dark). It rides in the live DOM: ::view-transition-new(root) is a live rendering of the new
+ * state, so the spark plays inside the expanding circle rather than under a static snapshot.
+ * Sized like the boot's (~25px peak) so the two read as one family.
+ */
+.theme-spark {
+  --lumen-core: #fff7de;
+  --lumen-mid: #fde7b0;
+  --lumen-edge: #f9dca0;
+  position: fixed;
+  z-index: 60;
+  left: -9999px;
+  top: -9999px;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    circle,
+    var(--lumen-core) 0%,
+    var(--lumen-mid) 28%,
+    var(--lumen-edge) 55%,
+    transparent 72%
+  );
+}
+/* data-theme has already flipped when this fires, so the spark is always the INCOMING theme's. */
+:root[data-theme="dark"] .theme-spark {
+  --lumen-core: #d4ccf2;
+  --lumen-mid: #b7ace8;
+  --lumen-edge: #b7ace8;
+}
+/* No delay, unlike the boot's: here the light leaves the toggle, it does not arrive at it. */
+.theme-spark--lit {
+  animation: theme-spark 0.62s ease-out forwards;
+}
+@keyframes theme-spark {
+  0% {
+    opacity: 0;
+    transform: scale(0.14);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(0.52);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-spark--lit {
+    animation: none;
+  }
+}

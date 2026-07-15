@@ -12,13 +12,19 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lumenia-chi.vercel
  * evidence and frozen) while still keeping it out of search.
  *
  * /spike and /dev are 404 in production already; listing them is belt-and-braces.
+ *
+ * `/dev$` is anchored, and that matters. A robots rule is a PREFIX match, so a bare `/dev` also
+ * disallowed `/developers` — a public marketing page that sitemap.ts has been submitting the whole
+ * time. robots wins that argument, so the page was asking to be indexed and being refused, and
+ * nothing surfaced it: Lighthouse only reports it as SEO 69 on that one route. `$` ends the match,
+ * so this now blocks exactly /dev and nothing that merely starts with it.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/c/", "/claimed", "/home", "/send", "/sent/", "/unlock", "/brand-kit", "/dev", "/spike"],
+      disallow: ["/c/", "/claimed", "/home", "/send", "/sent/", "/unlock", "/brand-kit", "/dev$", "/spike"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,

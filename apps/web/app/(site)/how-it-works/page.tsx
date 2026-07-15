@@ -18,6 +18,7 @@ import { AmbientVideo } from "../../../components/site/AmbientVideo";
 import { SectionReveal } from "../../../components/site/sections/SectionReveal";
 import { Footer } from "../../../components/site/sections/Footer";
 import { Beats } from "./Beats";
+import "../../../components/site/page.css";
 import "./how-it-works.css";
 
 const TITLE = "How it works — the audit trail — Lumenia";
@@ -59,30 +60,28 @@ const PROOFS = [
 export default function HowItWorks() {
   return (
     <SmoothScroll>
-      <div className="pw hw">
+      <div className="pg">
         {/* Nothing in the hero fades in: Chrome will not make an element an LCP candidate if its
             content paints at opacity 0, and never reconsiders once it does. */}
-        <header className="hw-hero">
+        <header className="pg-hero pg-glow hw-hero">
           <div className="hw-hero-inner">
             <div className="hw-hero-copy">
-              <p className="hw-eyebrow">
-                <span className="hw-dot" aria-hidden="true" />
+              <p className="pg-eyebrow">
+                <span className="pg-dot" aria-hidden="true" />
                 The audit trail
               </p>
-              <h1 className="hw-h1">How it works — and how to check it.</h1>
-              <p className="hw-lead">
+              <h1 className="pg-h1">How it works — and how to check it.</h1>
+              <p className="pg-lead">
                 Everywhere else on this site we talk about money and people. Here we name the
                 technology, because <strong>a non-custodial claim is only worth something if a
                 skeptic can verify it</strong>. Nothing below is an illustration — every claim on
                 this page resolves to a real transaction you can open yourself.
               </p>
             </div>
-            {/* Above the fold, so it loads eagerly — the beat icons below are lazy instead, which
-                is also what stops React 19 from preloading them into <head> ahead of the CSS. */}
-            <figure className="hw-hero-il" aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand-kit-assets/il-abstract.webp" alt="" decoding="async" fetchPriority="high" />
-            </figure>
+            {/* Empty on purpose: the ribbon is painted by CSS, from inside a min-width:1024 media
+                query, so phones never download an illustration they cannot see and /demo never
+                downloads this one just because it links here. See how-it-works.css. */}
+            <div className="hw-hero-il" aria-hidden="true" />
           </div>
         </header>
 
@@ -158,11 +157,11 @@ export default function HowItWorks() {
               The demo runs this same code on this same network: a real link, a real claim, and a
               real transaction at the end of it. We target about 30 seconds.
             </p>
-            <div className="hw-cta">
-              <Link className="hw-btn hw-btn-primary" href="/demo">
+            <div className="pg-cta">
+              <Link className="pg-btn pg-btn-primary" href="/demo">
                 Try the live demo
               </Link>
-              <Link className="hw-btn hw-btn-ghost" href="/developers">
+              <Link className="pg-btn pg-btn-ghost" href="/developers">
                 Developer notes
               </Link>
             </div>

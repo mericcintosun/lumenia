@@ -1,0 +1,121 @@
+/*
+ * The editorial layer — /about, /roadmap, /developers, /learn and the guides. Sits on top of
+ * page.css (which owns the ground, the hero and the buttons) and adds the one thing those five
+ * pages have that /how-it-works and /demo do not: a reading column.
+ *
+ * These are CONSUMER surfaces, so brand.md §8 holds: no mono rails, no "01/02/03" numerals, no
+ * three identical cards in a symmetric grid. /how-it-works is the only page that earns the
+ * technical register, by being the only one allowed to name the technology.
+ *
+ * The measure is the whole design here. Everything below exists to keep a line at a length a person
+ * will actually read, and to make the rhythm between paragraphs feel like prose rather than markup.
+ */
+
+/* ---- One spine ---------------------------------------------------------------------------
+   The hero shares the reading column's axis. page.css's hero container runs 940→1640px, which on a
+   prose page put the h1's left edge 170px outside the first paragraph's — the page read as two
+   documents stapled together, and it looked like a bug because it was one.
+
+   Consequence, stated rather than hidden: these pages hold ~23% of a 2560 viewport, well under the
+   landing's 56–64% band. That band describes a composition of full-width sections; this is an
+   article. A column of prose stays readable by holding its measure, not by growing with the
+   monitor — the same rule the landing's own large-screen block states for its body copy — so on a
+   big display the column stays a column and simply sits in more paper. Widening it to hit a number
+   would make every page here worse to read. */
+.ed .pg-hero-inner { max-width: 66ch }
+
+/* ---- The reading column ------------------------------------------------------------------
+   66ch, and it does NOT grow with the viewport. That is the same rule the landing's large-screen
+   block states for its own copy: a line stays readable by holding its measure. The container may
+   widen on a big display; the sentence may not. */
+.ed-body {
+  position: relative; z-index: 2; background: var(--pw-paper);
+  padding: 0 clamp(20px, 6vw, 64px) clamp(88px, 12vh, 150px);
+}
+.ed-prose { max-width: 66ch; margin: 0 auto; display: flex; flex-direction: column; gap: 1.15em }
+.ed-prose p { font-size: clamp(16.5px, 1.7vw, 18.5px); line-height: 1.68; color: var(--pw-muted) }
+.ed-prose strong { color: var(--pw-ink); font-weight: 600 }
+/* The lead paragraph carries the reader in — a touch larger and inked, so the column has a
+   beginning rather than just starting. */
+.ed-prose > p:first-child { font-size: clamp(18px, 1.9vw, 21px); line-height: 1.55; color: var(--pw-ink) }
+.ed-prose a { color: var(--pw-accent); font-weight: 600; text-decoration: none }
+.ed-prose a:hover { text-decoration: underline; text-underline-offset: 3px }
+
+/* ---- Back link ---------------------------------------------------------------------------
+   Its own row above the h1, not floated into it: an inline "← All guides" beside a serif display
+   line reads as a stray glyph. */
+.ed-back {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 14px; font-weight: 600; color: var(--pw-muted); text-decoration: none;
+  transition: color .18s, transform .18s;
+}
+.ed-back:hover { color: var(--pw-accent) }
+.ed-back-arrow { transition: transform .18s }
+.ed-back:hover .ed-back-arrow { transform: translateX(-3px) }
+@media (prefers-reduced-motion: reduce) { .ed-back, .ed-back-arrow { transition: none } .ed-back:hover .ed-back-arrow { transform: none } }
+
+/* ---- Guide index -------------------------------------------------------------------------
+   A stack of full-width rows, not a card grid. brand.md §8 rules out three identical cards in a
+   symmetric grid, and a list of articles is a list — the row IS the affordance. */
+.ed-list { max-width: 66ch; margin: 0 auto; display: flex; flex-direction: column }
+.ed-item {
+  display: block; text-decoration: none; padding: clamp(20px, 2.4vw, 26px) 0;
+  border-top: 1px solid var(--pw-line);
+}
+.ed-item:last-child { border-bottom: 1px solid var(--pw-line) }
+.ed-item-t {
+  font-family: "Sentient", Georgia, serif; font-weight: 600;
+  font-size: clamp(19px, 2.1vw, 25px); line-height: 1.15; letter-spacing: -.015em; color: var(--pw-ink);
+  transition: color .2s;
+}
+.ed-item:hover .ed-item-t { color: var(--pw-accent) }
+.ed-item-s { margin-top: 7px; font-size: clamp(14.5px, 1.5vw, 16px); line-height: 1.55; color: var(--pw-muted) }
+.ed-item-go {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 12px;
+  font-size: 14px; font-weight: 600; color: var(--pw-accent);
+}
+.ed-item-arrow { transition: transform .2s }
+.ed-item:hover .ed-item-arrow { transform: translateX(4px) }
+@media (prefers-reduced-motion: reduce) { .ed-item-t, .ed-item-arrow { transition: none } .ed-item:hover .ed-item-arrow { transform: none } }
+
+/* ---- Status groups (/roadmap) ------------------------------------------------------------
+   The status is carried by a LABEL, not by colour alone — WCAG 1.4.1, and the honest reason: the
+   difference between "proven" and "next" is the entire point of this page, and it must survive a
+   reader who cannot tell the dots apart. The dot is a second, redundant channel.
+
+   No green for "proven" either: the standing no-brand-green rule holds (brand.md §4.3), so the
+   accent carries what shipped and the neutrals carry what has not. Amber is the one functional
+   exception, used here exactly as §4.3 allows — as a warning-weight signal, not decoration. */
+.ed-groups { max-width: 66ch; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(40px, 6vh, 64px) }
+.ed-group-head { display: flex; align-items: center; gap: 10px }
+.ed-group-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: var(--tone) }
+.ed-group-t {
+  font-family: "Sentient", Georgia, serif; font-weight: 600;
+  font-size: clamp(20px, 2.2vw, 27px); line-height: 1.1; letter-spacing: -.015em; color: var(--pw-ink);
+}
+.ed-group-note { margin-left: auto; font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tone) }
+.ed-group[data-tone="done"] { --tone: var(--pw-accent) }
+.ed-group[data-tone="building"] { --tone: #d98a2b }
+.ed-group[data-tone="next"] { --tone: var(--pw-muted) }
+.ed-items { margin: 18px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px }
+.ed-li { position: relative; padding-left: 20px; font-size: clamp(15px, 1.6vw, 17px); line-height: 1.6; color: var(--pw-muted) }
+/* A hairline rather than a bullet glyph — the list marker in a serif/sans pairing is the one place
+   a default disc always looks borrowed. */
+.ed-li::before {
+  content: ""; position: absolute; left: 0; top: .62em; width: 9px; height: 2px; border-radius: 2px;
+  background: color-mix(in srgb, var(--tone) 65%, transparent);
+}
+
+/* ---- Close row --------------------------------------------------------------------------- */
+.ed-close { max-width: 66ch; margin: clamp(48px, 7vh, 76px) auto 0; padding-top: clamp(28px, 4vh, 40px); border-top: 1px solid var(--pw-line) }
+.ed-close-p { font-size: 15px; line-height: 1.6; color: var(--pw-muted) }
+.ed-close-p a { color: var(--pw-accent); font-weight: 600; text-decoration: none }
+.ed-close-p a:hover { text-decoration: underline; text-underline-offset: 3px }
+/* A caveat under the action, quieter than the row above it — "docs come with the API" is a promise
+   we are deliberately not making yet, so it should not read like a feature. */
+.ed-fine { margin-top: 16px; font-size: 13.5px; line-height: 1.5; color: var(--pw-muted) }
+
+/* ---- Large screens -----------------------------------------------------------------------
+   Only the CONTAINERS breathe; the 66ch measure is deliberately absent from this block. On a 3440
+   display the column stays a column and simply sits in more paper, which is what an article does. */
+.ed-body { padding-left: clamp(20px, 6vw, 64px); padding-right: clamp(20px, 6vw, 64px) }

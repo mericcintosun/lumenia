@@ -1,9 +1,9 @@
 /*
  * /how-it-works — the trust page, on the LOCKED Periwinkle system.
  *
- * Written against the --pw-* tokens from components/site/pw-tokens.css (imported by the (site)
- * layout, both themes), in the same language as the landing: Sentient display, Switzer body,
- * clamp()-driven type, an opaque ground per section, reduced-motion honoured.
+ * The page ground, the hero's shape and type, and the buttons come from components/site/page.css
+ * (the group's shared primitives, written against the --pw-* tokens). This file owns only what is
+ * this page's own: its hero's second column, the beats, the Stellar strip and the close.
  *
  * This is the ONE page allowed to name the technology (CLAUDE.md / brand.md §3), and the only one
  * where the technical register is on-brand: the mono rail, the step numerals and the parameter
@@ -15,70 +15,38 @@
  * radius. The hex values below are §4.4's, which is the shared source of truth for both.
  */
 
-.hw {
-  background: var(--pw-paper);
-  color: var(--pw-ink);
-  font-family: "Switzer", ui-sans-serif, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-.hw :where(h1, h2, h3, p) { margin: 0 }
-
-/* ---- Hero -------------------------------------------------------------------------------
-   Deliberately calm and deliberately NOT faded in. Chrome will not make an element an LCP
-   candidate if its content paints while opacity is 0, and never reconsiders once it fades up — on
-   a fast connection the h1 would arrive inside the delay and the page would report no LCP
-   candidate at all. The h1 here IS the LCP element, so it paints at its final opacity. */
-.hw-hero {
-  position: relative;
-  z-index: 1;
-  isolation: isolate;
-  overflow: hidden;
-  padding: clamp(112px, 17vh, 190px) clamp(20px, 6vw, 64px) clamp(56px, 8vh, 90px);
-  background-image: radial-gradient(78% 52% at 50% 0%, color-mix(in srgb, var(--pw-accent) 11%, transparent), transparent 62%);
-}
 /* Copy left, the brand ribbon right. Single column below 1024, where the illustration would take
    the width the copy needs; it is decoration, so it is the part that goes. */
 .hw-hero-inner {
-  max-width: 940px; margin: 0 auto;
   display: grid; grid-template-columns: 1fr; gap: clamp(36px, 5vw, 64px); align-items: center;
 }
 /* The framed illustration is the landing's own Trust treatment (.trust-il): paper card, hairline,
    a periwinkle bloom under it. Same object language, so the pages read as one system. */
-.hw-hero-il {
-  display: none; margin: 0; border-radius: 22px; overflow: hidden;
-  border: 1px solid var(--pw-line); background: var(--pw-surface); aspect-ratio: 4 / 3;
-  box-shadow: 0 40px 74px -40px color-mix(in srgb, var(--pw-accent) 58%, transparent);
-}
-.hw-hero-il img { display: block; width: 100%; height: 100%; object-fit: cover }
-/* The ribbon is lit for cream paper and reads hot on the dark ground — settle it, the way the
-   landing settles il-trust. */
-:root[data-theme="dark"] .hw-hero-il { filter: brightness(.86) }
+/* It is a CSS BACKGROUND rather than an <img>, and that is load-bearing on two counts — both
+   measured, both invisible in the source:
+     - `display:none` does not stop an <img> downloading. That trap is not video-specific (it is why
+       AmbientVideo exists): as an <img> this shipped 28 KB to every phone, which never renders it
+       below 1024. A background inside a non-matching media query is never fetched.
+     - React 19 preloads SSR'd <img>s — including from routes Next has merely PREFETCHED. /demo links
+       here and this page links there, so each was downloading the other's hero: /how-it-works pulled
+       il-phone.webp and /demo pulled il-abstract.webp, ~27 KB apiece, neither ever shown. A CSS rule
+       that matches no element on the current page cannot do that.
+   It is decoration (aria-hidden either way), so it owes no alt text, and it is no one's LCP. */
+.hw-hero-il { display: none }
 @media (min-width: 1024px) {
   /* The copy takes the larger share: it carries the h1 and a 58ch lead, while the ribbon only has
      to read as an object. An even split starved the heading and broke it over four lines. */
   .hw-hero-inner { grid-template-columns: 1.2fr .8fr }
-  .hw-hero-il { display: block }
+  .hw-hero-il {
+    display: block; margin: 0; border-radius: 22px; aspect-ratio: 4 / 3;
+    border: 1px solid var(--pw-line);
+    background: var(--pw-surface) url("/brand-kit-assets/il-abstract.webp") center / cover no-repeat;
+    box-shadow: 0 40px 74px -40px color-mix(in srgb, var(--pw-accent) 58%, transparent);
+  }
+  /* The ribbon is lit for cream paper and reads hot on the dark ground — settled the way the
+     landing settles il-trust. */
+  :root[data-theme="dark"] .hw-hero-il { filter: brightness(.86) }
 }
-.hw-eyebrow {
-  display: inline-flex; align-items: center; gap: 9px;
-  font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--pw-accent);
-}
-.hw-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pw-accent) }
-/* brand.md §5's H1 step — clamp(34, 4.6vw, 60) — not the DISPLAY step. The landing's hero may take
-   display size because it is the display moment; a content page's h1 is a heading, and at 76px in
-   a two-column hero it broke to four lines and read as a cramped billboard. */
-.hw-h1 {
-  margin-top: 16px;
-  font-family: "Sentient", Georgia, serif; font-weight: 600;
-  font-size: clamp(34px, 4.6vw, 60px); line-height: 1.04; letter-spacing: -.025em;
-  color: var(--pw-ink); text-wrap: balance;
-}
-.hw-lead {
-  margin-top: 22px;
-  font-size: clamp(16px, 1.9vw, 20px); line-height: 1.55; color: var(--pw-muted); max-width: 58ch;
-}
-.hw-lead strong { color: var(--pw-ink); font-weight: 600 }
 
 /* ---- The technical beats ----------------------------------------------------------------
    The trail runs through the step marks, drawn per-beat rather than down the whole list so it
@@ -230,19 +198,6 @@
   font-size: clamp(30px, 4.6vw, 56px); line-height: 1.02; letter-spacing: -.025em; color: var(--pw-ink); text-wrap: balance;
 }
 .hw-close-p { margin: 18px auto 0; font-size: clamp(16px, 1.8vw, 19px); line-height: 1.55; color: var(--pw-muted); max-width: 46ch }
-.hw-cta { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 32px }
-.hw-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  font-weight: 600; font-size: 16px; border-radius: 14px; padding: 14px 26px; text-decoration: none;
-  transition: background .18s, color .18s, transform .18s, border-color .18s;
-}
-.hw-btn-primary {
-  background: var(--pw-accent); color: var(--pw-on-accent);
-  box-shadow: 0 16px 32px -16px color-mix(in srgb, var(--pw-accent) 70%, transparent);
-}
-.hw-btn-primary:hover { background: var(--pw-accent-hover); transform: translateY(-1px) }
-.hw-btn-ghost { color: var(--pw-ink); border: 1px solid var(--pw-line); background: var(--pw-surface) }
-.hw-btn-ghost:hover { border-color: color-mix(in srgb, var(--pw-accent) 40%, var(--pw-line)); color: var(--pw-accent) }
 
 /* ---- Narrow ----------------------------------------------------------------------------
    Kept BELOW the base rules on purpose: same specificity, so whichever comes last wins. Placed
@@ -290,7 +245,7 @@
    56–64%, reading as a narrow column marooned in a big display. So past ~1620px the beat OPENS OUT
    instead: mark · heading · body, three columns, which is the spec-sheet shape this page's
    technical register wants anyway. The container and the split cross over together. */
-.hw-hero-inner, .hw-beats-inner { max-width: clamp(940px, 58vw, 1640px) }
+.hw-beats-inner { max-width: clamp(940px, 58vw, 1640px) }
 .hw-proof-inner { max-width: clamp(1060px, 56vw, 1560px) }
 .hw-close-inner { max-width: clamp(640px, 34vw, 940px) }
 @media (min-width: 1620px) {
@@ -303,7 +258,10 @@
      the mark and closes the gap to the next one. */
   .hw-beat-h { padding-top: 4px }
 }
-.hw-h1 { font-size: max(clamp(34px, 4.6vw, 60px), min(3.1vw, 88px)) }
 .hw-beat-h { font-size: max(clamp(22px, 2.8vw, 34px), min(1.8vw, 48px)) }
 .hw-proof-h { font-size: max(clamp(30px, 4.4vw, 54px), min(2.85vw, 78px)) }
 .hw-close-h { font-size: max(clamp(30px, 4.6vw, 56px), min(2.95vw, 82px)) }
+
+/* The close band is centred, so its action row is too — page.css leaves .pg-cta left-aligned
+   because that is what a reading column wants. */
+.hw-close .pg-cta { justify-content: center; margin-top: 32px }

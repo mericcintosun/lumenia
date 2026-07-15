@@ -14,10 +14,25 @@ import { TestnetBanner } from "../../components/brand/TestnetBanner";
 import { SiteHeader } from "../../components/marketing/SiteHeader";
 import { SiteFooter } from "../../components/marketing/SiteFooter";
 
+/**
+ * `preload: false` because this group is no longer the site's centre of gravity — it is the part
+ * being emptied, and its preload was being paid for by the pages that left.
+ *
+ * Measured: every (site) page downloaded this 27 KB face and used none of it. next/font emits a
+ * <link rel="preload"> for the layout that declares it, and SiteNav + Footer still link to routes
+ * that live here (/about, /developers, /roadmap, /privacy, /terms, /waitlist). Next prefetches
+ * those, React hoists their preloads into the CURRENT document's head, and the landing,
+ * /how-it-works and /demo each fetched a font they never render a glyph of.
+ *
+ * Dropping the preload does not stop this group's own pages using Jakarta — the @font-face still
+ * ships in their CSS; it is discovered a beat later instead of up front. That is the right trade
+ * for a legacy group that is being deleted, and it costs the pages that matter nothing.
+ */
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
   display: "swap",
+  preload: false,
 });
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {

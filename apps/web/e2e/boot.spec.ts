@@ -15,9 +15,13 @@ import { test, expect } from "@playwright/test";
 const SPARK_FX = (1504 - 300) / 1470;
 const SPARK_FY = (556 - 450) / 460;
 
+// Same convention as the other specs: live by default, WEB_URL to point it at a local server.
+// Unlike them, this one costs nothing on-chain — it only reads the landing.
+const WEB = (process.env.WEB_URL ?? "https://lumenia-chi.vercel.app").replace(/\/$/, "");
+
 test.describe("boot opening", () => {
   test("the CSS drain point is the wordmark's actual lumen spark", async ({ page }) => {
-    await page.goto("/");
+    await page.goto(WEB + "/", { waitUntil: "domcontentloaded" });
 
     const point = await page.evaluate(
       ({ fx, fy }) => {
@@ -56,7 +60,7 @@ test.describe("boot opening", () => {
   test("the opening needs no JavaScript", async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
-    await page.goto("/");
+    await page.goto(WEB + "/", { waitUntil: "domcontentloaded" });
 
     // The field must be there at first paint and must be animating itself away.
     const field = page.locator(".op-boot");

@@ -91,6 +91,12 @@ export function ScrubHero() {
       framesRef.current = imgs;
     };
     INTENT.forEach((e) => window.addEventListener(e, startLoad, { passive: true, once: true }));
+    // Listening only to FUTURE events loses anyone who acted before React got here: land, scroll
+    // straight down, and the scroll fires with nothing attached to hear it — the reel would then
+    // never load at all, leaving a black canvas and a loader frozen at 0%. So also ask where we
+    // already are. A page that is not at the top has been scrolled, whether we heard it or not
+    // (this covers the browser restoring a scroll position too). An audit stays at 0 and stays quiet.
+    if (window.scrollY > 0) startLoad();
     return () => {
       cancelled = true;
       INTENT.forEach((e) => window.removeEventListener(e, startLoad));

@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Split } from "lucide-react";
 import { useWallet } from "../../../lib/wallet";
 import { loadBalance, loadActivity, loadIncomingClaims, type ActivityItem, type IncomingClaim } from "../../../lib/horizon";
 import { collectIncoming } from "../../../lib/claim";
@@ -30,12 +31,12 @@ import { copy } from "../../../lib/copy";
 
 const SPONSOR_URL = process.env.NEXT_PUBLIC_SPONSOR_URL ?? "https://lumenia-sponsor.vercel.app";
 
-/** The home dashboard's primary actions — each a soft-3D brand icon, each a real destination. */
+/** The home dashboard's primary actions — each a soft-3D brand icon, each a real destination.
+ *  (Activity + Account live in the top nav; these are the money verbs.) */
 const ACTIONS: Array<{ href: string; label: string; icon: string }> = [
   { href: "/send", label: "Send", icon: "/brand-kit-assets/icon-send.webp" },
   { href: "/request", label: "Ask", icon: "/brand-kit-assets/icon-hand.webp" },
-  { href: "/activity", label: "Activity", icon: "/brand-kit-assets/icon-receipt.webp" },
-  { href: "/account", label: "Account", icon: "/brand-kit-assets/icon-key.webp" },
+  { href: "/contacts", label: "People", icon: "/brand-kit-assets/icon-contacts.webp" },
 ];
 
 export default function HomePage() {
@@ -164,6 +165,18 @@ export default function HomePage() {
           </Link>
         ))}
       </nav>
+
+      {/* Split — a request-money composition (one link per person). A quiet entry, not a big tile. */}
+      <Link
+        href="/split"
+        className="flex items-center gap-3 rounded-[16px] border border-line bg-surface px-4 py-3 transition-colors hover:border-money/40"
+      >
+        <span className="grid size-9 place-items-center rounded-full bg-secondary text-money">
+          <Split className="size-4" />
+        </span>
+        <span className="flex-1 text-sm font-semibold text-ink">Split a bill</span>
+        <span className="text-ink-soft">→</span>
+      </Link>
 
       {account.phase === 1 && <LockMoneyCard />}
 

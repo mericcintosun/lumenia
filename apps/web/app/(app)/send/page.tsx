@@ -43,6 +43,8 @@ interface SentRecord {
   at: string;
   /** who was paid, when this send answered a request straight to their account. */
   toName?: string;
+  /** their account address (direct pays only) — lets /contacts offer "pay again". */
+  toAddress?: string;
 }
 
 interface RequestCtx {
@@ -96,11 +98,16 @@ export default function SendPage() {
     if (askedAmount) setAmount(askedAmount);
     const nonce = q.get("req");
     const name = q.get("reqName")?.trim().slice(0, 40);
+    const rawTo = q.get("to");
+    const to = rawTo && isValidAddress(rawTo) ? rawTo : undefined;
     if (nonce && name) {
-      const to = q.get("to") ?? undefined;
-      // A bad `to` must not silently downgrade to a bearer link the asker never
-      // gets — fall back to the plain ask instead (the payer still shares back).
-      setRequest({ nonce, name, to: to && isValidAddress(to) ? to : undefined, amount: askedAmount });
+      // A request hand-off (/r → /send). A bad `to` must not silently downgrade to a bearer link
+      // the asker never gets — fall back to the plain ask instead (the payer still shares back).
+      setRequest({ nonce, name, to, amount: askedAmount });
+    } else if (to && name) {
+      // Paying a contact directly (/contacts "pay again" → /send?to=…&reqName=…). No request nonce,
+      // so no request_paid event fires — it's just a direct pay to a known account.
+      setRequest({ nonce: "", name, to, amount: askedAmount });
     }
   }, []);
 
@@ -172,9 +179,10 @@ export default function SendPage() {
           amount: amt.toFixed(2),
           from: "",
           toName: request!.name,
+          toAddress: directTo,
           at: new Date().toISOString(),
         });
-        void sendEvent("request_paid", request!.nonce);
+        if (request!.nonce) void sendEvent("request_paid", request!.nonce); // no nonce = paying a contact, not a request
         setReady({ kind: "direct", balanceId: result.balanceId, toName: request!.name });
         return;
       }
@@ -197,7 +205,7 @@ export default function SendPage() {
       // is the only way to see the send flow's own drop-off — how many people who begin a send end
       // up with a link they can share.
       void sendEvent("send_link_created", account!.address);
-      if (request) void sendEvent("request_paid", request.nonce);
+      if (request?.nonce) void sendEvent("request_paid", request.nonce);
       setReady({ kind: "link", link: result.link, balanceId: result.balanceId });
     } catch (e) {
       // Technical reasons (status codes, ledger result codes) must never reach a

@@ -15,10 +15,13 @@ import { MoneyCard } from "../../../../components/brand/MoneyCard";
 
 interface SentRecord {
   balanceId: string;
+  /** empty for a pay-to-address send — there is no bearer link to re-copy. */
   link: string;
   amount: string;
   from: string;
   at: string;
+  /** who was paid, when this send answered a request straight to their account. */
+  toName?: string;
 }
 
 function loadSent(id: string): SentRecord | null {
@@ -73,7 +76,7 @@ export default function SentPage() {
   return (
     <div className="flex flex-col gap-4 py-4">
       <header className="text-center">
-        <p className="text-sm text-ink-soft">You sent</p>
+        <p className="text-sm text-ink-soft">{rec.toName ? `You paid ${rec.toName}` : "You sent"}</p>
         <p className="text-4xl font-bold tabular-nums text-ink">{formatUsd(rec.amount)}</p>
       </header>
 
@@ -83,27 +86,38 @@ export default function SentPage() {
         ) : linkStatus === "pending" ? (
           <StatusPill status="waiting" />
         ) : (
-          <StatusPill status="received" label="Received" />
+          // The ledger read only says the held money is GONE — for a direct pay
+          // that is "collected by them" OR "came back to you after 7 days", and
+          // we cannot tell which, so the pill must not claim "Received".
+          <StatusPill status="received" label={rec.toName ? "Settled" : "Received"} />
         )}
       </div>
 
       {linkStatus === "pending" && (
         <MoneyCard className="p-5">
           <p className="text-sm text-ink-soft">
-            Still waiting to be claimed. If nobody claims it, the money comes back to you 7 days after you sent
-            it.
+            {rec.toName
+              ? `Waiting for ${rec.toName} to add it to their money. If it isn't collected, it comes back to you 7 days after you sent it.`
+              : "Still waiting to be claimed. If nobody claims it, the money comes back to you 7 days after you sent it."}
           </p>
-          <button
-            onClick={copyAgain}
-            className="mt-3 h-11 w-full rounded-full border border-line text-sm font-medium text-ink"
-          >
-            {copied ? "Copied" : "Copy the link again"}
-          </button>
+          {/* a pay-to-address send has no bearer link — nothing to re-copy */}
+          {rec.link && (
+            <button
+              onClick={copyAgain}
+              className="mt-3 h-11 w-full rounded-full border border-line text-sm font-medium text-ink"
+            >
+              {copied ? "Copied" : "Copy the link again"}
+            </button>
+          )}
         </MoneyCard>
       )}
 
       {linkStatus === "settled" && (
-        <p className="text-center text-ink-soft">This money has been received. Nothing more to do.</p>
+        <p className="text-center text-ink-soft">
+          {rec.toName
+            ? `This is settled — ${rec.toName} collected it, or it came back to you after 7 days. Nothing more to do.`
+            : "This money has been received. Nothing more to do."}
+        </p>
       )}
     </div>
   );

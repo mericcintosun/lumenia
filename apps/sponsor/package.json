@@ -17,6 +17,7 @@
     "spike1c": "tsx src/spike1c-wire-parity.ts",
     "spike4": "tsx src/spike4-cctp-bridge.ts",
     "spike5": "tsx src/spike5-sponsored-send.ts",
+    "spike6": "tsx src/spike6-request-pay.ts",
     "test:antidrain": "tsx src/test-antidrain.ts",
     "test:integration": "tsx src/test-integration.ts"
   },

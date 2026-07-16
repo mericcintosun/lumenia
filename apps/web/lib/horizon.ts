@@ -11,6 +11,14 @@ const HORIZON_URL = "https://horizon-testnet.stellar.org";
 export interface Balance {
   /** USDC balance the recipient holds, as a decimal string. */
   usd: string;
+  /** The trustline's issuer — lets other reads pin the exact asset, not just the code. */
+  issuer?: string;
+}
+
+export interface IncomingClaim {
+  balanceId: string;
+  usd: string;
+  at: string; // ISO timestamp (last modified)
 }
 
 export interface ActivityItem {
@@ -30,10 +38,45 @@ export async function loadBalance(address: string): Promise<Balance | null> {
     const acc = await server().loadAccount(address);
     const usdc = acc.balances.find(
       (b) => "asset_code" in b && b.asset_code === "USDC",
-    ) as { balance: string } | undefined;
-    return { usd: usdc?.balance ?? "0" };
+    ) as { balance: string; asset_issuer?: string } | undefined;
+    return { usd: usdc?.balance ?? "0", issuer: usdc?.asset_issuer };
   } catch (e) {
     if ((e as { response?: { status?: number } })?.response?.status === 404) return null;
+    throw e;
+  }
+}
+
+/**
+ * Money waiting to be collected: open Claimable Balances where THIS account is an
+ * UNCONDITIONAL claimant (a paid request, or any transfer straight to the address).
+ * The account's own outgoing sends never match — there it is the reclaim claimant,
+ * whose predicate is time-locked, not unconditional. Pinned to the account's own
+ * trustline asset (code + issuer), so a look-alike token can't pose as money.
+ *
+ * Horizon's claimant filter matches CBs where the address is ANY claimant, so the
+ * account's own open outgoing sends occupy page rows before the client-side
+ * filter runs. limit(200) is Horizon's max page; an active sender's open links
+ * can no longer bury a genuinely-waiting payment behind a 20-row page. Residual:
+ * beyond 200 open rows (deliberate dust-spam) needs pagination — noted, not built.
+ */
+export async function loadIncomingClaims(address: string, issuer: string): Promise<IncomingClaim[]> {
+  try {
+    const page = await server().claimableBalances().claimant(address).limit(200).order("desc").call();
+    return page.records
+      .filter((cb) => {
+        const mine = cb.claimants.find((c) => c.destination === address);
+        return (
+          cb.asset === `USDC:${issuer}` &&
+          (mine?.predicate as { unconditional?: boolean } | undefined)?.unconditional === true
+        );
+      })
+      .map((cb) => ({
+        balanceId: cb.id,
+        usd: cb.amount,
+        at: (cb as unknown as { last_modified_time?: string }).last_modified_time ?? "",
+      }));
+  } catch (e) {
+    if ((e as { response?: { status?: number } })?.response?.status === 404) return [];
     throw e;
   }
 }

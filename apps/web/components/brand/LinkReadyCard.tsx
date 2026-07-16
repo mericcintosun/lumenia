@@ -10,19 +10,27 @@ import { useState } from "react";
 import Link from "next/link";
 import { Copy, Check } from "lucide-react";
 import { MoneyCard } from "./MoneyCard";
+import { copy as uiCopy } from "../../lib/copy";
 
 export function LinkReadyCard({
   link,
   balanceId,
   from,
+  requestName,
 }: {
   link: string;
   balanceId: string;
   from: string;
+  /** set when this link answers an ask — the share text sends it BACK to the asker. */
+  requestName?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const sentId = balanceId.slice(-8);
-  const waText = encodeURIComponent(`${from} sent you money 💸 Tap to receive it: ${link}`);
+  const waText = encodeURIComponent(
+    requestName
+      ? uiCopy.pay.sendBackWaText(link)
+      : `${from} sent you money 💸 Tap to receive it: ${link}`,
+  );
 
   async function copy() {
     try {
@@ -36,7 +44,9 @@ export function LinkReadyCard({
 
   return (
     <MoneyCard className="flex flex-col gap-3 p-5">
-      <p className="font-semibold text-ink">Your money link is ready</p>
+      <p className="font-semibold text-ink">
+        {requestName ? uiCopy.pay.sendBackTitle(requestName) : "Your money link is ready"}
+      </p>
       <p
         data-testid="money-link"
         className="break-all rounded-[14px] border border-line bg-paper px-3 py-2 text-xs text-ink-soft"

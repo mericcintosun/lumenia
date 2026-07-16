@@ -12,10 +12,13 @@ export function horizon(config: SponsorConfig): Horizon.Server {
 export async function submit(
   server: Horizon.Server,
   tx: Parameters<Horizon.Server["submitTransaction"]>[0],
-): Promise<{ hash: string; ledger: number }> {
+): Promise<{ hash: string; ledger: number; resultXdr?: string }> {
   try {
     const res = await server.submitTransaction(tx);
-    return { hash: res.hash, ledger: res.ledger };
+    // result_xdr names exactly what THIS tx did (e.g. the created CB id) — callers
+    // that need an id must read it from here, not from a "newest matching entry"
+    // Horizon query, which races against concurrent txs.
+    return { hash: res.hash, ledger: res.ledger, resultXdr: (res as { result_xdr?: string }).result_xdr };
   } catch (e: unknown) {
     const extras = (e as { response?: { data?: { extras?: unknown } } })?.response?.data?.extras;
     const detail = extras ? JSON.stringify(extras) : (e as Error).message;

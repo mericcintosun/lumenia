@@ -19,7 +19,7 @@ import { copy } from "../../lib/copy";
 import { useWallet } from "../../lib/wallet";
 
 export function LockMoneyCard() {
-  const { account, refresh } = useWallet();
+  const { account, refresh, setSessionSeed } = useWallet();
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +37,10 @@ export function LockMoneyCard() {
     try {
       seed = await unlockPhase1();
       await savePhase2(account!.address, seed, password, DEFAULT_ARGON);
+      // Seed the session with a COPY before the finally-wipe below zeroes ours:
+      // whoever just chose a password has proven they hold it — making them retype
+      // it immediately (the old behaviour) was a bug, not security.
+      setSessionSeed(seed.slice());
       await refresh();
     } catch {
       setError("We couldn't lock it. Please try again.");

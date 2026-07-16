@@ -10,6 +10,11 @@ const ALLOWED_EVENTS = new Set<string>([
   "claim_failed",
   "send_started",
   "send_link_created",
+  // request money — all three carry the hashed request NONCE (one joinable id
+  // space; see apps/web/lib/events.ts). Must stay in step with that file.
+  "request_created",
+  "request_opened",
+  "request_paid",
 ]);
 
 export interface EventInput {

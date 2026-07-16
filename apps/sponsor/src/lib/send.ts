@@ -17,7 +17,7 @@
  * The USDC is the sender's own; the sponsor only sponsors the ~1.0-XLM reserve
  * (refundable on claim/reclaim) + the fee. Value can never leave the sponsor.
  */
-import { TransactionBuilder, type Transaction, type Horizon } from "@stellar/stellar-sdk";
+import { TransactionBuilder, xdr, type Transaction, type Horizon } from "@stellar/stellar-sdk";
 import { validateInnerTransaction, ALLOWED_SEND_OP_TYPES, type InnerTxPolicy } from "./anti-drain.js";
 import type { SponsorConfig } from "./config.js";
 import type { SponsorSigner } from "./signer.js";
@@ -42,6 +42,28 @@ const FEEBUMP_PER_OP_STROOPS = 1000;
 
 /** The exact claimant shape the send flow builds: bearer (unconditional) + sender-reclaim. */
 const EXPECTED_CLAIMANTS = 2;
+
+/**
+ * The created Claimable Balance id out of THIS transaction's result XDR, as
+ * Horizon's hex id string. Handles the fee-bump wrapper (our submits are always
+ * fee-bumped, so the inner tx's op results sit one level down). Returns null on
+ * any shape surprise — the caller falls back rather than failing a submitted tx.
+ */
+function balanceIdFromResult(resultXdr: string, opIndex: number): string | null {
+  if (opIndex < 0) return null;
+  try {
+    const top = xdr.TransactionResult.fromXDR(resultXdr, "base64").result();
+    const inner = top.switch().name.startsWith("txFeeBumpInner")
+      ? top.innerResultPair().result().result()
+      : top;
+    const op = inner.results()[opIndex];
+    if (!op) return null;
+    // Horizon's CB id string IS the hex encoding of the ClaimableBalanceId XDR.
+    return op.tr().createClaimableBalanceResult().balanceId().toXDR("hex");
+  } catch {
+    return null;
+  }
+}
 
 export async function sendLinkHandler(
   server: Horizon.Server,
@@ -79,12 +101,23 @@ export async function sendLinkHandler(
     config.networkPassphrase,
   );
   signer.sign(feeBump);
-  const { hash, ledger } = await submit(server, feeBump);
+  const { hash, ledger, resultXdr } = await submit(server, feeBump);
 
-  // The sender is one of the CB's claimants (the reclaim path), so the just-created
-  // balance is its newest claimable balance.
-  const cb = await server.claimableBalances().claimant(input.senderPublicKey).order("desc").limit(1).call();
-  const balanceId = cb.records[0]?.id;
+  // The created CB's id comes from THIS transaction's result XDR. The previous
+  // "newest CB where the sender is a claimant" Horizon query was racy: two sends
+  // in flight from one sender could return each other's ids (and request money
+  // makes concurrent sends more likely, not less). The result names the id exactly.
+  const opIndex = inner.operations.findIndex((op) => op.type === "createClaimableBalance");
+  let balanceId = resultXdr ? balanceIdFromResult(resultXdr, opIndex) : null;
+  if (!balanceId) {
+    // Defensive fallback only — the tx HAS succeeded, so failing the request here
+    // would strand a submitted send. This path keeps the old lookup's race, so it
+    // must be LOUD: if this warning shows up in logs, the result-XDR shape has
+    // drifted (e.g. an sdk bump) and the race is silently back — fix the parser.
+    console.warn(`[send-link] balanceId fallback lookup used (result-XDR parse failed) for tx ${hash}`);
+    const cb = await server.claimableBalances().claimant(input.senderPublicKey).order("desc").limit(1).call();
+    balanceId = cb.records[0]?.id ?? null;
+  }
   if (!balanceId) throw new Error("send submitted but the Claimable Balance id was not found");
 
   return { hash, ledger, balanceId };

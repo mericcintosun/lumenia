@@ -8,6 +8,11 @@
  * begin op is sponsor-sourced and gets the sponsor's signature server-side), POSTs
  * it to /send-link, and builds the claim link from the returned balanceId + a fresh
  * bearer key. No seed leaves the Signer.
+ *
+ * Request money (REQUEST_MONEY.md §10) adds `payToAddress`: the SAME sponsored-CB
+ * shape, but the unconditional claimant is the ASKER'S ADDRESS instead of a fresh
+ * bearer key — so there is no link and no secret; the asker collects it on /home
+ * with her own account. The /send-link policy accepts this unchanged (Spike #6).
  */
 import {
   Asset,
@@ -42,16 +47,18 @@ async function postJson(url: string, body: unknown): Promise<Record<string, unkn
   return JSON.parse(text) as Record<string, unknown>;
 }
 
-export async function createSendLink(opts: {
+/**
+ * The shared sponsored-CB submit: build the begin/create/end inner tx with
+ * [claimantDestination: unconditional, sender: reclaim-7d], sign, POST /send-link.
+ * Exactly the shape the sponsor's send policy pins (2 claimants, unconditional +
+ * sender-reclaim) — for both the bearer-link send and the pay-to-address send.
+ */
+async function submitSponsoredCB(opts: {
   sponsorUrl: string;
   signer: Signer;
-  /** amount of USDC to send (the sender's own balance) */
   amount: string;
-  /** the sender's display name — shown as "<from> sent you money" on the claim page */
-  from: string;
-  /** origin to build the claim link against (e.g. window.location.origin) */
-  webOrigin: string;
-}): Promise<SendResult> {
+  claimantDestination: string;
+}): Promise<{ hash: string; balanceId: string; usdcIssuer: string }> {
   const base = opts.sponsorUrl.replace(/\/$/, "");
   const health = (await (await fetch(`${base}/health`)).json()) as {
     sponsorPublicKey: string;
@@ -60,12 +67,11 @@ export async function createSendLink(opts: {
   };
   const USDC = new Asset(health.usdcCode, health.usdcIssuer);
   const sender = opts.signer.publicKey();
-  const bearer = Keypair.random();
 
   const server = new Horizon.Server(HORIZON_URL);
   const acc = await server.loadAccount(sender);
   const claimants = [
-    new Claimant(bearer.publicKey(), Claimant.predicateUnconditional()),
+    new Claimant(opts.claimantDestination, Claimant.predicateUnconditional()),
     new Claimant(sender, Claimant.predicateNot(Claimant.predicateBeforeRelativeTime(RECLAIM_AFTER_SECONDS))),
   ];
   const inner = new TransactionBuilder(acc, { fee: BASE_FEE, networkPassphrase: NETWORK })
@@ -81,8 +87,55 @@ export async function createSendLink(opts: {
     senderPublicKey: sender,
   })) as { hash: string; balanceId: string };
 
+  return { hash: res.hash, balanceId: res.balanceId, usdcIssuer: health.usdcIssuer };
+}
+
+export async function createSendLink(opts: {
+  sponsorUrl: string;
+  signer: Signer;
+  /** amount of USDC to send (the sender's own balance) */
+  amount: string;
+  /** the sender's display name — shown as "<from> sent you money" on the claim page */
+  from: string;
+  /** origin to build the claim link against (e.g. window.location.origin) */
+  webOrigin: string;
+}): Promise<SendResult> {
+  const bearer = Keypair.random();
+  const res = await submitSponsoredCB({
+    sponsorUrl: opts.sponsorUrl,
+    signer: opts.signer,
+    amount: opts.amount,
+    claimantDestination: bearer.publicKey(),
+  });
+
   const id = res.balanceId.slice(-8);
-  const query = `a=${encodeURIComponent(opts.amount)}&s=${encodeURIComponent(opts.from)}&b=${res.balanceId}&i=${health.usdcIssuer}`;
+  const query = `a=${encodeURIComponent(opts.amount)}&s=${encodeURIComponent(opts.from)}&b=${res.balanceId}&i=${res.usdcIssuer}`;
   const link = `${opts.webOrigin.replace(/\/$/, "")}/c/${id}?${query}#${bearer.secret()}`;
   return { link, balanceId: res.balanceId, hash: res.hash };
+}
+
+export interface PayResult {
+  balanceId: string;
+  hash: string;
+}
+
+/**
+ * Pay a returning asker's request straight to her ADDRESS. No bearer key, no link,
+ * no secret — she collects it on /home. The payer keeps the same 7-day reclaim as
+ * every send ("if it isn't collected, it comes back to you").
+ */
+export async function payToAddress(opts: {
+  sponsorUrl: string;
+  signer: Signer;
+  amount: string;
+  /** the asker's account address (the request link's `to` param, validated). */
+  to: string;
+}): Promise<PayResult> {
+  const res = await submitSponsoredCB({
+    sponsorUrl: opts.sponsorUrl,
+    signer: opts.signer,
+    amount: opts.amount,
+    claimantDestination: opts.to,
+  });
+  return { balanceId: res.balanceId, hash: res.hash };
 }

@@ -3,54 +3,74 @@
 /**
  * /home — the logged-in root + north-star surface (FRONTEND_PLAN §1). Real Horizon
  * reads only (no-mock-data): the balance you hold + your money in/out, in human
- * tense. Honest empty states. The primary Send action goes live in Stage 5; the
- * request teaser + cash-out are honest placeholders. No seed ever touches this page
- * — it reads only the public address from the WalletProvider.
+ * tense. Honest empty states. No seed ever touches this page — it reads only the
+ * public address from the WalletProvider (signing for "collect" goes through
+ * getSigner, the same seam /send uses).
+ *
+ * "Money waiting for you" is the returning asker's half of request money
+ * (REQUEST_MONEY.md §10): a paid request arrives as a Claimable Balance whose
+ * unconditional claimant is THIS address; collecting it is a bare claim through
+ * the unchanged /feebump policy (Spike #6). It also catches any future transfer
+ * sent straight to the address — the section is about the money, not the feature.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useWallet } from "../../../lib/wallet";
-import { loadBalance, loadActivity, type ActivityItem } from "../../../lib/horizon";
+import { loadBalance, loadActivity, loadIncomingClaims, type ActivityItem, type IncomingClaim } from "../../../lib/horizon";
+import { collectIncoming } from "../../../lib/claim";
 import { indicativeRate } from "../../../lib/rate";
+import { formatUsd } from "../../../lib/money";
 import { BalanceHeader } from "../../../components/brand/BalanceHeader";
 import { ActivityRow } from "../../../components/brand/ActivityRow";
 import { LockMoneyCard } from "../../../components/brand/LockMoneyCard";
 import { MoneyCard } from "../../../components/brand/MoneyCard";
+import { PrimaryButton } from "../../../components/brand/PrimaryButton";
 import { copy } from "../../../lib/copy";
 
+const SPONSOR_URL = process.env.NEXT_PUBLIC_SPONSOR_URL ?? "https://lumenia-sponsor.vercel.app";
+
 export default function HomePage() {
-  const { status, account } = useWallet();
+  const { status, account, getSigner } = useWallet();
+  const router = useRouter();
   const [usd, setUsd] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [waiting, setWaiting] = useState<IncomingClaim[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [collectingId, setCollectingId] = useState<string | null>(null);
+  const [collectError, setCollectError] = useState("");
+
+  const reload = useCallback(async () => {
+    if (!account) return;
+    const [bal, acts] = await Promise.all([
+      loadBalance(account.address),
+      loadActivity(account.address),
+    ]);
+    setUsd(bal?.usd ?? "0");
+    setActivity(acts);
+    // The trustline's own issuer pins the exact asset — a look-alike token can't
+    // pose as money waiting. No trustline yet → nothing to collect into.
+    setWaiting(bal?.issuer ? await loadIncomingClaims(account.address, bal.issuer) : []);
+  }, [account]);
 
   useEffect(() => {
     if (!account) return;
     setLoadingData(true);
     let live = true;
-    void (async () => {
-      try {
-        const [bal, acts] = await Promise.all([
-          loadBalance(account.address),
-          loadActivity(account.address),
-        ]);
-        if (!live) return;
-        setUsd(bal?.usd ?? "0");
-        setActivity(acts);
-      } finally {
-        if (live) setLoadingData(false);
-      }
-    })();
+    void reload().finally(() => {
+      if (live) setLoadingData(false);
+    });
     return () => {
       live = false;
     };
-  }, [account]);
+  }, [account, reload]);
 
   if (status === "loading") {
     return <p className="py-10 text-center text-ink-soft">Loading…</p>;
   }
 
-  // No local account yet — honest empty (someone must send you a link first).
+  // No local account yet — honest empty (someone must send you a link first),
+  // plus the one thing a person with no money CAN do here: ask for some.
   if (!account) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
@@ -58,11 +78,37 @@ export default function HomePage() {
         <p className="max-w-xs text-ink-soft">
           When someone sends you money with a link, you claim it and it shows up here.
         </p>
+        <Link
+          href="/request"
+          className="mt-2 flex h-12 items-center justify-center rounded-full bg-money px-6 text-sm font-semibold text-primary-foreground"
+        >
+          {copy.claim.ctaRequest}
+        </Link>
         <Link href="/claimed" className="text-sm font-semibold text-money underline-offset-2 hover:underline">
           What is this?
         </Link>
       </div>
     );
+  }
+
+  async function collect(balanceId: string) {
+    setCollectError("");
+    setCollectingId(balanceId);
+    try {
+      let signer;
+      try {
+        signer = await getSigner();
+      } catch {
+        router.push("/unlock?next=/home");
+        return;
+      }
+      await collectIncoming({ sponsorUrl: SPONSOR_URL, signer, balanceId });
+      await reload();
+    } catch {
+      setCollectError(copy.errors.generic);
+    } finally {
+      setCollectingId(null);
+    }
   }
 
   const tryValue = Number.parseFloat(usd ?? "0") * indicativeRate();
@@ -71,12 +117,47 @@ export default function HomePage() {
     <div className="flex flex-col gap-5">
       <BalanceHeader usd={usd ?? "0"} tryValue={tryValue} phase={account.phase} />
 
+      {/* Money waiting to be collected — a paid request, or any transfer straight
+          to this account. Renders only when real money is actually waiting. */}
+      {waiting.length > 0 && (
+        <MoneyCard className="p-5">
+          <p className="font-semibold text-ink">{copy.waiting.title}</p>
+          <div className="mt-2 flex flex-col gap-3">
+            {waiting.map((w) => (
+              <div key={w.balanceId} className="flex items-center justify-between gap-3">
+                <p className="text-sm text-ink-soft">{copy.waiting.row(formatUsd(w.usd))}</p>
+                <div className="shrink-0">
+                  {/* One collect at a time: two in flight would build on the same
+                      account sequence number and the second always fails. */}
+                  <PrimaryButton
+                    loading={collectingId === w.balanceId}
+                    disabled={collectingId !== null && collectingId !== w.balanceId}
+                    loadingLabel={copy.waiting.collecting}
+                    onClick={() => collect(w.balanceId)}
+                  >
+                    {copy.waiting.collect}
+                  </PrimaryButton>
+                </div>
+              </div>
+            ))}
+          </div>
+          {collectError && <p className="mt-2 text-sm text-danger">{collectError}</p>}
+        </MoneyCard>
+      )}
+
       {/* Primary action — send money onward with a link of your own. */}
       <Link
         href="/send"
         className="flex h-14 w-full items-center justify-center rounded-full bg-money text-base font-semibold text-primary-foreground"
       >
         {copy.claim.ctaSend}
+      </Link>
+      {/* The pull side — ask someone to pay you (request money). */}
+      <Link
+        href="/request"
+        className="flex h-12 w-full items-center justify-center rounded-full border border-line text-sm font-semibold text-ink"
+      >
+        {copy.claim.ctaRequest}
       </Link>
 
       {account.phase === 1 && <LockMoneyCard />}

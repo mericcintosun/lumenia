@@ -16,6 +16,12 @@ const SPONSOR_URL = process.env.NEXT_PUBLIC_SPONSOR_URL ?? "https://lumenia-spon
  * claims and how many sends happen, NOT whether the same person did both. The real claim→first-send
  * funnel needs one shared id, and the only place to mint it is the claim route — which is frozen
  * grant evidence and out of this change's reach.
+ *
+ * The request_* events are different, deliberately: all three carry the hashed request NONCE — one
+ * id space — so created → opened → paid IS joinable end-to-end (REQUEST_MONEY.md §5.3). A third id
+ * space overall; still never joinable to a person. `request_paid` fires when the payer's money is
+ * escrowed (for a first-time ask that is link-created time; the asker's own claim still lands in
+ * the unjoined claim-id space).
  */
 const ALLOWED = new Set([
   "claim_opened",
@@ -23,6 +29,9 @@ const ALLOWED = new Set([
   "claim_failed",
   "send_started",
   "send_link_created",
+  "request_created",
+  "request_opened",
+  "request_paid",
 ]);
 
 /** Short, non-reversible id for funnel correlation — SHA-256, first 8 bytes. */

@@ -11,6 +11,7 @@
  * the one in the git remote, and README.md and EVIDENCE.md both already publish it.
  */
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
@@ -57,6 +58,13 @@ export default function Developers() {
       </header>
 
       <section className="ed-body">
+        {/* il-request — an open hand cupped under a periwinkle glow: the whole primitive is "someone
+            holds out their hand and receives," which is exactly what a payout-by-link is. */}
+        <figure className="pg-figure" style={{ marginBottom: "clamp(32px,5vh,52px)" }}>
+          <div className="pg-figure-frame">
+            <Image src="/brand-kit-assets/il-request.webp" alt="" fill sizes="(max-width:760px) 92vw, 700px" />
+          </div>
+        </figure>
         <div className="ed-prose">
           <p>
             That primitive is useful well beyond consumer transfers. Refunds, earnings, rewards, gig

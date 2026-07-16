@@ -7,6 +7,7 @@
  * have been a redesign inventing new claims, which is not what this job is.
  */
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
@@ -48,6 +49,13 @@ export default function About() {
       </header>
 
       <section className="ed-body">
+        {/* il-home — "cozy home, golden hour, the phone glowing on the side table": money reaching
+            home is the company's whole thesis ("Money home, in a link"), so /about opens on it. */}
+        <figure className="pg-figure" style={{ marginBottom: "clamp(32px,5vh,52px)" }}>
+          <div className="pg-figure-frame">
+            <Image src="/brand-kit-assets/il-home.webp" alt="" fill sizes="(max-width:760px) 92vw, 700px" />
+          </div>
+        </figure>
         <div className="ed-prose">
           <p>
             Sending money to family shouldn&apos;t require the people you love to become tech people.

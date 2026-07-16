@@ -81,6 +81,24 @@
   .pg-btn:hover { transform: none }
 }
 
+/* ---- Framed brand illustration ----------------------------------------------------------
+   A soft-3D brand illustration (brand.md §10 — warm atmosphere + periwinkle glow), framed so any
+   page in the group can open with one. It sits BELOW the hero text, which stays the LCP on every
+   page here (see the .pg-hero note above), so the image loads lazily via next/image and never
+   competes for the LCP. Column-width by default; a page may override max-width. The illustrations
+   themselves are the same soft-3D set catalogued at /brand-kit/assets and used on the landing +
+   /how-it-works — il-home (arrival), il-request (an open hand, ask to be paid), il-onboard (a
+   doorway of light). */
+.pg-figure { position: relative; z-index: 2; max-width: 66ch; margin: 0 auto }
+.pg-figure-frame {
+  position: relative; aspect-ratio: 4 / 3; border-radius: 20px; overflow: hidden;
+  border: 1px solid var(--pw-line);
+  background:
+    radial-gradient(62% 56% at 50% 40%, color-mix(in srgb, var(--pw-accent) 12%, transparent), transparent 72%),
+    var(--pw-surface);
+}
+.pg-figure-frame img { object-fit: cover }
+
 /* ---- Large screens ----------------------------------------------------------------------
    The landing's own pattern: containers become clamp(<today>, Xvw, <ceiling>) and display type
    max(<today's clamp>, min(Yvw, <ceiling>)). Both forms are continuous and cross over past 1600px,

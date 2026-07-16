@@ -12,6 +12,7 @@
  * /developers SEO trap taught us to avoid.
  */
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
 import "../../../components/site/tools.css";
@@ -45,6 +46,13 @@ export default function Claimed() {
 
       <section className="tool-body">
         <div className="tool-inner">
+          {/* il-onboard — a doorway of light opening into a warm home: you've just arrived. The
+              recipient landed here right after claiming, so the page opens on the threshold. */}
+          <figure className="pg-figure" style={{ maxWidth: "560px", marginBottom: "clamp(28px,4vh,44px)" }}>
+            <div className="pg-figure-frame">
+              <Image src="/brand-kit-assets/il-onboard.webp" alt="" fill sizes="(max-width:620px) 92vw, 560px" />
+            </div>
+          </figure>
           <div className="tool-rows">
             {POINTS.map((p) => (
               <div key={p.title} className="tool-row">

@@ -16,6 +16,7 @@ import { formatUsd } from "../../../lib/money";
 import { copy } from "../../../lib/copy";
 import { MoneyCard } from "../../../components/brand/MoneyCard";
 import { PrimaryButton } from "../../../components/brand/PrimaryButton";
+import { FeedbackDialog } from "../../../components/FeedbackDialog";
 
 const SPONSOR_URL = process.env.NEXT_PUBLIC_SPONSOR_URL ?? "https://lumenia-sponsor.vercel.app";
 
@@ -135,7 +136,12 @@ export default function NotificationsPage() {
           ))}
         </div>
       )}
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && (
+        <p className="text-sm text-danger">
+          {error}{" "}
+          <FeedbackDialog trigger={copy.feedback.somethingWrong} triggerClassName="fb-trigger-inline" defaultCategory="money" />
+        </p>
+      )}
     </div>
   );
 }

@@ -48,6 +48,15 @@ export function PayAskClient({ ask }: { ask: Ask | null }) {
       <div className="py-16 text-center">
         <h1 className="text-xl font-bold text-ink">{copy.errors.notFound}</h1>
         <p className="mt-2 text-ink-soft">{copy.pay.invalid}</p>
+        {/* A malformed link may be a brand-new visitor's first contact — never a wall. */}
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <Link href="/demo" className="text-sm font-semibold text-money underline-offset-2 hover:underline">
+            {copy.pay.tryDemo}
+          </Link>
+          <Link href="/" className="text-sm font-semibold text-money underline-offset-2 hover:underline">
+            See what Lumenia is
+          </Link>
+        </div>
       </div>
     );
   }

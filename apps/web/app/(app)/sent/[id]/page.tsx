@@ -7,6 +7,7 @@
  * server never saw the #fragment and must not pretend it can resend the link.
  */
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { loadLinkStatus } from "../../../../lib/horizon";
 import { formatUsd } from "../../../../lib/money";
@@ -59,6 +60,14 @@ export default function SentPage() {
         <p className="mt-2 text-ink-soft">
           We only keep your links on the phone you sent them from — we never store them on a server.
         </p>
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <Link href="/home" className="text-sm font-semibold text-money underline-offset-2 hover:underline">
+            Back to my money
+          </Link>
+          <Link href="/send" className="text-sm font-semibold text-money underline-offset-2 hover:underline">
+            Send a new link
+          </Link>
+        </div>
       </div>
     );
   }

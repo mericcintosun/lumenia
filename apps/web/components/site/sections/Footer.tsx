@@ -9,6 +9,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { AvatarReveal } from "./AvatarReveal";
 import { AmbientVideo } from "../AmbientVideo";
+import { FeedbackDialog } from "../../FeedbackDialog";
+import { copy } from "../../../lib/copy";
 
 const COLS = [
   { title: "Product", links: [["How it works", "/how-it-works"], ["Live demo", "/demo"], ["Tools", "/tools"], ["Waitlist", "/waitlist"], ["Cash-out", "/cash-out"]] },
@@ -50,6 +52,11 @@ export function Footer() {
               ))}
             </div>
           ))}
+          {/* Support — the product's one always-there human channel (sponsor /feedback, isolated store). */}
+          <div className="foot-col">
+            <span className="foot-ct">Support</span>
+            <FeedbackDialog trigger={copy.feedback.linkLabel} />
+          </div>
         </nav>
       </div>
 

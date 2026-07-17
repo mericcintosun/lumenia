@@ -16,6 +16,8 @@ import { Copy, Check } from "lucide-react";
 import { useWallet } from "../../../lib/wallet";
 import { LockMoneyCard } from "../../../components/brand/LockMoneyCard";
 import { MoneyCard } from "../../../components/brand/MoneyCard";
+import { FeedbackDialog } from "../../../components/FeedbackDialog";
+import { copy } from "../../../lib/copy";
 
 const explorer = (a: string) => `https://stellar.expert/explorer/testnet/account/${a}`;
 
@@ -119,6 +121,17 @@ export default function AccountPage() {
           lock your money and forget the password, nobody — including us — can recover it. That&apos;s
           what keeps it yours.
         </p>
+      </MoneyCard>
+
+      {/* The human channel — a real inbox (sponsor /feedback, isolated store), not a dead link. */}
+      <MoneyCard className="p-5">
+        <p className="font-semibold text-ink">Need a hand?</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          If something looks wrong or you&apos;re stuck, tell us what happened.
+        </p>
+        <div className="mt-3">
+          <FeedbackDialog trigger={copy.feedback.linkLabel} triggerClassName="fb-trigger-pill" defaultCategory="money" />
+        </div>
       </MoneyCard>
     </div>
   );

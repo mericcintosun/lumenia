@@ -100,6 +100,11 @@ export const copy = {
     toTry: "Convert to Turkish lira",
     soon: "Coming soon",
     delegatedNote: "Conversion is handled by a licensed provider — coming soon.",
+    // ADDITIVE (this file is in the frozen claim route's import graph): the /home
+    // info row as ONE written sentence — composing it from the labels above
+    // lowercased "Turkish lira" mid-sentence.
+    infoRow:
+      "Spending with a card and converting to Turkish lira arrive through a licensed partner — coming soon. Until then, your dollars stay yours to send.",
   },
   errors: {
     notFound: "This link is invalid or has expired.",
@@ -108,5 +113,34 @@ export const copy = {
     // never reach a money surface (vocabulary law). Honest: a rejected inner tx
     // means nothing moved.
     moneySafe: "We couldn't finish — your money hasn't moved. Try again.",
+  },
+  /**
+   * Feedback — the "report a problem" channel (FeedbackDialog → sponsor /feedback,
+   * isolated store, contact optional). ADDITIVE-ONLY block: this file is in the
+   * frozen claim route's import graph, so existing keys above never change.
+   */
+  feedback: {
+    linkLabel: "Report a problem",
+    somethingWrong: "Something wrong? Tell us.",
+    title: "Report a problem",
+    sub: "Tell us what went wrong — we read every note.",
+    categoryLabel: "What is it about?",
+    catClaim: "Receiving money",
+    catSend: "Sending money",
+    catRequest: "Asking for money",
+    catMoney: "My money",
+    catSite: "The website",
+    catOther: "Something else",
+    messageLabel: "What happened?",
+    messagePlaceholder: "The more detail, the faster we can help.",
+    contactLabel: "How can we reach you? (optional)",
+    contactPlaceholder: "Email or phone — only if you want a reply",
+    submit: "Send it",
+    sending: "Sending…",
+    cancel: "Cancel",
+    close: "Done",
+    done: "Thank you — we got it.",
+    doneSub: "If you left a way to reach you, we'll follow up.",
+    error: "We couldn't send that. Please try again.",
   },
 } as const;

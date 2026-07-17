@@ -11,6 +11,7 @@
  *   POST /faucet          → dispense test-USDC (separate faucet key; recipient must already hold the trustline)
  *   POST /demo-link       → faucet mints a real demo Claimable Balance + returns the bearer secret
  *   POST /waitlist        → store a notify-me email (isolated, never joined to a pubkey)
+ *   POST /feedback        → store a "report a problem" entry (isolated, never joined to a pubkey)
  *   POST /events          → allowlisted funnel beacon (no PII; always 200)
  *
  * The request handlers live in lib/* and are platform-agnostic, so the same core
@@ -27,6 +28,7 @@ import { sendLinkHandler } from "./lib/send.js";
 import { faucetHandler } from "./lib/faucet.js";
 import { demoLinkHandler } from "./lib/demo-link.js";
 import { saveContact } from "./lib/waitlist.js";
+import { saveFeedback } from "./lib/feedback.js";
 import { handleEvent } from "./lib/events.js";
 
 const { config, signer, faucet, server } = getService();
@@ -145,6 +147,18 @@ const httpServer = createServer(async (req, res) => {
       const body = (await readJson(req)) as { list?: string; email?: string };
       if (!body.list || !body.email) return send(res, 400, { error: "list and email are required" });
       await saveContact(body.list, body.email);
+      return send(res, 200, { ok: true });
+    }
+
+    if (method === "POST" && url === "/feedback") {
+      // Its OWN limiter bucket ("fb:" prefix): the dialog mounts on error states whose
+      // plausible cause IS the shared per-IP window — the problem-report channel must
+      // not be closed by the very throttling being reported. Spam here also cannot
+      // consume the money-path window.
+      const rl = await enforceRateLimit(`fb:${clientIp(req)}`);
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      const body = (await readJson(req)) as { category?: string; message?: string; contact?: string };
+      await saveFeedback(body);
       return send(res, 200, { ok: true });
     }
 

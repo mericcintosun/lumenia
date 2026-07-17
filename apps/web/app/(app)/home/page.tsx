@@ -20,13 +20,14 @@ import { Split } from "lucide-react";
 import { useWallet } from "../../../lib/wallet";
 import { loadBalance, loadActivity, loadIncomingClaims, type ActivityItem, type IncomingClaim } from "../../../lib/horizon";
 import { collectIncoming } from "../../../lib/claim";
-import { indicativeRate } from "../../../lib/rate";
+import { indicativeRate, getLiveRate } from "../../../lib/rate";
 import { formatUsd } from "../../../lib/money";
 import { BalanceHeader } from "../../../components/brand/BalanceHeader";
 import { ActivityRow } from "../../../components/brand/ActivityRow";
 import { LockMoneyCard } from "../../../components/brand/LockMoneyCard";
 import { MoneyCard } from "../../../components/brand/MoneyCard";
 import { PrimaryButton } from "../../../components/brand/PrimaryButton";
+import { FeedbackDialog } from "../../../components/FeedbackDialog";
 import { copy } from "../../../lib/copy";
 
 const SPONSOR_URL = process.env.NEXT_PUBLIC_SPONSOR_URL ?? "https://lumenia-sponsor.vercel.app";
@@ -48,6 +49,19 @@ export default function HomePage() {
   const [loadingData, setLoadingData] = useState(false);
   const [collectingId, setCollectingId] = useState<string | null>(null);
   const [collectError, setCollectError] = useState("");
+  // The ₺ line upgrades from the labeled fallback constant to the real ECB
+  // reference rate when the fetch lands (lib/rate.ts). Still shown "indicative".
+  const [rate, setRate] = useState(indicativeRate());
+
+  useEffect(() => {
+    let alive = true;
+    void getLiveRate().then((r) => {
+      if (alive && r.live) setRate(r.rate);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const reload = useCallback(async () => {
     if (!account) return;
@@ -93,6 +107,13 @@ export default function HomePage() {
         >
           {copy.claim.ctaRequest}
         </Link>
+        {/* A first-timer who deep-linked here needs a path INTO the product, not a wall. */}
+        <Link href="/demo" className="text-sm font-semibold text-money underline-offset-2 hover:underline">
+          Try the demo — receive real test money
+        </Link>
+        <Link href="/how-it-works" className="text-sm font-semibold text-money underline-offset-2 hover:underline">
+          See how it works
+        </Link>
         <Link href="/claimed" className="text-sm font-semibold text-money underline-offset-2 hover:underline">
           What is this?
         </Link>
@@ -120,7 +141,7 @@ export default function HomePage() {
     }
   }
 
-  const tryValue = Number.parseFloat(usd ?? "0") * indicativeRate();
+  const tryValue = Number.parseFloat(usd ?? "0") * rate;
 
   return (
     <div className="flex flex-col gap-5">
@@ -150,7 +171,12 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          {collectError && <p className="mt-2 text-sm text-danger">{collectError}</p>}
+          {collectError && (
+            <p className="mt-2 text-sm text-danger">
+              {collectError}{" "}
+              <FeedbackDialog trigger={copy.feedback.somethingWrong} triggerClassName="fb-trigger-inline" defaultCategory="money" />
+            </p>
+          )}
         </MoneyCard>
       )}
 
@@ -205,18 +231,11 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Cash-out placeholder — a licensed partner converts; Lumenia never does. */}
+      {/* Cash-out — delegated to a licensed partner; Lumenia never converts. Stated as an
+          info row, not dead buttons: no affordance is promised that can't be tapped. */}
       <MoneyCard className="p-5">
         <p className="font-semibold text-ink">{copy.cashOut.title}</p>
-        <p className="mt-1 text-sm text-ink-soft">{copy.cashOut.delegatedNote}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button disabled className="h-11 rounded-full bg-secondary px-4 text-sm text-ink-soft opacity-70">
-            {copy.cashOut.spendCard} · {copy.cashOut.soon.toLowerCase()}
-          </button>
-          <button disabled className="h-11 rounded-full bg-secondary px-4 text-sm text-ink-soft opacity-70">
-            {copy.cashOut.toTry} · {copy.cashOut.soon.toLowerCase()}
-          </button>
-        </div>
+        <p className="mt-1 text-sm text-ink-soft">{copy.cashOut.infoRow}</p>
       </MoneyCard>
     </div>
   );

@@ -13,6 +13,7 @@
     { "source": "/faucet", "destination": "/api/faucet" },
     { "source": "/demo-link", "destination": "/api/demo-link" },
     { "source": "/waitlist", "destination": "/api/waitlist" },
+    { "source": "/feedback", "destination": "/api/feedback" },
     { "source": "/events", "destination": "/api/events" }
   ]
 }

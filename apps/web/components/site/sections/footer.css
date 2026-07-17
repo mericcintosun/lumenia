@@ -47,12 +47,12 @@
    present for its keyframes. Identical to the landing's `opfloat`; named apart to avoid two
    same-named @keyframes racing when both files load on the landing. */
 @keyframes footfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-13px)}}
-.foot-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;padding-top:6px}
+.foot-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;padding-top:6px}
 @media (max-width:520px){.foot-nav{grid-template-columns:repeat(2,1fr)}}
 .foot-col{display:flex;flex-direction:column;gap:13px}
 .foot-ct{font-family:"Switzer",ui-sans-serif,sans-serif;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--pw-muted);margin-bottom:4px}
-.foot-col a{font-family:"Switzer",ui-sans-serif,sans-serif;color:var(--pw-muted);text-decoration:none;font-size:15px;width:-moz-fit-content;width:fit-content;transition:color .18s,transform .18s}
-.foot-col a:hover{color:var(--pw-accent);transform:translateX(3px)}
+.foot-col a,.foot-col .fb-trigger-link{font-family:"Switzer",ui-sans-serif,sans-serif;color:var(--pw-muted);text-decoration:none;font-size:15px;width:-moz-fit-content;width:fit-content;transition:color .18s,transform .18s}
+.foot-col a:hover,.foot-col .fb-trigger-link:hover{color:var(--pw-accent);transform:translateX(3px);text-decoration:none}
 .foot-bottom{position:relative;z-index:1;max-width:1120px;margin:clamp(40px,6vh,64px) auto 0;padding-top:24px;border-top:1px solid var(--pw-line);
   display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;font-family:"Switzer",ui-sans-serif,sans-serif;font-size:13px;color:var(--pw-muted)}
 .foot-seal{gap:8px;color:var(--pw-ink);background:color-mix(in srgb,var(--pw-accent) 12%,transparent);border:1px solid color-mix(in srgb,var(--pw-accent) 30%,transparent);border-radius:999px;padding:6px 13px}

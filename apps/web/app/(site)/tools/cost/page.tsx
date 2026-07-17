@@ -44,8 +44,8 @@ export default function Cost() {
           </p>
           <h1 className="pg-h1">What sending money home usually costs.</h1>
           <p className="pg-lead">
-            Typical published ranges for sending money to Turkey. Millions of families already pay
-            these every month — that&apos;s the market telling you the job matters.
+            Typical published ranges for sending money to Turkey. Families pay these fees every
+            month — that&apos;s the market telling you the job matters.
           </p>
         </div>
       </header>
@@ -75,8 +75,13 @@ export default function Cost() {
             </div>
           </div>
           <p className="tool-fine">
-            Ranges are typical published figures for illustration, not a live comparison. Lumenia is on
-            a test network today.
+            Ranges are typical published provider fees for illustration, not a live comparison. For
+            tracked, current numbers see the World Bank&apos;s{" "}
+            <a href="https://remittanceprices.worldbank.org" target="_blank" rel="noreferrer">
+              Remittance Prices Worldwide
+            </a>{" "}
+            monitor, which puts the global average cost of sending money at around 6% of the amount.
+            Lumenia is on a test network today.
           </p>
         </div>
       </section>

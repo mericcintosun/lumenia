@@ -20,6 +20,7 @@ await build({
     faucet: "src/vercel/faucet.ts",
     "demo-link": "src/vercel/demo-link.ts",
     waitlist: "src/vercel/waitlist.ts",
+    feedback: "src/vercel/feedback.ts",
     events: "src/vercel/events.ts",
   },
   outdir: "api",
@@ -42,4 +43,4 @@ writeFileSync(
   '<!doctype html><meta charset="utf-8"><title>Lumenia sponsor</title>' +
     "<p>Lumenia sponsor service (testnet). Health: <a href=\"/health\">/health</a>.</p>\n",
 );
-console.log("✔ built self-contained CJS functions in api/ (health, create-account, feebump, send-link, faucet, demo-link, waitlist, events)");
+console.log("✔ built self-contained CJS functions in api/ (health, create-account, feebump, send-link, faucet, demo-link, waitlist, feedback, events)");

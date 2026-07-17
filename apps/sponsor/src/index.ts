@@ -6,13 +6,18 @@
  *
  *   GET  /health          → liveness + public sponsor identity (no secrets)
  *   POST /create-account  → sponsored 0-XLM account + USDC trustline (sponsor-signed XDR)
- *   POST /feebump         → validate (anti-drain) + fee-bump + submit the claim  [W2]
+ *   POST /feebump         → validate (anti-drain CLAIM policy) + fee-bump + submit the claim
+ *   POST /send-link       → validate (anti-drain SEND policy) + sponsor-sign + fee-bump the onward CB
+ *   POST /faucet          → dispense test-USDC (separate faucet key; recipient must already hold the trustline)
+ *   POST /demo-link       → faucet mints a real demo Claimable Balance + returns the bearer secret
+ *   POST /waitlist        → store a notify-me email (isolated, never joined to a pubkey)
+ *   POST /events          → allowlisted funnel beacon (no PII; always 200)
  *
  * The request handlers live in lib/* and are platform-agnostic, so the same core
  * runs behind this node:http server (local dev + CLI) and behind a Vercel function
  * adapter (api/*) when deployed. Per-IP + per-account rate limiting and the fee cap
- * are enforced on both paths (lib/rate-limit.ts); durable cross-instance limiting
- * (Vercel KV) is the mainnet upgrade — see ANTI_DRAIN.md.
+ * are enforced on both paths (lib/rate-limit.ts); durable cross-instance limiting is
+ * already live (checkRateLimitDurable → Upstash/KV, degrades to in-memory on error).
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { getService, enforceRateLimit } from "./lib/service.js";

@@ -11,9 +11,35 @@ dist/
 .env
 .env.*
 !.env.example
+# key material + tokens — never commit
+*.pem
+*.key
+*.p12
+id_rsa*
+.hf_token
+# MCP server config can carry API keys / OAuth tokens — keep local
+.mcp.json
+.mcp.local.json
 
-# OS
+# test artifacts (Playwright traces/screenshots can capture testnet data)
+test-results/
+**/test-results/
+playwright-report/
+**/playwright-report/
+.playwright/
+coverage/
+
+# logs
+*.log
+
+# OS + editor junk
 .DS_Store
+Thumbs.db
+ehthumbs.db
+.idea/
+*.swp
+*.swo
+*~
 
 # external reference repos (each has its own .git — not embedded in the Lumenia repo)
 stellar-ai-guide/

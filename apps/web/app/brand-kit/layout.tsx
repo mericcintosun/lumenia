@@ -1,8 +1,8 @@
 /**
  * /brand-kit — INTERNAL brand workspace (not linked in nav, noindex). We explore
  * type pairings + palette directions here, with the REAL candidate faces, BEFORE
- * touching the landing. Stands OUTSIDE the (marketing) group on purpose: no site
- * header, no testnet banner, no Plus Jakarta — its own chrome, its own fonts.
+ * touching the landing. Stands OUTSIDE the (site) group on purpose: no SiteNav,
+ * no testnet banner, no theme provider — its own chrome, its own fonts.
  *
  * Fonts load from the Fontshare CSS API (candidate faces only live on this route,
  * so nothing here reaches the webfont-free claim route). If the CDN is blocked the

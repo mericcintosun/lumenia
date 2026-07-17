@@ -20,33 +20,14 @@ export interface Signer {
 }
 
 /**
- * v1 local Ed25519 signer. The account's public key is known up-front (stored as
- * data — see ./account.ts, address-stable), while the 32-byte seed is produced
- * transiently by `unlock` (a keystore decrypt) only at signing time and wiped
- * afterwards. The seed never leaves this function. v2 swaps in a passkey
- * smart-account signer WITHOUT changing this interface or the account address.
+ * v1 local Ed25519 signer from a seed already in hand. The WalletProvider produces
+ * the seed transiently (Phase-1 keystore decrypt at signing time, wiped after; or a
+ * Phase-2 session seed held in memory) and asserts the derived public key matches
+ * the stored account address before returning the signer (lib/wallet.tsx::getSigner).
+ * The seed never leaves that module + this one. v2 swaps in a passkey smart-account
+ * signer WITHOUT changing this interface or the account address (./account.ts is
+ * address-stable).
  */
-export function createLocalSigner(publicKey: string, unlock: () => Promise<Uint8Array>): Signer {
-  return {
-    kind: "local-ed25519",
-    publicKey: () => publicKey,
-    sign: async (tx) => {
-      const seed = await unlock();
-      try {
-        const kp = Keypair.fromRawEd25519Seed(Buffer.from(seed));
-        if (kp.publicKey() !== publicKey) {
-          throw new Error("unlocked key does not match this account");
-        }
-        tx.sign(kp);
-        return tx;
-      } finally {
-        seed.fill(0); // best-effort wipe of the transient seed
-      }
-    },
-  };
-}
-
-/** Direct seed → signer (used by the key-lifecycle spike; the seed is already in hand). */
 export function localSignerFromSeed(seed: Uint8Array): Signer {
   const kp = Keypair.fromRawEd25519Seed(Buffer.from(seed));
   return {

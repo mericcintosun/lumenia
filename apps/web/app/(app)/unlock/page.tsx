@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * /unlock — a LOCAL decrypt gate (FRONTEND_PLAN §2 Phase 3), NOT authentication and
+ * /unlock — a LOCAL decrypt gate (custody Phase 2), NOT authentication and
  * NOT a server session. It only appears when a Phase-2 (password-encrypted) blob
  * exists; Phase-1 users never see it. There is deliberately NO "forgot password?
  * contact us" link — that would be lying about what we can do (we can't: the server

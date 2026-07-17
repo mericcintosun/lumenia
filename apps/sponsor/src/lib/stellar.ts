@@ -1,8 +1,31 @@
 /**
  * Thin Horizon helpers shared by the sponsor endpoints and the CLI.
  */
-import { Horizon } from "@stellar/stellar-sdk";
+import { Horizon, xdr } from "@stellar/stellar-sdk";
 import type { SponsorConfig } from "./config";
+
+/**
+ * The Claimable Balance id created by a transaction, read from ITS OWN result XDR
+ * (Horizon's hex id string). This is the unambiguous source — a "newest CB where X
+ * is a claimant" Horizon query races against concurrent txs. Handles the fee-bump
+ * wrapper (fee-bumped submits put the inner tx's op results one level down) and a
+ * plain (unwrapped) result. Returns null on any shape surprise so the caller can
+ * fall back rather than fail a tx that already succeeded.
+ */
+export function createdBalanceIdFromResult(resultXdr: string, opIndex: number): string | null {
+  if (opIndex < 0) return null;
+  try {
+    const top = xdr.TransactionResult.fromXDR(resultXdr, "base64").result();
+    const inner = top.switch().name.startsWith("txFeeBumpInner")
+      ? top.innerResultPair().result().result()
+      : top;
+    const op = inner.results()[opIndex];
+    if (!op) return null;
+    return op.tr().createClaimableBalanceResult().balanceId().toXDR("hex");
+  } catch {
+    return null;
+  }
+}
 
 export function horizon(config: SponsorConfig): Horizon.Server {
   return new Horizon.Server(config.horizonUrl);

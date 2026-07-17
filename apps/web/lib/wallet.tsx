@@ -63,14 +63,22 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   const getSigner = useCallback(async (): Promise<Signer> => {
     if (!account) throw new Error("no local account");
+    let signer: Signer;
     if (account.phase === 1) {
       const seed = await unlockPhase1();
-      const signer = localSignerFromSeed(seed);
+      signer = localSignerFromSeed(seed);
       seed.fill(0);
-      return signer;
+    } else {
+      if (!sessionSeed.current) throw new Error("locked");
+      signer = localSignerFromSeed(sessionSeed.current);
     }
-    if (!sessionSeed.current) throw new Error("locked");
-    return localSignerFromSeed(sessionSeed.current);
+    // The unlocked seed MUST derive the account we think we are signing for. If it
+    // doesn't (a corrupted keystore, a swapped record), fail loud rather than sign a
+    // transaction for the wrong account.
+    if (signer.publicKey() !== account.address) {
+      throw new Error("unlocked key does not match this account");
+    }
+    return signer;
   }, [account]);
 
   return (

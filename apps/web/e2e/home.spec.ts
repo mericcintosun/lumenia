@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { mintClaimLink } from "./mintLink";
+import { rewriteSponsor } from "./sponsorRewrite";
 
 /**
  * Stage 4 flow: claim → the account is persisted locally (Phase 1) → "See my money"
@@ -11,6 +12,7 @@ const WEB = process.env.WEB_URL ?? "https://lumenia-chi.vercel.app";
 
 test("claim → persisted → /home shows the real balance + activity", async ({ page }) => {
   page.on("pageerror", (e) => console.log("[pageerror]", e.message));
+  await rewriteSponsor(page.context()); // no-op against the live sponsor; enables local runs
   const link = await mintClaimLink({ sponsor: SPONSOR, web: WEB, amount: "20", from: "Alvin" });
 
   await page.goto(link.url, { waitUntil: "domcontentloaded" });

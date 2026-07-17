@@ -2,10 +2,10 @@
  * (site) route group — the public site on the LOCKED "Periwinkle" system (brand.md): Sentient +
  * Switzer (self-hosted), the `--pw-*` palette, `next-themes` via data-theme, SiteNav + Footer.
  *
- * It sits in a SEPARATE group from (marketing) on purpose, so these routes do not inherit the
- * legacy warm-paper green chrome / Plus Jakarta. The remaining (marketing) routes migrate in here
- * one at a time as each is rebuilt — route groups don't affect URLs, so a page moves without its
- * URL changing and arrives with the right chrome already around it. (marketing) shrinks to nothing.
+ * This is now the whole public site: the old (marketing) warm-paper group has been fully migrated
+ * in here and DELETED (route groups don't affect URLs, so each page moved without its URL changing
+ * and arrived with the right chrome already around it). The only warm-paper left in the product is
+ * the frozen claim route.
  *
  * The claim route /c/[id] lives outside this group and stays webfont-free + frozen: nothing here
  * may reach it.

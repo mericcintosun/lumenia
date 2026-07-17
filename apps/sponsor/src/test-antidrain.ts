@@ -1,15 +1,18 @@
 /**
  * ============================================================================
- *  TEST — anti-drain validator (canonical, packages/shared)
+ *  TEST — anti-drain validator (the canonical validator now lives at
+ *  apps/sponsor/src/lib/anti-drain.ts — moved out of packages/shared for the
+ *  Vercel deploy boundary; this test imports ./lib/anti-drain.js directly)
  * ============================================================================
  *
  *  Addresses the code-review finding: op-type allowlisting is
  *  not enough; the validator must check op SOURCE and sensitive PARAMETERS.
- *  These cases prove the hardened validator accepts the legit claim shape and
- *  rejects every reserve/principal drain vector we could think of.
+ *  These cases prove the hardened validator accepts the legit claim + send shapes
+ *  and rejects every reserve/principal drain vector we could think of (25/25 =
+ *  18 claim + 7 send).
  *
- *  RUN (CJS context, avoids the stellar-sdk@16 ESM/tsx issue):
- *    pnpm --filter @lumenia/sponsor exec tsx src/test-antidrain.ts
+ *  RUN:
+ *    pnpm --filter @lumenia/sponsor test:antidrain
  *
  *  No network required — txs are built in memory and validated.
  * ============================================================================

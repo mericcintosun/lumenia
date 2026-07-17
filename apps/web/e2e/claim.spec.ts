@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { mintClaimLink } from "./mintLink";
+import { rewriteSponsor } from "./sponsorRewrite";
 
 /**
  * The live-claim regression (Guardrail 2). Mints a fresh real claim link and
@@ -16,6 +17,7 @@ test("fresh makelink → claim in a real browser → USDC lands (tx hash)", asyn
   page.on("requestfailed", (r) =>
     console.log("[requestfailed]", r.method(), r.url(), r.failure()?.errorText),
   );
+  await rewriteSponsor(page.context()); // no-op against the live sponsor; enables local runs
   const link = await mintClaimLink({ sponsor: SPONSOR, web: WEB, amount: "20", from: "Alvin" });
   test.info().annotations.push({ type: "claim-url", description: link.url });
 

@@ -9,7 +9,7 @@
 import { BASE_FEE, Claimant, Keypair, Operation, TransactionBuilder, type Horizon } from "@stellar/stellar-sdk";
 import type { SponsorConfig } from "./config.js";
 import type { SponsorSigner } from "./signer.js";
-import { submit } from "./stellar.js";
+import { submit, createdBalanceIdFromResult } from "./stellar.js";
 
 export interface DemoLinkResult {
   balanceId: string;
@@ -39,10 +39,17 @@ export async function demoLinkHandler(
     .setTimeout(180)
     .build();
   faucet.sign(tx);
-  await submit(server, tx);
+  const { resultXdr } = await submit(server, tx);
 
-  const cb = await server.claimableBalances().claimant(bearer.publicKey()).order("desc").limit(1).call();
-  const balanceId = cb.records[0]?.id;
+  // Read the created CB id from THIS tx's result (the createClaimableBalance is op 0),
+  // not a "newest CB where the bearer is a claimant" query. The bearer is a fresh
+  // unique key here so the query wouldn't actually collide, but the result-XDR path
+  // is the unambiguous one the send flow uses — no reason to keep the racy pattern.
+  let balanceId = resultXdr ? createdBalanceIdFromResult(resultXdr, 0) : null;
+  if (!balanceId) {
+    const cb = await server.claimableBalances().claimant(bearer.publicKey()).order("desc").limit(1).call();
+    balanceId = cb.records[0]?.id ?? null;
+  }
   if (!balanceId) throw new Error("demo link submitted but the Claimable Balance id was not found");
 
   return {

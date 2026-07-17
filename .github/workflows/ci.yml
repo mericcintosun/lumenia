@@ -1,0 +1,39 @@
+name: CI
+
+# Fast, network-free checks on every push + PR to main. Deliberately does NOT run the testnet
+# suites (test:integration, the Playwright e2e, the spikes) — those need friendbot + Horizon +
+# USDC_ISSUER_SECRET and would be flaky/secret-dependent in CI. They stay as the local + post-deploy
+# gates. What runs here is what can pass hermetically: the anti-drain validator (25/25, no network)
+# and a production web build (which also type-checks the whole app).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Anti-drain validator (25/25, no network)
+        run: pnpm --filter @lumenia/sponsor test:antidrain
+
+      - name: Web production build (also type-checks the app)
+        run: pnpm --filter @lumenia/web build
+
+      - name: Sponsor Vercel bundle builds
+        run: pnpm --filter @lumenia/sponsor build:vercel

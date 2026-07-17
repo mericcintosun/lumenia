@@ -45,9 +45,10 @@ ehthumbs.db
 stellar-ai-guide/
 stellar-build/
 
-# stellar-build skill state (if present)
+# tool working state / caches — local only (design-sync cache holds sample names + grades)
 .stellar-build/
 .stellar-new/
+.design-sync/
 
 # Vercel
 .vercel

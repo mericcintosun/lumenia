@@ -319,7 +319,7 @@ export default function SendPage() {
               <input
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                placeholder="e.g. Meriç"
+                placeholder="e.g. Alex"
                 className="mt-1 w-full rounded-[14px] border border-line bg-surface px-3 py-3 text-ink"
               />
             </label>

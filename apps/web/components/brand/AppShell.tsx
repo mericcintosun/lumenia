@@ -13,11 +13,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, LifeBuoy } from "lucide-react";
 import { useWallet } from "../../lib/wallet";
 import { loadUnreadCount } from "../../lib/notifications";
 import { TestnetBanner } from "./TestnetBanner";
 import { ThemeToggle } from "../site/ThemeToggle";
+import { FeedbackDialog } from "../FeedbackDialog";
+import { copy } from "../../lib/copy";
 
 const NAV = [
   { href: "/home", label: "Home" },
@@ -82,6 +84,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
             <NotificationsBell />
+            {/* Report-a-problem is one tap away on EVERY money surface (owner directive) —
+                a life-buoy next to the bell, opening the portaled FeedbackDialog. */}
+            <FeedbackDialog
+              trigger={<LifeBuoy className="size-[18px]" />}
+              triggerClassName="fb-trigger-nav"
+              triggerAriaLabel={copy.feedback.linkLabel}
+              defaultCategory="money"
+            />
             <ThemeToggle />
           </nav>
         </div>

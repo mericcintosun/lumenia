@@ -38,10 +38,13 @@ const MAX_CONTACT = 200;
 export function FeedbackDialog({
   trigger,
   triggerClassName = "fb-trigger-link",
+  triggerAriaLabel,
   defaultCategory = "other",
 }: {
-  trigger: string;
-  triggerClassName?: "fb-trigger-link" | "fb-trigger-inline" | "fb-trigger-pill";
+  /** Button content — a label string, or an icon node (pass triggerAriaLabel with icons). */
+  trigger: React.ReactNode;
+  triggerClassName?: "fb-trigger-link" | "fb-trigger-inline" | "fb-trigger-pill" | "fb-trigger-nav";
+  triggerAriaLabel?: string;
   defaultCategory?: "claim" | "send" | "request" | "money" | "site" | "other";
 }) {
   const [open, setOpen] = useState(false);
@@ -223,7 +226,7 @@ export function FeedbackDialog({
 
   return (
     <>
-      <button ref={triggerRef} type="button" className={triggerClassName} onClick={openDialog}>
+      <button ref={triggerRef} type="button" className={triggerClassName} aria-label={triggerAriaLabel} onClick={openDialog}>
         {trigger}
       </button>
       {/* `open` can only become true after a click, so document always exists here. */}

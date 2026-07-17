@@ -175,6 +175,24 @@ textarea.fb-field {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+/* Icon button for the persistent (app) top nav — mirrors the notifications bell. */
+.fb-trigger-nav {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--pw-muted, var(--ink-soft, #67626e));
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.fb-trigger-nav:hover {
+  color: var(--pw-ink, var(--ink, #1e1b22));
+}
+
 /* A bordered pill for card surfaces (/account). */
 .fb-trigger-pill {
   display: inline-flex;

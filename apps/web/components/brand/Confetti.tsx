@@ -1,12 +1,13 @@
 /**
- * Confetti — the earned celebration when money arrives (apricot spice + a little
- * money-green). Pure CSS (see the .module.css), so it runs on the Motion-free
- * claim route. Fixed piece layout (no Math.random) → no SSR hydration mismatch.
+ * Confetti — the earned celebration when money arrives (two-tone Periwinkle). Pure CSS (see the
+ * .module.css), so it runs on the Motion-free claim route. Fixed piece layout (no Math.random) → no
+ * SSR hydration mismatch.
  */
 import styles from "./Confetti.module.css";
 
-const JOY = "#F4A259";
-const MONEY = "#1E7A52";
+// Periwinkle accent + Stellar lavender — the palette's arrival colours (brand.md §4).
+const JOY = "#B7ACE8";
+const MONEY = "#6E5FCE";
 
 // deterministic scatter: [left%, delay(ms), color, size]
 const PIECES: Array<[number, number, string, number]> = [

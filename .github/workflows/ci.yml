@@ -1,39 +1,66 @@
 name: CI
 
-# Fast, network-free checks on every push + PR to main. Deliberately does NOT run the testnet
-# suites (test:integration, the Playwright e2e, the spikes) — those need friendbot + Horizon +
+# Hermetic checks on every push + PR to main. Deliberately does NOT run the testnet-dependent
+# suites (test:integration, Playwright e2e, the spikes) — those need friendbot + Horizon +
 # USDC_ISSUER_SECRET and would be flaky/secret-dependent in CI. They stay as the local + post-deploy
-# gates. What runs here is what can pass hermetically: the anti-drain validator (25/25, no network)
-# and a production web build (which also type-checks the whole app).
+# gates. Everything here passes offline: typecheck, the anti-drain validator (25/25, no network),
+# a production web build, and the sponsor's esbuild Vercel bundle.
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  quality:
+    name: Typecheck + anti-drain
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
           version: 9.12.0
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-
       - name: Install
         run: pnpm install --frozen-lockfile
-
+      - name: Typecheck — sponsor
+        run: pnpm --filter @lumenia/sponsor exec tsc --noEmit
+      - name: Typecheck — web
+        run: pnpm --filter @lumenia/web exec tsc --noEmit
       - name: Anti-drain validator (25/25, no network)
         run: pnpm --filter @lumenia/sponsor test:antidrain
 
-      - name: Web production build (also type-checks the app)
+  build:
+    name: Build web + sponsor bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Web production build (Next.js)
         run: pnpm --filter @lumenia/web build
-
-      - name: Sponsor Vercel bundle builds
+      - name: Sponsor Vercel bundle (esbuild → api/*.js)
         run: pnpm --filter @lumenia/sponsor build:vercel
+
+  # A single required status to protect main against, if branch protection is ever turned on.
+  ci-passed:
+    name: CI passed
+    runs-on: ubuntu-latest
+    needs: [quality, build]
+    steps:
+      - run: echo "All CI checks passed."

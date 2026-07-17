@@ -20,7 +20,7 @@
   width: 56px;
   height: 56px;
   border-radius: 999px;
-  background: var(--money, #1e7a52);
+  background: var(--money, #6e5fce);
   color: #fff;
   display: grid;
   place-items: center;
@@ -36,7 +36,7 @@
   width: 56px;
   height: 56px;
   border-radius: 999px;
-  border: 2px solid var(--money, #1e7a52);
+  border: 2px solid var(--money, #6e5fce);
   animation: pulse 1600ms ease-out infinite;
 }
 
@@ -44,7 +44,7 @@
 .ring3 { animation-delay: 1066ms; }
 
 .label {
-  color: var(--ink-soft, #5c6b62);
+  color: var(--ink-soft, #67626e);
   font-size: 0.95rem;
 }
 

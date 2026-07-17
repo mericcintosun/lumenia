@@ -75,6 +75,28 @@
   --ring: #2e9b6b;
 }
 
+/* The claim route /c/[id] restyled to Periwinkle (owner request; the Instawards metric is already
+   MET on-chain, so only the presentation changes). ONLY the colours move — the claim mechanics
+   (runClaim, the C3 #fragment read→strip, value-first SSR), the webfont-free system-font stack and
+   the Motion-free CSS animations are all unchanged. Scoped to the claim <main> via this class so it
+   can never reach anything else; :root below stays warm paper for the 404 / dev / spike routes. */
+.claim-pw {
+  --paper: #f5f3ef;
+  --surface: #fbfaf8;
+  --ink: #1e1b22;
+  --ink-soft: #67626e;
+  --money: #6e5fce;
+  --money-pressed: #4e40a8;
+  --joy: #6e5fce; /* the accent carries the arrival moment in Periwinkle (no apricot) */
+  --line: #e5dfe8;
+  --danger: #c4362b;
+  --secondary: #e8e3f7;
+  --muted: #e8e3f7;
+  --accent: #e8e3f7;
+  --primary-foreground: #f6f4fd;
+  --ring: #6e5fce;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

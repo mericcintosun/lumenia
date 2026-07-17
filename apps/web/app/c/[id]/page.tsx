@@ -5,7 +5,9 @@
  * credential, wallet, or crypto term in sight (vocabulary law §8). The public claim
  * metadata (amount, sender, balanceId) rides in the URL query so the server renders
  * it value-first; the bearer key rides in the #fragment and is read only client-side
- * (ClaimButton). Warm paper, light-only, CSS-only (no Motion/webfont on this route).
+ * (ClaimButton). Periwinkle (via the `.claim-pw` scope in globals.css), light-only, CSS-only — still
+ * no Motion or webfont on this route; only the colours match the rest of the site, the mechanics are
+ * byte-identical (re-proven by the live-claim regression after every deploy).
  */
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
@@ -30,8 +32,8 @@ function readClaim(sp: SP): ClaimView | null {
   return null;
 }
 
-// The claim page ships light-only warm paper; override the root dark themeColor.
-export const viewport: Viewport = { themeColor: "#FAF6F0" };
+// The claim page ships light-only Periwinkle; override the root themeColor to the Periwinkle paper.
+export const viewport: Viewport = { themeColor: "#F5F3EF" };
 
 export async function generateMetadata({
   params,
@@ -65,7 +67,7 @@ export default async function ClaimPage({
   if (!claim) notFound();
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-paper px-6 py-10 text-ink">
+    <main className="claim-pw flex min-h-dvh flex-col items-center justify-center bg-paper px-6 py-10 text-ink">
       <div className="flex w-full max-w-sm flex-col items-center gap-5 text-center">
         <PersonChip name={claim.senderName} size="lg" nameless joyRing />
         <p className="text-xl text-ink-soft">{copy.claim.youReceived(claim.senderName)}</p>

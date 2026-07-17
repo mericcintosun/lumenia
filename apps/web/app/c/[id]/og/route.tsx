@@ -3,7 +3,7 @@
  * `opengraph-image` file convention only receives `params`, never the query — but
  * our claim links carry the display data (amount, sender) in the QUERY string, so
  * the old file-convention card mis-served every non-default link. A route handler
- * reads `searchParams` and renders the real amount/sender, value-first, warm paper.
+ * reads `searchParams` and renders the real amount/sender, value-first, on Periwinkle paper.
  *
  * satori has no system fonts, so we embed one weight (Plus Jakarta Sans Bold —
  * covers Turkish sender names). Referenced from the page's generateMetadata with
@@ -42,16 +42,16 @@ export async function GET(request: Request): Promise<Response> {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "#FAF6F0",
+          background: "#F5F3EF",
           fontFamily: "Jakarta",
           padding: 80,
         }}
       >
-        <div style={{ display: "flex", fontSize: 46, color: "#5C6B62" }}>{sender} sent you money</div>
-        <div style={{ display: "flex", fontSize: 168, color: "#1E7A52", marginTop: 6, letterSpacing: -4 }}>
+        <div style={{ display: "flex", fontSize: 46, color: "#67626E" }}>{sender} sent you money</div>
+        <div style={{ display: "flex", fontSize: 168, color: "#6E5FCE", marginTop: 6, letterSpacing: -4 }}>
           {usd}
         </div>
-        <div style={{ display: "flex", fontSize: 32, color: "#1E7A52", marginTop: 40 }}>
+        <div style={{ display: "flex", fontSize: 32, color: "#6E5FCE", marginTop: 40 }}>
           Tap to claim · Lumenia
         </div>
       </div>

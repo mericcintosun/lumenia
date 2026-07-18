@@ -15,6 +15,10 @@ const ALLOWED_EVENTS = new Set<string>([
   "request_created",
   "request_opened",
   "request_paid",
+  // Cash-out intent — a recipient tapping "how to turn dollars into local money".
+  // Measures off-ramp demand vs. hold-dollars behavior. Carries the hashed account.
+  // Must stay in step with apps/web/lib/events.ts.
+  "cashout_guide_opened",
 ]);
 
 export interface EventInput {

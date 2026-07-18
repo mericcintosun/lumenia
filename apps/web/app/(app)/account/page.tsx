@@ -17,6 +17,7 @@ import { useWallet } from "../../../lib/wallet";
 import { LockMoneyCard } from "../../../components/brand/LockMoneyCard";
 import { MoneyCard } from "../../../components/brand/MoneyCard";
 import { FeedbackDialog } from "../../../components/FeedbackDialog";
+import { sendEvent } from "../../../lib/events";
 import { copy } from "../../../lib/copy";
 
 const explorer = (a: string) => `https://stellar.expert/explorer/testnet/account/${a}`;
@@ -121,6 +122,26 @@ export default function AccountPage() {
           lock your money and forget the password, nobody — including us — can recover it. That&apos;s
           what keeps it yours.
         </p>
+      </MoneyCard>
+
+      {/* Turning dollars into local cash — a plain-worded entry to the honest guide (never the
+          hero, never the claim flow; the recipient taps it deliberately). Firing the intent event
+          on tap measures off-ramp demand vs. hold-dollars behavior (analyst rec), hashed account. */}
+      <MoneyCard className="p-5">
+        <p className="font-semibold text-ink">Turning dollars into cash</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          You can hold your dollars as long as you like. When you want local money in your bank,
+          here&apos;s the honest path — and the one mistake to avoid.
+        </p>
+        <div className="mt-3">
+          <Link
+            href="/cash-out"
+            onClick={() => account && void sendEvent("cashout_guide_opened", account.address)}
+            className="inline-flex h-10 items-center rounded-full border border-line px-4 text-sm font-medium text-money"
+          >
+            How to turn dollars into lira →
+          </Link>
+        </div>
       </MoneyCard>
 
       {/* The human channel — a real inbox (sponsor /feedback, isolated store), not a dead link. */}

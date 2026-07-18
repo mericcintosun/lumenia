@@ -32,6 +32,11 @@ const ALLOWED = new Set([
   "request_created",
   "request_opened",
   "request_paid",
+  // Cash-out INTENT (analyst rec): a recipient holding dollars tapping "how to turn
+  // this into local money" — measures whether people even want to off-ramp vs. are
+  // content to hold dollars (the dollarization thesis), instead of asserting it.
+  // Carries the hashed account. Must stay in step with apps/sponsor/src/lib/events.ts.
+  "cashout_guide_opened",
 ]);
 
 /** Short, non-reversible id for funnel correlation — SHA-256, first 8 bytes. */

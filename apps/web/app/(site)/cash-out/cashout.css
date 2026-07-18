@@ -1,0 +1,131 @@
+/* /cash-out — the honest cash-out guide. Periwinkle tokens (--pw-*), self-contained. */
+
+.co-body {
+  padding: 0 clamp(20px, 5vw, 40px) clamp(40px, 7vh, 80px);
+}
+.co-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 5vh, 44px);
+}
+
+.co-block h2 {
+  font-family: "Sentient", ui-serif, Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(1.4rem, 3.4vw, 1.9rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--pw-ink);
+  margin-bottom: 10px;
+}
+.co-block p {
+  font-size: 16px;
+  line-height: 1.62;
+  color: var(--pw-muted);
+}
+.co-block p + p {
+  margin-top: 12px;
+}
+.co-block strong {
+  color: var(--pw-ink);
+  font-weight: 600;
+}
+
+/* Numbered honest steps */
+.co-steps {
+  list-style: none;
+  counter-reset: co;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.co-steps li {
+  counter-increment: co;
+  position: relative;
+  padding: 14px 16px 14px 52px;
+  border: 1px solid var(--pw-line);
+  border-radius: 12px;
+  background: var(--pw-surface);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--pw-ink);
+}
+.co-steps li::before {
+  content: counter(co);
+  position: absolute;
+  left: 14px;
+  top: 13px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--pw-accent-soft, #e8e3f7);
+  color: var(--pw-accent);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The wrong-network warning — the single money-saving callout, so it's loud. */
+.co-warn {
+  border: 1px solid color-mix(in srgb, var(--pw-danger) 40%, var(--pw-line));
+  border-left: 3px solid var(--pw-danger);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--pw-danger) 6%, var(--pw-surface));
+  padding: 14px 16px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--pw-ink);
+}
+.co-warn strong {
+  color: var(--pw-danger);
+}
+
+/* Honest caveats */
+.co-caveats {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.co-caveats li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--pw-muted);
+}
+.co-caveats li::before {
+  content: "•";
+  position: absolute;
+  left: 6px;
+  color: var(--pw-accent);
+  font-weight: 700;
+}
+.co-caveats strong {
+  color: var(--pw-ink);
+  font-weight: 600;
+}
+
+.co-elsewhere {
+  border: 1px dashed var(--pw-line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--pw-muted);
+}
+
+.co-capture {
+  border-top: 1px solid var(--pw-line);
+  padding-top: clamp(20px, 4vh, 32px);
+}
+.co-capture-lead {
+  font-size: 15px;
+  color: var(--pw-muted);
+  margin-bottom: 12px;
+}

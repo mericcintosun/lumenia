@@ -12,7 +12,7 @@
  *   - Root Directory → repo root: a generic no-op build (~1s), ZERO functions, every
  *     endpoint 404s while the deploy still shows "READY"; and
  *   - Build Command → blank: this script never runs, so api/ stays empty and the deploy
- *     ERRORs with "pattern api/**/*.js doesn't match any Serverless Functions".
+ *     ERRORs with an "unmatched function pattern" (no Serverless Functions in api/).
  * If /health 404s or a sponsor deploy fails after a reconnect, check Settings → Build
  * and Deployment: Root Directory = apps/sponsor AND Build Command = node build-vercel.mjs.
  */

@@ -57,6 +57,13 @@ stellar-build/
 apps/sponsor/api/
 apps/sponsor/public/
 
+# Heavy 3D GLB models (~60M) used ONLY by the internal /brand-kit workspace, which
+# is gated to a 404 in production — so they are never served to a user and were pure
+# deploy + clone weight. Kept LOCAL for brand exploration; regenerate via the Meshy
+# pipeline if a fresh clone needs them. (brand-kit-assets/ stays tracked — the live
+# site renders those.)
+apps/web/public/models/
+
 # Local next-agent handoff (testnet keys + deploy state) — never commit
 HANDOFF.md
 

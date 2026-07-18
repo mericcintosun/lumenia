@@ -84,7 +84,13 @@ On Stellar there is **no pull/debit (automatic collection).** "Request money" = 
 
 ### 3.3 Recovery (device change / loss)
 
-Keeping a classic Ed25519 key only in browser memory is catastrophic (if the data is wiped, the money is gone). Instead:
+> **Scope note (what ships today vs. the design):** the shipped testnet build uses a **classic
+> Ed25519 key generated on-device**, held in an **IndexedDB keystore** and optionally locked with an
+> **Argon2id-derived key** (a password you choose). There is **no server-stored key material and no
+> passkey path** in the current build — recovery beyond the single device is out of scope for the
+> testnet pilot. The WebAuthn-PRF design below is the **planned v2 upgrade**, not a current feature.
+
+The v2 design: keeping a classic Ed25519 key only in browser memory is catastrophic (if the data is wiped, the money is gone). Instead:
 - A key is derived from the **PRF output of a WebAuthn passkey** → the Ed25519 secret is encrypted with **AES-256-GCM** → the ciphertext is stored on the server → with the user's platform passkey (iCloud/Google) it is **synced/recovered across devices.**
 - Because the WhatsApp in-app browser blocks passkey creation, the **Argon2id password-based fallback is the primary path**, and PRF is the upgrade offered on a real browser.
 

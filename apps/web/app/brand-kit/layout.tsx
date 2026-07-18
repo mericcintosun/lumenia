@@ -9,6 +9,7 @@
  * specimens degrade to serif/sans fallbacks rather than breaking.
  */
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Brand Kit — Lumenia (internal)",
@@ -28,6 +29,13 @@ const FONTSHARE =
   "&display=swap";
 
 export default function BrandKitLayout({ children }: { children: React.ReactNode }) {
+  // Internal design workspace — the same production gate app/dev uses. Gating the
+  // shared layout 404s all 12 /brand-kit routes in prod at once (they pull the
+  // heavy 3D model viewers and Fontshare/Google webfonts, and are noindex + not in
+  // nav — no live (site)/(app) surface links to them, only code comments do). Stays
+  // fully available in local dev for brand exploration.
+  if (process.env.NODE_ENV === "production") notFound();
+
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}

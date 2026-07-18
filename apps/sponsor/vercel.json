@@ -2,9 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "node build-vercel.mjs",
   "outputDirectory": "public",
-  "functions": {
-    "api/**/*.js": { "maxDuration": 30 }
-  },
   "rewrites": [
     { "source": "/health", "destination": "/api/health" },
     { "source": "/create-account", "destination": "/api/create-account" },

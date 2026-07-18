@@ -16,12 +16,13 @@ import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
 import "../../../components/site/editorial.css";
 
-const TITLE = "Learn — plain-language guides — Lumenia";
+const PAGE_TITLE = "Learn — plain-language guides";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION =
   "Plain-language guides to sending money home: how a link transfer works, where your money is before it's claimed, and an honest map of the alternatives.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/learn" },
   openGraph: {

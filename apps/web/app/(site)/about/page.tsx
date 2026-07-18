@@ -13,12 +13,13 @@ import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
 import "../../../components/site/editorial.css";
 
-const TITLE = "About — Lumenia";
+const PAGE_TITLE = "About";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION =
   "Sending money home shouldn't require the people you love to become tech people. Lumenia is a simple idea taken seriously: send money with a link, and let the person receiving it do nothing but tap.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/about" },
   openGraph: {

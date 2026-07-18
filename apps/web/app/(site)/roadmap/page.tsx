@@ -19,12 +19,13 @@ import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
 import "../../../components/site/editorial.css";
 
-const TITLE = "Roadmap — Lumenia";
+const PAGE_TITLE = "Roadmap";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION =
   "Honest about the line between what works today and what's still ahead: what's proven on the test network, what we're building, and what comes next.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/roadmap" },
   openGraph: {

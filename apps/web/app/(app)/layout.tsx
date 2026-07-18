@@ -9,12 +9,24 @@
  * lives OUTSIDE this group, so it gets neither the provider, the shell, nor the theme — and stays
  * lean + byte-identical.
  */
-import type { Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import "../../components/site/fonts.css";
 import "../../components/site/app-theme.css";
 import { WalletProvider } from "../../lib/wallet";
 import { ThemeProvider } from "../../components/site/ThemeProvider";
 import { AppShell } from "../../components/brand/AppShell";
+
+/**
+ * Money surfaces are never indexed. robots.txt already Disallows them, but a
+ * Disallow alone can leave a link-discovered URL indexed (URL-only, no crawl) —
+ * this meta is the belt-and-braces the repo already applies on /request + /r.
+ * The pages themselves are client components (no metadata exports), so the group
+ * layout is the one place this can live. Title default covers them all.
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+  title: { default: "Lumenia", template: "%s — Lumenia" },
+};
 
 /**
  * `maximumScale: 5` undoes the root's `maximumScale: 1` (renders as user-scalable=no — a WCAG

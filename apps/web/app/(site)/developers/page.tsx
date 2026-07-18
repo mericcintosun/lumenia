@@ -17,12 +17,13 @@ import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
 import "../../../components/site/editorial.css";
 
-const TITLE = "Developers — payouts by link — Lumenia";
+const PAGE_TITLE = "Developers — payouts by link";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION =
   "Pay someone who has nothing set up yet: no wallet, no account, no address. The code that powers the pilot — the sponsor service, the anti-drain validator, the claim flow — is public.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/developers" },
   openGraph: {

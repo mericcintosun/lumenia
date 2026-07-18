@@ -8,11 +8,12 @@ import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
 import "../../../components/site/editorial.css";
 
-const TITLE = "Privacy — Lumenia";
+const PAGE_TITLE = "Privacy";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "Plain language: exactly what Lumenia holds and what it doesn't. Your money lives on a public ledger, never in a Lumenia account; your password never leaves your phone.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/privacy" },
   openGraph: {

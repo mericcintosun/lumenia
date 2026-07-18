@@ -45,7 +45,9 @@ const DESCRIPTION =
  * "no wallet, no seed phrase" is the approved subtraction line — it names what you DON'T need.
  */
 export const metadata: Metadata = {
-  title: TITLE,
+  // absolute: the landing's title IS the brand line — the group template would
+  // double the name ("Lumenia — … — Lumenia").
+  title: { absolute: TITLE },
   description: DESCRIPTION,
   alternates: { canonical: "/" },
   openGraph: {
@@ -97,6 +99,19 @@ const JSON_LD = {
       name: "Lumenia",
       publisher: { "@id": `${SITE_URL}/#organization` },
       inLanguage: "en",
+    },
+    // WebApplication classifies the product (FinanceApplication) for engines that
+    // key on it. Still minimal and TRUE: it is free to use today (testnet pilot,
+    // receiving is free), and there are deliberately NO ratings/reviews.
+    {
+      "@type": "WebApplication",
+      "@id": `${SITE_URL}/#webapp`,
+      name: "Lumenia",
+      url: SITE_URL,
+      applicationCategory: "FinanceApplication",
+      operatingSystem: "Web",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      publisher: { "@id": `${SITE_URL}/#organization` },
     },
   ],
 };

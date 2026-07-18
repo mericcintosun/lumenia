@@ -11,11 +11,12 @@ import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
 import "../../../components/site/editorial.css";
 
-const TITLE = "Tools — Lumenia";
+const PAGE_TITLE = "Tools";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "Small, free tools — no account needed. Verify a transfer, check a money link, estimate USD to lira, or see what sending money home usually costs.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/tools" },
   openGraph: {

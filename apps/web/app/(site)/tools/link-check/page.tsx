@@ -9,11 +9,12 @@ import { LinkCheckForm } from "./LinkCheckForm";
 import "../../../../components/site/page.css";
 import "../../../../components/site/tools.css";
 
-const TITLE = "Check a money link — Lumenia";
+const PAGE_TITLE = "Check a money link";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "Paste a money link to see whether it's still waiting, already claimed, or returned to the sender. The check happens entirely in your browser.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/tools/link-check" },
   openGraph: {

@@ -10,6 +10,15 @@ export interface Guide {
   body: string[]; // paragraphs
 }
 
+/**
+ * REAL content dates for the guide set (all guides shipped in one commit:
+ * a71741e, 2026-07-12; unchanged since). Used by the Article JSON-LD and the
+ * sitemap. When a guide's copy meaningfully changes, bump GUIDES_UPDATED (or
+ * promote these to per-guide fields) — never fabricate freshness.
+ */
+export const GUIDES_PUBLISHED = "2026-07-12";
+export const GUIDES_UPDATED = "2026-07-12";
+
 export const GUIDES: Guide[] = [
   {
     slug: "how-sending-money-by-a-link-works",

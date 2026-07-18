@@ -9,11 +9,12 @@ import { Converter } from "./Converter";
 import "../../../../components/site/page.css";
 import "../../../../components/site/tools.css";
 
-const TITLE = "USD ↔ TRY — Lumenia";
+const PAGE_TITLE = "USD ↔ TRY";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "An indicative estimate of what dollars are worth in Turkish lira — a guide, not a quote.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/tools/usd-try" },
   openGraph: {

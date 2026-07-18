@@ -9,11 +9,12 @@ import { EmailCapture } from "../../../components/site/EmailCapture";
 import "../../../components/site/page.css";
 import "../../../components/site/tools.css";
 
-const TITLE = "Turning it into lira — Lumenia";
+const PAGE_TITLE = "Turning it into lira";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "Turning your money into Turkish lira in a bank account will be handled by licensed local partners — shipped when it's genuinely reliable, not before.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/cash-out" },
   openGraph: {

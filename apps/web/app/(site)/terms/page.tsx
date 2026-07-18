@@ -7,11 +7,12 @@ import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
 import "../../../components/site/editorial.css";
 
-const TITLE = "Terms — Lumenia";
+const PAGE_TITLE = "Terms";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "The short, honest version: a pilot on a test network, not a bank, money on a public ledger, a link is like cash, and your password is yours alone.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/terms" },
   openGraph: {

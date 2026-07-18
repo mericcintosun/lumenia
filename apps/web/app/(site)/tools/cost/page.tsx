@@ -8,11 +8,12 @@ import { Footer } from "../../../../components/site/sections/Footer";
 import "../../../../components/site/page.css";
 import "../../../../components/site/tools.css";
 
-const TITLE = "What it costs — Lumenia";
+const PAGE_TITLE = "What it costs";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "What sending money home usually costs — and what Lumenia costs today (receiving is free; we cover the small network cost).";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/tools/cost" },
   openGraph: {

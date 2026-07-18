@@ -27,14 +27,24 @@ const nextConfig: NextConfig = {
   // route must also not leak its full URL via the Referer header to the sponsor,
   // the explorer, or any third party. Cover the page and its /og sub-path.
   async headers() {
+    // X-Robots-Tag: the claim page is FROZEN, so its missing robots meta cannot be
+    // fixed on the page — the header is the layer we own. robots.txt Disallow
+    // alone can leave a link-discovered claim URL indexed (URL-only, exposing
+    // amount/sender in the query); noindex at the header level closes that.
     return [
       {
         source: "/c/:id",
-        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
       },
       {
         source: "/c/:id/:path*",
-        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
       },
     ];
   },

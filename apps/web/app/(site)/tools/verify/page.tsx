@@ -8,11 +8,12 @@ import { VerifyForm } from "./VerifyForm";
 import "../../../../components/site/page.css";
 import "../../../../components/site/tools.css";
 
-const TITLE = "Verify a transfer — Lumenia";
+const PAGE_TITLE = "Verify a transfer";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "Every transfer produces a public record you can check yourself. Paste a transfer code and see the real record behind it.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/tools/verify" },
   openGraph: {

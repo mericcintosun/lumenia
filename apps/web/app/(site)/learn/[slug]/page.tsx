@@ -12,10 +12,57 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GUIDES, getGuide } from "../../../../lib/learn";
+import { GUIDES, GUIDES_PUBLISHED, GUIDES_UPDATED, getGuide } from "../../../../lib/learn";
 import { Footer } from "../../../../components/site/sections/Footer";
 import "../../../../components/site/page.css";
 import "../../../../components/site/editorial.css";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lumenia-chi.vercel.app";
+
+/**
+ * Article + BreadcrumbList structured data — the two schema types that still earn
+ * visible treatment in 2026 (FAQPage rich results are dead; llms.txt is ignored by
+ * AI crawlers — both deliberately skipped). Everything here is TRUE: real git
+ * content dates (lib/learn.ts), the Organization as author (no invented persona),
+ * no ratings, no fabricated fields. Static authored object — no user input.
+ */
+function guideJsonLd(g: { slug: string; title: string; summary: string }) {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        "@id": `${SITE_URL}/learn/${g.slug}#article`,
+        headline: g.title,
+        description: g.summary,
+        inLanguage: "en",
+        image: `${SITE_URL}/og.png`,
+        datePublished: GUIDES_PUBLISHED,
+        dateModified: GUIDES_UPDATED,
+        author: { "@id": `${SITE_URL}/#organization` },
+        publisher: { "@id": `${SITE_URL}/#organization` },
+        mainEntityOfPage: `${SITE_URL}/learn/${g.slug}`,
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "Learn", item: `${SITE_URL}/learn` },
+          { "@type": "ListItem", position: 3, name: g.title, item: `${SITE_URL}/learn/${g.slug}` },
+        ],
+      },
+      // The Organization the author/publisher ids point at — restated here because
+      // a crawler reading this page never saw the landing's @graph.
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
+        name: "Lumenia",
+        url: SITE_URL,
+        logo: `${SITE_URL}/icon-512.png`,
+      },
+    ],
+  };
+}
 
 export function generateStaticParams() {
   return GUIDES.map((g) => ({ slug: g.slug }));
@@ -23,10 +70,10 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const g = getGuide((await params).slug);
-  if (!g) return { title: "Learn — Lumenia" };
-  const title = `${g.title} — Lumenia`;
+  if (!g) return { title: "Learn" };
+  const title = `${g.title} — Lumenia`; // OG/Twitter keep the full branded form
   return {
-    title,
+    title: g.title, // the (site) layout template appends “ — Lumenia”
     description: g.summary,
     alternates: { canonical: `/learn/${g.slug}` },
     openGraph: {
@@ -52,6 +99,11 @@ export default async function Guide({ params }: { params: Promise<{ slug: string
 
   return (
     <div className="pg ed">
+      <script
+        type="application/ld+json"
+        // Static, authored-here object — no user input reaches this.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(guideJsonLd(g!)) }}
+      />
       <header className="pg-hero pg-glow">
         <div className="pg-hero-inner">
           <Link className="ed-back" href="/learn">

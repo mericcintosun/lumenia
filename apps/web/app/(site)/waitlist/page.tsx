@@ -9,11 +9,12 @@ import { EmailCapture } from "../../../components/site/EmailCapture";
 import "../../../components/site/page.css";
 import "../../../components/site/tools.css";
 
-const TITLE = "Join the waitlist — Lumenia";
+const PAGE_TITLE = "Join the waitlist";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "Lumenia is in pilot on a test network today. Leave your email and we'll tell you the moment you can send real money home.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/waitlist" },
   openGraph: {

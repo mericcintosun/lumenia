@@ -13,11 +13,12 @@ import { Footer } from "../../../components/site/sections/Footer";
 import "../../../components/site/page.css";
 import "../../../components/site/tools.css";
 
-const TITLE = "Brand — Lumenia";
+const PAGE_TITLE = "Brand";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION = "A press kit and the basics for writing about us: the name, the Periwinkle palette, the design concept, and boilerplate.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/brand" },
   openGraph: {

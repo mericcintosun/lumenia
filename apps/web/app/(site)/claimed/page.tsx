@@ -18,7 +18,7 @@ import "../../../components/site/page.css";
 import "../../../components/site/tools.css";
 
 export const metadata: Metadata = {
-  title: "You just received money — Lumenia",
+  title: "You just received money", // the (site) layout template appends “ — Lumenia”
   description: "You received money with Lumenia. Here's what that means.",
   robots: { index: false },
 };

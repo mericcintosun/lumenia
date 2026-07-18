@@ -21,12 +21,13 @@ import { Beats } from "./Beats";
 import "../../../components/site/page.css";
 import "./how-it-works.css";
 
-const TITLE = "How it works — the audit trail — Lumenia";
+const PAGE_TITLE = "How it works — the audit trail";
+const TITLE = `${PAGE_TITLE} — Lumenia`; // OG/Twitter keep the full branded form
 const DESCRIPTION =
   "The honest, technical account: how a walletless claim works, why the recipient pays no gas, and how to verify a real transfer yourself.";
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: PAGE_TITLE, // the (site) layout template appends “ — Lumenia”
   description: DESCRIPTION,
   alternates: { canonical: "/how-it-works" },
   openGraph: {

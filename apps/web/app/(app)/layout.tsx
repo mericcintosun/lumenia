@@ -40,6 +40,9 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#15121C" },
   ],
   maximumScale: 5,
+  // Lets the bottom money action bar's env(safe-area-inset-bottom) resolve, so it
+  // clears the iOS home indicator instead of sitting under it.
+  viewportFit: "cover",
 };
 
 export default function AppGroupLayout({ children }: { children: React.ReactNode }) {

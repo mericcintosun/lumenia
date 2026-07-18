@@ -18,7 +18,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Split } from "lucide-react";
 import { useWallet } from "../../../lib/wallet";
-import { loadBalance, loadActivity, loadIncomingClaims, type ActivityItem, type IncomingClaim } from "../../../lib/horizon";
+import { loadBalance, loadActivity, loadIncomingClaims, loadLinkStatus, type ActivityItem, type IncomingClaim } from "../../../lib/horizon";
 import { collectIncoming } from "../../../lib/claim";
 import { indicativeRate, getLiveRate } from "../../../lib/rate";
 import { formatUsd } from "../../../lib/money";
@@ -135,7 +135,19 @@ export default function HomePage() {
       await collectIncoming({ sponsorUrl: SPONSOR_URL, signer, balanceId });
       await reload();
     } catch {
-      setCollectError(copy.errors.generic);
+      // Terminal vs. transient, by re-reading whether the balance still exists —
+      // never leak a Horizon result code (vocabulary law). Gone = already collected
+      // or reclaimed → say so calmly + refresh so the stale item disappears.
+      try {
+        if ((await loadLinkStatus(balanceId)) === "settled") {
+          setCollectError(copy.errors.collectGone);
+          await reload();
+        } else {
+          setCollectError(copy.errors.generic);
+        }
+      } catch {
+        setCollectError(copy.errors.generic);
+      }
     } finally {
       setCollectingId(null);
     }

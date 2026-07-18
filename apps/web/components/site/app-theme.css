@@ -115,3 +115,33 @@
 .app-krow-body { flex: 1; min-width: 0 }
 .app-krow-t { font-size: 14px; font-weight: 600; color: var(--ink) }
 .app-krow-s { margin-top: 2px; font-size: 13px; line-height: 1.45; color: var(--ink-soft); word-break: break-all }
+
+/* ---- Bottom money action bar (AppShell) ----------------------------------------------------
+   The two money verbs pinned in the thumb zone, on every list surface (see AppShell). Fixed to
+   the visual viewport bottom with a safe-area inset so it clears the iOS home indicator; the
+   page content gets matching bottom padding (.app-content) so nothing hides behind it. CSS-only
+   (no Motion) — the claim route is a different route group and never renders this. */
+.app-content { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+.app-actionbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: flex; gap: 10px; justify-content: center;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+}
+.app-actionbar-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; flex: 1; max-width: 200px;
+  border-radius: 999px; font-size: 15px; font-weight: 600; text-decoration: none;
+  transition: transform .15s, box-shadow .15s;
+}
+.app-actionbar-btn:active { transform: translateY(1px); }
+.app-actionbar-send {
+  background: var(--money); color: var(--primary-foreground);
+  box-shadow: 0 12px 24px -14px color-mix(in srgb, var(--money) 70%, transparent);
+}
+.app-actionbar-ask {
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+}
+@media (prefers-reduced-motion: reduce) { .app-actionbar-btn { transition: none } }

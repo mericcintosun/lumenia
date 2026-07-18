@@ -113,6 +113,10 @@ export const copy = {
     // never reach a money surface (vocabulary law). Honest: a rejected inner tx
     // means nothing moved.
     moneySafe: "We couldn't finish — your money hasn't moved. Try again.",
+    // Collect: the waiting money is already GONE (collected earlier, or the sender
+    // reclaimed it after 7 days). Terminal, not retryable — the list refreshes so
+    // the stale item disappears. Told calmly, never as "try again forever".
+    collectGone: "This money is no longer waiting — it may already be in your account, or the sender took it back.",
   },
   /**
    * Feedback — the "report a problem" channel (FeedbackDialog → sponsor /feedback,

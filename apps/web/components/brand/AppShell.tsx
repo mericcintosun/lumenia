@@ -13,7 +13,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, LifeBuoy } from "lucide-react";
+import { Bell, LifeBuoy, Send, HandCoins } from "lucide-react";
 import { useWallet } from "../../lib/wallet";
 import { loadUnreadCount } from "../../lib/notifications";
 import { TestnetBanner } from "./TestnetBanner";
@@ -35,13 +35,30 @@ function NotificationsBell() {
   useEffect(() => {
     if (!account) return setUnread(0);
     let live = true;
-    void loadUnreadCount(account.address).then((n) => {
-      if (live) setUnread(n);
-    });
+    const refresh = () =>
+      void loadUnreadCount(account.address).then((n) => {
+        if (live) setUnread(n);
+      });
+    refresh();
+    // Visibility-gated foreground poll: while the tab is open, money that arrives (a
+    // paid request / a direct transfer) surfaces on the bell within ~15s WITHOUT a
+    // manual reopen. Web Push is deferred (no service worker, iOS PWA install gate,
+    // and no server-side money-arrival event — "waiting" is derived from Horizon
+    // client-side); closed-app reach is the WhatsApp channel's job. Pauses when the
+    // tab is hidden (battery + Horizon rate limits).
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 15000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       live = false;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
     };
-    // re-check when the route changes (e.g. after collecting on /notifications the dot clears)
+    // re-check on route change too (e.g. after collecting on /notifications the dot clears)
   }, [account, pathname]);
 
   return (
@@ -96,7 +113,45 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
       </header>
-      <div className="mx-auto max-w-md px-5 pb-16">{children}</div>
+      <div className="app-content mx-auto max-w-md px-5">{children}</div>
+      <MoneyActionBar />
     </div>
+  );
+}
+
+/**
+ * The persistent money verbs. The top bar holds DESTINATIONS (Home/Activity/Account);
+ * the two ACTIONS live at the bottom, in the thumb zone, reachable from every list
+ * surface — so a person on /activity or /account can start a Send or an Ask in one
+ * tap instead of routing back to Home (the old dead-end). Kept to the two verbs
+ * (Send = hero, Ask = the retention loop); People/Split stay on Home, never a FAB
+ * (its expand animation would pull Motion into the bundle). Plain <Link>s + inline
+ * lucide SVG + CSS only. Hidden on the action FLOWS themselves (/send, /request, /r,
+ * /sent, /unlock) — redundant there, and it keeps the bar off screens with an amount
+ * input where a fixed bottom bar would fight the keyboard. Also hidden on /home,
+ * which already has the richer Send/Ask/People action grid — the bar's job is to
+ * follow the two verbs onto the DEEP pages (/activity, /account, /contacts,
+ * /notifications, /split) that otherwise dead-end.
+ */
+const HIDE_ACTIONBAR = ["/home", "/send", "/request", "/r/", "/sent/", "/unlock"];
+
+function MoneyActionBar() {
+  const pathname = usePathname();
+  const { account } = useWallet();
+  // Only for a logged-in person on a list surface — a no-account visitor sees the
+  // honest empty state, not action chrome.
+  if (!account) return null;
+  if (HIDE_ACTIONBAR.some((p) => pathname === p || pathname.startsWith(p))) return null;
+  return (
+    <nav className="app-actionbar" aria-label="Money actions">
+      <Link href="/request" className="app-actionbar-btn app-actionbar-ask">
+        <HandCoins className="size-5" aria-hidden="true" />
+        Ask
+      </Link>
+      <Link href="/send" className="app-actionbar-btn app-actionbar-send">
+        <Send className="size-5" aria-hidden="true" />
+        Send
+      </Link>
+    </nav>
   );
 }

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../../../lib/wallet";
 import { loadNotices, markAllSeen, type Notice } from "../../../lib/notifications";
+import { loadLinkStatus } from "../../../lib/horizon";
 import { collectIncoming } from "../../../lib/claim";
 import { formatUsd } from "../../../lib/money";
 import { copy } from "../../../lib/copy";
@@ -89,7 +90,18 @@ export default function NotificationsPage() {
       await collectIncoming({ sponsorUrl: SPONSOR_URL, signer, balanceId });
       await reload();
     } catch {
-      setError(copy.errors.generic);
+      // Terminal (already collected / reclaimed) vs. transient — re-read existence,
+      // never leak a result code. Gone → calm copy + refresh clears the stale item.
+      try {
+        if ((await loadLinkStatus(balanceId)) === "settled") {
+          setError(copy.errors.collectGone);
+          await reload();
+        } else {
+          setError(copy.errors.generic);
+        }
+      } catch {
+        setError(copy.errors.generic);
+      }
     } finally {
       setCollectingId(null);
     }

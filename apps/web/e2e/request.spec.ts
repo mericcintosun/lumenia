@@ -18,7 +18,7 @@ import { mintClaimLink } from "./mintLink";
  * real testnet.
  */
 const SPONSOR = process.env.SPONSOR_URL ?? "https://lumenia-sponsor.vercel.app";
-const WEB = process.env.WEB_URL ?? "https://lumenia-chi.vercel.app";
+const WEB = process.env.WEB_URL ?? "https://getlumenia.com";
 const BAKED_SPONSOR = "https://lumenia-sponsor.vercel.app";
 
 async function rewriteSponsor(context: BrowserContext) {

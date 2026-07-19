@@ -8,7 +8,7 @@ import { rewriteSponsor } from "./sponsorRewrite";
  * Runs against a local stack (local sponsor+web) pre-deploy, or the live URLs.
  */
 const SPONSOR = process.env.SPONSOR_URL ?? "https://lumenia-sponsor.vercel.app";
-const WEB = process.env.WEB_URL ?? "https://lumenia-chi.vercel.app";
+const WEB = process.env.WEB_URL ?? "https://getlumenia.com";
 
 test("claim → persisted → /home shows the real balance + activity", async ({ page }) => {
   page.on("pageerror", (e) => console.log("[pageerror]", e.message));

@@ -17,7 +17,7 @@ const SPARK_FY = (556 - 450) / 460;
 
 // Same convention as the other specs: live by default, WEB_URL to point it at a local server.
 // Unlike them, this one costs nothing on-chain — it only reads the landing.
-const WEB = (process.env.WEB_URL ?? "https://lumenia-chi.vercel.app").replace(/\/$/, "");
+const WEB = (process.env.WEB_URL ?? "https://getlumenia.com").replace(/\/$/, "");
 
 test.describe("boot opening", () => {
   test("the CSS drain point is the wordmark's actual lumen spark", async ({ page }) => {

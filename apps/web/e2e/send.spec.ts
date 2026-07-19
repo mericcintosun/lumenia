@@ -8,7 +8,7 @@ import { mintClaimLink } from "./mintLink";
  * the live URLs.
  */
 const SPONSOR = process.env.SPONSOR_URL ?? "https://lumenia-sponsor.vercel.app";
-const WEB = process.env.WEB_URL ?? "https://lumenia-chi.vercel.app";
+const WEB = process.env.WEB_URL ?? "https://getlumenia.com";
 const BAKED_SPONSOR = "https://lumenia-sponsor.vercel.app";
 
 test("claim → send $7 onward → the onward link is claimable (loop closed)", async ({ page }) => {

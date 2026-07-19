@@ -32,6 +32,39 @@ function server(): Horizon.Server {
   return new Horizon.Server(HORIZON_URL);
 }
 
+// USDC carries 7 decimals; sum in integer stroops so many small balances add up
+// without float drift, then render back to a decimal string.
+function usdToStroops(dec: string): bigint {
+  const [whole, frac = ""] = dec.split(".");
+  const fracPadded = (frac + "0000000").slice(0, 7);
+  return BigInt(whole || "0") * 10_000_000n + BigInt(fracPadded || "0");
+}
+function stroopsToUsd(s: bigint): string {
+  const whole = s / 10_000_000n;
+  const frac = (s % 10_000_000n).toString().padStart(7, "0");
+  return `${whole}.${frac}`;
+}
+
+/**
+ * ONE total USDC across several accounts — the home account plus any not-yet-swept
+ * throwaway accounts (RECOVERY_ARCHITECTURE §3.1). The user always sees a single
+ * number; the split into multiple accounts is plumbing, never UI. Returns the total
+ * as a decimal string plus the per-account breakdown (so /home can consolidate each
+ * throwaway and pin the right trustline issuer). Missing accounts count as 0.
+ */
+export async function loadTotalUsd(
+  addresses: string[],
+): Promise<{ usd: string; perAccount: { address: string; usd: string; issuer?: string }[] }> {
+  const perAccount = await Promise.all(
+    addresses.map(async (address) => {
+      const b = await loadBalance(address);
+      return { address, usd: b?.usd ?? "0", issuer: b?.issuer };
+    }),
+  );
+  const total = perAccount.reduce((sum, p) => sum + usdToStroops(p.usd), 0n);
+  return { usd: stroopsToUsd(total), perAccount };
+}
+
 /** The account's USDC balance, or null if the account doesn't exist yet. */
 export async function loadBalance(address: string): Promise<Balance | null> {
   try {

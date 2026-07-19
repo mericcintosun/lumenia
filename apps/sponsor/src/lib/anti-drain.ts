@@ -251,3 +251,129 @@ export function validateInnerTransaction(
 
   return { ok: true };
 }
+
+/* ============================================================================
+ * SWEEP policy — consolidate an incoming per-link account into the user's ONE
+ * persistent "home" account (see docs/RECOVERY_ARCHITECTURE.md). This is a
+ * SEPARATE, tight allowlist: the claim (ALLOWED_INNER_OP_TYPES) and send
+ * (ALLOWED_SEND_OP_TYPES) policies above are NEVER touched or widened.
+ *
+ * The per-link THROWAWAY account sources ALL ops; the sponsor sources NONE and
+ * only fee-bumps. The sponsor can never lose value — funds move only between the
+ * user's OWN accounts (throwaway → home) — and it RECLAIMS the throwaway's
+ * sponsored reserves on the accountMerge (net positive; also relieves the
+ * reserve-lock risk). Proven end-to-end on testnet by Spike #7.
+ * ============================================================================ */
+
+export const ALLOWED_SWEEP_OP_TYPES = new Set<string>([
+  "claimClaimableBalance",
+  "payment",
+  "changeTrust",
+  "accountMerge",
+]);
+
+/**
+ * The sweep TAIL — always required, in this exact order. An OPTIONAL
+ * claimClaimableBalance may precede it:
+ *   - 3 ops [payment, changeTrust, accountMerge]  → the throwaway already holds
+ *     plain USDC (the current frozen /c/[id] route CLAIMS the CB at claim time,
+ *     so by the time we consolidate there is no open CB left). This is the
+ *     PRODUCTION shape today.
+ *   - 4 ops [claimClaimableBalance, payment, changeTrust, accountMerge] → the
+ *     throwaway still holds an unclaimed CB (a future deferred-claim flow, or the
+ *     "claim failed but the account exists" symptom). Requires expectedBalanceId.
+ */
+const SWEEP_TAIL = ["payment", "changeTrust", "accountMerge"] as const;
+
+export interface SweepPolicy {
+  /** The per-link throwaway account: the tx source AND the source of every op. */
+  throwaway: string;
+  /** Sponsor account — must source NOTHING here (it only fee-bumps). */
+  sponsor: string;
+  /** The user's persistent home account: the payment + accountMerge destination. */
+  home: string;
+  /** The one USDC asset (the payment asset + the trustline being removed). */
+  usdc: Asset;
+  /** The exact amount being swept (must equal the throwaway's balance / claimed amount). */
+  expectedAmount: string;
+  /**
+   * The incoming Claimable Balance the sweep may claim. Provide ONLY for the
+   * 4-op (unclaimed-CB) shape. If a claim op is present and this is omitted, the
+   * tx is REJECTED (strict fail-closed). For the 3-op already-claimed shape, omit it.
+   */
+  expectedBalanceId?: string;
+}
+
+/**
+ * Validate a sweep inner tx before the sponsor fee-bumps it. Strict + order-pinned.
+ * Accepts the 3-op (already-claimed) or 4-op (with claim) shape; all ops sourced by
+ * the throwaway; the sponsor sources nothing. Anything else = REJECT.
+ */
+export function validateSweepTransaction(tx: Transaction, policy: SweepPolicy): ValidationResult {
+  const ops = tx.operations;
+  const hasClaim = ops.length === 4 && ops[0]!.type === "claimClaimableBalance";
+  const seq = hasClaim ? (["claimClaimableBalance", ...SWEEP_TAIL] as const) : SWEEP_TAIL;
+  if (ops.length !== seq.length) {
+    return {
+      ok: false,
+      reason: `sweep must be [payment,changeTrust,accountMerge] (optionally led by a claim), got ${ops.length} ops`,
+    };
+  }
+  if (tx.source !== policy.throwaway) {
+    return { ok: false, reason: `unexpected tx source ${tx.source}` };
+  }
+
+  for (let i = 0; i < ops.length; i++) {
+    const op = ops[i]!;
+    if (op.type !== seq[i]) {
+      return { ok: false, reason: `sweep op ${i} must be ${seq[i]}, got ${op.type}` };
+    }
+    // Every op MUST be sourced by the throwaway; the sponsor sources nothing here.
+    const src = (op as { source?: string }).source ?? tx.source;
+    if (src === policy.sponsor) {
+      return { ok: false, reason: `sweep op '${op.type}' sourced from sponsor (not allowed)` };
+    }
+    if (src !== policy.throwaway) {
+      return { ok: false, reason: `sweep op '${op.type}' must be sourced by the throwaway account, got ${src}` };
+    }
+  }
+
+  const off = hasClaim ? 1 : 0;
+
+  if (hasClaim) {
+    const claim = ops[0] as { balanceId?: string };
+    if (policy.expectedBalanceId === undefined) {
+      return { ok: false, reason: "sweep has a claim op but no expectedBalanceId set (strict mode)" };
+    }
+    if (claim.balanceId !== policy.expectedBalanceId) {
+      return { ok: false, reason: `sweep claim balanceId ${claim.balanceId} != expected` };
+    }
+  }
+
+  const pay = ops[off] as { destination?: string; asset?: Asset; amount?: string };
+  if (pay.destination !== policy.home) {
+    return { ok: false, reason: `sweep payment destination ${pay.destination} != home` };
+  }
+  if (!pay.asset || typeof (pay.asset as Asset).equals !== "function" || !policy.usdc.equals(pay.asset as Asset)) {
+    return { ok: false, reason: "sweep payment asset is not the expected USDC" };
+  }
+  if (Number.parseFloat(pay.amount ?? "0") !== Number.parseFloat(policy.expectedAmount)) {
+    return { ok: false, reason: `sweep payment amount ${pay.amount} != expected ${policy.expectedAmount}` };
+  }
+
+  const ct = ops[off + 1] as { line?: Asset; limit?: string };
+  if (!ct.line || typeof (ct.line as Asset).equals !== "function" || !policy.usdc.equals(ct.line as Asset)) {
+    return { ok: false, reason: "sweep changeTrust asset is not the expected USDC" };
+  }
+  // limit MUST be 0 — the sweep only REMOVES the throwaway's trustline, never adds trust.
+  if (Number.parseFloat(ct.limit ?? "-1") !== 0) {
+    return { ok: false, reason: `sweep changeTrust must remove the trustline (limit 0), got ${ct.limit}` };
+  }
+
+  const merge = ops[off + 2] as { destination?: string };
+  if (merge.destination !== policy.home) {
+    return { ok: false, reason: `sweep accountMerge destination ${merge.destination} != home` };
+  }
+
+  return { ok: true };
+}

@@ -7,9 +7,10 @@
  *
  *  Addresses the code-review finding: op-type allowlisting is
  *  not enough; the validator must check op SOURCE and sensitive PARAMETERS.
- *  These cases prove the hardened validator accepts the legit claim + send shapes
- *  and rejects every reserve/principal drain vector we could think of (25/25 =
- *  18 claim + 7 send).
+ *  These cases prove the hardened validator accepts the legit claim + send + sweep
+ *  shapes and rejects every reserve/principal drain vector we could think of
+ *  (37/37 = 18 claim + 7 send + 12 sweep). The sweep policy (validateSweepTransaction)
+ *  is a SEPARATE tight allowlist — the claim/send allowlists are never widened.
  *
  *  RUN:
  *    pnpm --filter @lumenia/sponsor test:antidrain
@@ -34,8 +35,10 @@ import {
 // the deployed validator (same module the live /feebump imports)
 import {
   validateInnerTransaction,
+  validateSweepTransaction,
   ALLOWED_SEND_OP_TYPES,
   type InnerTxPolicy,
+  type SweepPolicy,
 } from "./lib/anti-drain.js";
 
 const NETWORK = Networks.TESTNET;
@@ -394,6 +397,117 @@ check(
   validateInnerTransaction(buildTx(recipient.publicKey(), sendOps(goodClaimants)), basePolicy),
   false,
   "disallowed op type",
+);
+
+/* ---- /sweep SHAPE: consolidate a per-link throwaway account into ONE home account ----
+ * A SEPARATE tight policy (validateSweepTransaction). Order-pinned:
+ *   [claim, payment(→home), changeTrust(limit 0), accountMerge(→home)], all throwaway-sourced.
+ * The sponsor sources nothing + reclaims the throwaway's reserves on merge (Spike #7). */
+
+const home = Keypair.random();
+const throwaway = Keypair.random();
+const SWEEP_AMOUNT = "12";
+
+function sweepOps(opts: {
+  balanceId?: string;
+  payDest?: string;
+  payAsset?: Asset;
+  payAmount?: string;
+  ctAsset?: Asset;
+  ctLimit?: string;
+  mergeDest?: string;
+  sponsorSourcesPayment?: boolean;
+} = {}): xdr.Operation[] {
+  return [
+    Operation.claimClaimableBalance({ balanceId: opts.balanceId ?? BALANCE_ID, source: throwaway.publicKey() }),
+    Operation.payment({
+      destination: opts.payDest ?? home.publicKey(),
+      asset: opts.payAsset ?? USDC,
+      amount: opts.payAmount ?? SWEEP_AMOUNT,
+      source: opts.sponsorSourcesPayment ? sponsor.publicKey() : throwaway.publicKey(),
+    }),
+    Operation.changeTrust({ asset: opts.ctAsset ?? USDC, limit: opts.ctLimit ?? "0", source: throwaway.publicKey() }),
+    Operation.accountMerge({ destination: opts.mergeDest ?? home.publicKey(), source: throwaway.publicKey() }),
+  ];
+}
+const sweepPolicy: SweepPolicy = {
+  throwaway: throwaway.publicKey(),
+  sponsor: sponsor.publicKey(),
+  home: home.publicKey(),
+  usdc: USDC,
+  expectedBalanceId: BALANCE_ID,
+  expectedAmount: SWEEP_AMOUNT,
+};
+function checkSweep(name: string, ops: xdr.Operation[], wantOk: boolean, reasonIncludes?: string) {
+  check(name, validateSweepTransaction(buildTx(throwaway.publicKey(), ops), sweepPolicy), wantOk, reasonIncludes);
+}
+
+checkSweep("SWEEP-G valid consolidation (claim/pay→home/changeTrust0/merge→home)", sweepOps(), true);
+checkSweep("SWEEP-R1 payment to a non-home destination (fund exfil attempt)", sweepOps({ payDest: attacker.publicKey() }), false, "destination");
+checkSweep("SWEEP-R2 changeTrust that ADDS trust (limit != 0)", sweepOps({ ctLimit: "1000" }), false, "limit 0");
+checkSweep("SWEEP-R3 accountMerge to a non-home destination", sweepOps({ mergeDest: attacker.publicKey() }), false, "destination");
+checkSweep("SWEEP-R4 wrong claim balanceId", sweepOps({ balanceId: OTHER_BALANCE_ID }), false, "balanceid");
+checkSweep("SWEEP-R5 an op sourced by the sponsor (sponsor sources nothing here)", sweepOps({ sponsorSourcesPayment: true }), false, "sponsor");
+checkSweep("SWEEP-R6 wrong asset on the payment", sweepOps({ payAsset: WRONG }), false, "usdc");
+check(
+  "SWEEP-R7 wrong op order (payment before claim)",
+  validateSweepTransaction(
+    buildTx(throwaway.publicKey(), [
+      Operation.payment({ destination: home.publicKey(), asset: USDC, amount: SWEEP_AMOUNT, source: throwaway.publicKey() }),
+      Operation.claimClaimableBalance({ balanceId: BALANCE_ID, source: throwaway.publicKey() }),
+      Operation.changeTrust({ asset: USDC, limit: "0", source: throwaway.publicKey() }),
+      Operation.accountMerge({ destination: home.publicKey(), source: throwaway.publicKey() }),
+    ]),
+    sweepPolicy,
+  ),
+  false,
+  "must be",
+);
+check(
+  "SWEEP-R8 the CLAIM policy never allows accountMerge (allowlist not widened)",
+  validateInnerTransaction(
+    buildTx(throwaway.publicKey(), [
+      Operation.claimClaimableBalance({ balanceId: BALANCE_ID, source: throwaway.publicKey() }),
+      Operation.accountMerge({ destination: home.publicKey(), source: throwaway.publicKey() }),
+    ]),
+    { ...basePolicy, expectedSource: throwaway.publicKey() },
+  ),
+  false,
+  "disallowed op type",
+);
+
+// The 3-op "already-claimed" shape — the PRODUCTION shape: the frozen /c/[id] route
+// claims the CB at claim time, so consolidation sweeps plain USDC with NO claim op.
+const sweepPolicyClaimless: SweepPolicy = {
+  throwaway: throwaway.publicKey(),
+  sponsor: sponsor.publicKey(),
+  home: home.publicKey(),
+  usdc: USDC,
+  expectedAmount: SWEEP_AMOUNT,
+};
+function sweepTail(payDest: string = home.publicKey()): xdr.Operation[] {
+  return [
+    Operation.payment({ destination: payDest, asset: USDC, amount: SWEEP_AMOUNT, source: throwaway.publicKey() }),
+    Operation.changeTrust({ asset: USDC, limit: "0", source: throwaway.publicKey() }),
+    Operation.accountMerge({ destination: home.publicKey(), source: throwaway.publicKey() }),
+  ];
+}
+check(
+  "SWEEP-G2 valid already-claimed 3-op (payment→home/changeTrust0/merge→home, no claim)",
+  validateSweepTransaction(buildTx(throwaway.publicKey(), sweepTail()), sweepPolicyClaimless),
+  true,
+);
+check(
+  "SWEEP-R9 a claim op present but no expectedBalanceId (strict fail-closed)",
+  validateSweepTransaction(buildTx(throwaway.publicKey(), sweepOps()), sweepPolicyClaimless),
+  false,
+  "expectedbalanceid",
+);
+check(
+  "SWEEP-R10 claimless sweep still pins the payment destination to home",
+  validateSweepTransaction(buildTx(throwaway.publicKey(), sweepTail(attacker.publicKey())), sweepPolicyClaimless),
+  false,
+  "destination",
 );
 
 console.log("\n============================================================");

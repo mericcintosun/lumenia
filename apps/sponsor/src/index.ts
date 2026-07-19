@@ -8,6 +8,7 @@
  *   POST /create-account  → sponsored 0-XLM account + USDC trustline (sponsor-signed XDR)
  *   POST /feebump         → validate (anti-drain CLAIM policy) + fee-bump + submit the claim
  *   POST /send-link       → validate (anti-drain SEND policy) + sponsor-sign + fee-bump the onward CB
+ *   POST /sweep           → validate (anti-drain SWEEP policy) + fee-bump: consolidate a per-link account into home
  *   POST /faucet          → dispense test-USDC (separate faucet key; recipient must already hold the trustline)
  *   POST /demo-link       → faucet mints a real demo Claimable Balance + returns the bearer secret
  *   POST /waitlist        → store a notify-me email (isolated, never joined to a pubkey)
@@ -25,6 +26,7 @@ import { getService, enforceRateLimit } from "./lib/service.js";
 import { createAccountHandler } from "./lib/create-account.js";
 import { feebumpHandler } from "./lib/feebump.js";
 import { sendLinkHandler } from "./lib/send.js";
+import { sweepHandler } from "./lib/sweep.js";
 import { faucetHandler } from "./lib/faucet.js";
 import { demoLinkHandler } from "./lib/demo-link.js";
 import { saveContact } from "./lib/waitlist.js";
@@ -119,6 +121,31 @@ const httpServer = createServer(async (req, res) => {
       const result = await sendLinkHandler(server, config, signer, {
         xdr: body.xdr,
         senderPublicKey: body.senderPublicKey,
+      });
+      return send(res, 200, result);
+    }
+
+    if (method === "POST" && url === "/sweep") {
+      const body = (await readJson(req)) as {
+        xdr?: string;
+        throwawayPublicKey?: string;
+        homePublicKey?: string;
+        balanceId?: string;
+        amount?: string;
+      };
+      if (!body.xdr || !body.throwawayPublicKey || !body.homePublicKey || !body.amount) {
+        return send(res, 400, {
+          error: "xdr, throwawayPublicKey, homePublicKey and amount are required (balanceId optional)",
+        });
+      }
+      const rl = await enforceRateLimit(clientIp(req), body.throwawayPublicKey);
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      const result = await sweepHandler(server, config, signer, {
+        xdr: body.xdr,
+        throwawayPublicKey: body.throwawayPublicKey,
+        homePublicKey: body.homePublicKey,
+        balanceId: body.balanceId,
+        amount: body.amount,
       });
       return send(res, 200, result);
     }

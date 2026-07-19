@@ -23,6 +23,7 @@ const FUNCTIONS = [
   "create-account",
   "feebump",
   "send-link",
+  "sweep",
   "faucet",
   "demo-link",
   "waitlist",

@@ -74,6 +74,10 @@ HANDOFF.md
 # Staging for the SEPARATE org `.github` repo (not part of the product repo) — local only
 docs/org-github/
 
+# Local user-test recordings (WhatsApp voice notes from live user tests) — never publish
+*.opus
+WhatsApp Audio*
+
 # Internal working docs (agent manual, personal profile, strategy & planning) —
 # kept local; the public repo carries the Instawards-relevant docs only
 # (README, stack, PROGRESS, INSTAWARDS_SOW, EVIDENCE, ANTI_DRAIN, evidence/).
@@ -90,3 +94,4 @@ ROADMAP_2027.md
 REVENUE_MODEL.md
 FEATURES.md
 SCF_INTEREST_FORM.md
+RECOVERY_ARCHITECTURE.md

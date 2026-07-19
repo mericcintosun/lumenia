@@ -10,6 +10,16 @@
  *  - Phase 2 ("locked to you"): KEK = Argon2id(password, salt) → AES-256-GCM(seed).
  *    Only {ciphertext, iv, salt, argon params, pubkey} are stored — never the key.
  *
+ * MULTI-ACCOUNT (RECOVERY_ARCHITECTURE §3.1/§4.1): a claim link carries its OWN
+ * bearer key, so each claim creates a DISTINCT Stellar account. The old single
+ * "primary" record OVERWROTE the previous account on every claim → the earlier
+ * account (and its balance) became unreachable = fund loss (live-test bug).
+ * We now store ONE record PER account, keyed by its pubkey, plus a separate
+ * home-pointer record ("__home__") naming the ONE persistent home account.
+ * savePhase1/2 APPEND (never overwrite a different account); /home sweeps every
+ * non-home account into home and then removeAccount()s it. The first account seen
+ * becomes home. Browser storage is a fast-path cache, never the source of truth.
+ *
  * All crypto is WebCrypto (AES-GCM) + hash-wasm (Argon2id). No seed is ever logged
  * or sent anywhere.
  */
@@ -28,12 +38,17 @@ async function deriveKek(password: string, salt: Uint8Array, p: ArgonParams): Pr
 const bs = (u: Uint8Array): BufferSource => u as unknown as BufferSource;
 
 const DB_NAME = "lumenia";
+const DB_VERSION = 2;
 const STORE = "keys";
-const RECORD_ID = "primary";
+// Reserved id for the home-pointer record (a `G...` pubkey can never collide with it).
+const HOME_ID = "__home__";
+// The legacy single-account record id (pre-multi-account); migrated away in v2.
+const LEGACY_ID = "primary";
 
 export type Phase = 1 | 2;
 
 export interface KeyRecord {
+  /** For an account record this is the account pubkey (`G...`); one record per account. */
   id: string;
   formatVersion: 1;
   pubkey: string;
@@ -45,19 +60,46 @@ export interface KeyRecord {
   argon?: ArgonParams; // phase 2
 }
 
+/** The single home-pointer record — names the ONE persistent home account. */
+interface HomePointer {
+  id: typeof HOME_ID;
+  pubkey: string;
+}
+
+type StoredRecord = KeyRecord | HomePointer;
+
+function isAccountRecord(r: StoredRecord): r is KeyRecord {
+  return r.id !== HOME_ID;
+}
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "id" });
+      // MIGRATION (v1 → v2): re-key the legacy single "primary" record to id=<pubkey>
+      // and point home at it. No data loss, no user action. Runs inside the
+      // versionchange transaction. A fresh DB (no legacy record) is a no-op.
+      const tx = req.transaction;
+      if (!tx) return;
+      const store = tx.objectStore(STORE);
+      const getLegacy = store.get(LEGACY_ID);
+      getLegacy.onsuccess = () => {
+        const legacy = getLegacy.result as KeyRecord | undefined;
+        if (legacy && legacy.pubkey) {
+          store.delete(LEGACY_ID);
+          store.put({ ...legacy, id: legacy.pubkey });
+          store.put({ id: HOME_ID, pubkey: legacy.pubkey } satisfies HomePointer);
+        }
+      };
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
 
-async function idbPut(record: KeyRecord): Promise<void> {
+async function idbPut(record: StoredRecord): Promise<void> {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE, "readwrite");
@@ -68,16 +110,51 @@ async function idbPut(record: KeyRecord): Promise<void> {
   db.close();
 }
 
-async function idbGet(): Promise<KeyRecord | null> {
+async function idbGet(id: string): Promise<StoredRecord | null> {
   const db = await openDb();
-  const record = await new Promise<KeyRecord | null>((resolve, reject) => {
+  const record = await new Promise<StoredRecord | null>((resolve, reject) => {
     const tx = db.transaction(STORE, "readonly");
-    const req = tx.objectStore(STORE).get(RECORD_ID);
-    req.onsuccess = () => resolve((req.result as KeyRecord) ?? null);
+    const req = tx.objectStore(STORE).get(id);
+    req.onsuccess = () => resolve((req.result as StoredRecord) ?? null);
     req.onerror = () => reject(req.error);
   });
   db.close();
   return record;
+}
+
+async function idbGetAll(): Promise<StoredRecord[]> {
+  const db = await openDb();
+  const records = await new Promise<StoredRecord[]>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => resolve((req.result as StoredRecord[]) ?? []);
+    req.onerror = () => reject(req.error);
+  });
+  db.close();
+  return records;
+}
+
+async function idbDelete(id: string): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+/** The home-pointer record, or null if no account has been adopted as home yet. */
+async function getHomePointer(): Promise<HomePointer | null> {
+  const r = await idbGet(HOME_ID);
+  return r && !isAccountRecord(r) ? r : null;
+}
+
+/** Read one account record by pubkey, or null. */
+async function getAccountRecord(pubkey: string): Promise<KeyRecord | null> {
+  const r = await idbGet(pubkey);
+  return r && isAccountRecord(r) ? r : null;
 }
 
 export async function clearKeystore(): Promise<void> {
@@ -91,9 +168,49 @@ export async function clearKeystore(): Promise<void> {
   db.close();
 }
 
+/* ----------------------------- Multi-account API ---------------------------- */
+
+/** The HOME account's meta (the one persistent account), or null. */
+export async function getHome(): Promise<{ pubkey: string; phase: Phase } | null> {
+  const ptr = await getHomePointer();
+  if (!ptr) return null;
+  const rec = await getAccountRecord(ptr.pubkey);
+  return rec ? { pubkey: rec.pubkey, phase: rec.phase } : null;
+}
+
+/** Every stored account (EXCLUDING the home pointer), home + any not-yet-swept throwaways. */
+export async function listAccounts(): Promise<{ pubkey: string; phase: Phase }[]> {
+  const all = await idbGetAll();
+  return all.filter(isAccountRecord).map((r) => ({ pubkey: r.pubkey, phase: r.phase }));
+}
+
+/** Point home at an existing account. */
+export async function setHome(pubkey: string): Promise<void> {
+  await idbPut({ id: HOME_ID, pubkey } satisfies HomePointer);
+}
+
+/**
+ * Delete one account record — used AFTER a successful sweep merges it away.
+ * Refuses (no-op) if `pubkey` is the home account, so home is never removable.
+ */
+export async function removeAccount(pubkey: string): Promise<void> {
+  const ptr = await getHomePointer();
+  if (ptr?.pubkey === pubkey) return; // never remove home
+  await idbDelete(pubkey);
+}
+
+/**
+ * Backward-compat: returns the HOME account's meta (the WalletProvider reads this).
+ * Same shape as before the multi-account change; callers are unaffected.
+ */
 export async function getRecordMeta(): Promise<{ pubkey: string; phase: Phase } | null> {
-  const r = await idbGet();
-  return r ? { pubkey: r.pubkey, phase: r.phase } : null;
+  return getHome();
+}
+
+/** If no account is home yet, adopt `pubkey` (first-seen = home). */
+async function adoptHomeIfUnset(pubkey: string): Promise<void> {
+  const ptr = await getHomePointer();
+  if (!ptr) await setHome(pubkey);
 }
 
 /* --------------------------- Phase 1 (device key) --------------------------- */
@@ -107,11 +224,16 @@ export async function savePhase1(pubkey: string, seed: Uint8Array): Promise<void
   const ciphertext = new Uint8Array(
     await crypto.subtle.encrypt({ name: "AES-GCM", iv: bs(iv) }, wrapKey, bs(seed)),
   );
-  await idbPut({ id: RECORD_ID, formatVersion: 1, pubkey, phase: 1, iv, ciphertext, wrapKey });
+  // APPEND: the record id IS the pubkey, so this only ever overwrites the SAME
+  // account (re-claiming the same key) — never a different account.
+  await idbPut({ id: pubkey, formatVersion: 1, pubkey, phase: 1, iv, ciphertext, wrapKey });
+  await adoptHomeIfUnset(pubkey);
 }
 
-export async function unlockPhase1(): Promise<Uint8Array> {
-  const r = await idbGet();
+export async function unlockPhase1(pubkey?: string): Promise<Uint8Array> {
+  const target = pubkey ?? (await getHomePointer())?.pubkey;
+  if (!target) throw new Error("no phase-1 key on this device");
+  const r = await getAccountRecord(target);
   if (!r || r.phase !== 1 || !r.wrapKey) throw new Error("no phase-1 key on this device");
   const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bs(r.iv) }, r.wrapKey, bs(r.ciphertext));
   return new Uint8Array(pt);
@@ -137,12 +259,20 @@ export async function savePhase2(
     await crypto.subtle.encrypt({ name: "AES-GCM", iv: bs(iv) }, kek, bs(seed)),
   );
   kekBytes.fill(0);
-  await idbPut({ id: RECORD_ID, formatVersion: 1, pubkey, phase: 2, iv, ciphertext, salt, argon: params });
+  // APPEND (id = pubkey): only overwrites the SAME account (e.g. locking home from
+  // phase 1 → phase 2), never a different account.
+  await idbPut({ id: pubkey, formatVersion: 1, pubkey, phase: 2, iv, ciphertext, salt, argon: params });
+  await adoptHomeIfUnset(pubkey);
   return { deriveMs };
 }
 
-export async function unlockPhase2(password: string): Promise<{ seed: Uint8Array; deriveMs: number }> {
-  const r = await idbGet();
+export async function unlockPhase2(
+  password: string,
+  pubkey?: string,
+): Promise<{ seed: Uint8Array; deriveMs: number }> {
+  const target = pubkey ?? (await getHomePointer())?.pubkey;
+  if (!target) throw new Error("no phase-2 key on this device");
+  const r = await getAccountRecord(target);
   if (!r || r.phase !== 2 || !r.salt || !r.argon) throw new Error("no phase-2 key on this device");
   const t0 = performance.now();
   const kekBytes = await deriveKek(password, r.salt, r.argon);

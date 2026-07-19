@@ -18,8 +18,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Split } from "lucide-react";
 import { useWallet } from "../../../lib/wallet";
-import { loadBalance, loadActivity, loadIncomingClaims, loadLinkStatus, type ActivityItem, type IncomingClaim } from "../../../lib/horizon";
+import { loadBalance, loadActivity, loadIncomingClaims, loadLinkStatus, loadTotalUsd, type ActivityItem, type IncomingClaim } from "../../../lib/horizon";
 import { collectIncoming } from "../../../lib/claim";
+import { sweepIntoHome } from "../../../lib/sweep";
+import { unlockPhase1, removeAccount } from "../../../lib/keystore";
 import { indicativeRate, getLiveRate } from "../../../lib/rate";
 import { formatUsd } from "../../../lib/money";
 import { BalanceHeader } from "../../../components/brand/BalanceHeader";
@@ -41,12 +43,13 @@ const ACTIONS: Array<{ href: string; label: string; icon: string }> = [
 ];
 
 export default function HomePage() {
-  const { status, account, getSigner } = useWallet();
+  const { status, account, accounts, getSigner, refresh: refreshWallet } = useWallet();
   const router = useRouter();
   const [usd, setUsd] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [waiting, setWaiting] = useState<IncomingClaim[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [consolidating, setConsolidating] = useState(false);
   const [collectingId, setCollectingId] = useState<string | null>(null);
   const [collectError, setCollectError] = useState("");
   // The ₺ line upgrades from the labeled fallback constant to the real ECB
@@ -65,16 +68,22 @@ export default function HomePage() {
 
   const reload = useCallback(async () => {
     if (!account) return;
-    const [bal, acts] = await Promise.all([
-      loadBalance(account.address),
+    // ONE total = the SUM across EVERY stored account (home + any not-yet-swept
+    // throwaway), read from Horizon. The user never sees "account 1 / account 2" —
+    // even money stuck in a throwaway a sweep couldn't move still shows in the total,
+    // so nothing is ever hidden or lost (RECOVERY_ARCHITECTURE §3.1).
+    const addresses = accounts.length > 0 ? accounts.map((a) => a.address) : [account.address];
+    const [total, acts] = await Promise.all([
+      loadTotalUsd(addresses),
       loadActivity(account.address),
     ]);
-    setUsd(bal?.usd ?? "0");
+    setUsd(total.usd);
     setActivity(acts);
-    // The trustline's own issuer pins the exact asset — a look-alike token can't
+    // The home trustline's own issuer pins the exact asset — a look-alike token can't
     // pose as money waiting. No trustline yet → nothing to collect into.
-    setWaiting(bal?.issuer ? await loadIncomingClaims(account.address, bal.issuer) : []);
-  }, [account]);
+    const home = total.perAccount.find((p) => p.address === account.address);
+    setWaiting(home?.issuer ? await loadIncomingClaims(account.address, home.issuer) : []);
+  }, [account, accounts]);
 
   useEffect(() => {
     if (!account) return;
@@ -87,6 +96,80 @@ export default function HomePage() {
       live = false;
     };
   }, [account, reload]);
+
+  // Silent auto-consolidation (RECOVERY_ARCHITECTURE §3.2 / §6.2, proven by Spike #7).
+  // Each incoming link claims into its OWN throwaway account; here we sweep every
+  // non-home account that has money waiting into the ONE home account and close it.
+  // Best-effort: never blocks render, and if a sweep fails the money is STILL safe in
+  // the throwaway (it keeps counting in the total above) — we just leave it and retry
+  // next load. No seed touches React state: unlock → sweep → wipe, all local.
+  useEffect(() => {
+    if (!account || accounts.length <= 1) return;
+    const home = account.address;
+    const others = accounts.filter((a) => a.address !== home);
+    if (others.length === 0) return;
+
+    let cancelled = false;
+    void (async () => {
+      setConsolidating(true);
+      let sweptAny = false;
+      for (const other of others) {
+        if (cancelled) break;
+        try {
+          // Drive off the USDC BALANCE: the frozen /c/[id] route already claimed the
+          // incoming CB into the throwaway, so the money sits as plain USDC (no open
+          // CB) — the production bug case. Sweep that balance home with the claim-less
+          // 3-op path.
+          const bal = await loadBalance(other.address);
+          const issuer = bal?.issuer;
+          const amount = bal?.usd ?? "0";
+          if (!issuer || Number.parseFloat(amount) <= 0) continue; // empty husk → leave it
+          // If the throwaway still has an OPEN incoming CB (e.g. a claim that failed
+          // after account-creation), claim it first (4-op path). Otherwise omit
+          // balanceId for the claim-less sweep.
+          const cbs = await loadIncomingClaims(other.address, issuer);
+          const balanceId = cbs[0]?.balanceId;
+          const seed = await unlockPhase1(other.address);
+          try {
+            // The sweep wipes its own COPY of the seed on success; ours stays intact
+            // and is wiped below.
+            await sweepIntoHome({
+              sponsorUrl: SPONSOR_URL,
+              throwawaySeed: seed.slice(),
+              homePublicKey: home,
+              amount,
+              ...(balanceId ? { balanceId } : {}),
+            });
+            sweptAny = true;
+          } finally {
+            seed.fill(0);
+          }
+          // The accountMerge in the sweep closed the throwaway on-chain → drop its
+          // record too. removeAccount refuses to touch home, so this is safe.
+          await removeAccount(other.address);
+        } catch (e) {
+          if (process.env.NODE_ENV !== "production") {
+            // eslint-disable-next-line no-console
+            console.warn("[home] consolidation skipped an account (money is still safe):", (e as Error).message);
+          }
+        }
+      }
+      if (!cancelled) {
+        if (sweptAny) {
+          await refreshWallet(); // drop the removed accounts from the wallet's list
+          await reload(); // re-sum the total now that everything is in home
+        }
+        setConsolidating(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // reload/refreshWallet are stable-enough deps; keyed on the account set so it
+    // re-runs after a sweep removes an account (and settles when none remain).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account, accounts]);
 
   if (status === "loading") {
     return <p className="py-10 text-center text-ink-soft">Loading…</p>;
@@ -158,6 +241,13 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-5">
       <BalanceHeader usd={usd ?? "0"} tryValue={tryValue} phase={account.phase} />
+
+      {/* Silent consolidation — an honest one-liner while incoming money from other
+          links is being merged into this one balance. Never an error surface; if a
+          sweep can't complete, the money simply stays counted in the total above. */}
+      {consolidating && (
+        <p className="text-center text-sm text-ink-soft">Bringing your money together…</p>
+      )}
 
       {/* Money waiting to be collected — a paid request, or any transfer straight
           to this account. Renders only when real money is actually waiting. */}

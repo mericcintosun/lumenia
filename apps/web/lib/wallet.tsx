@@ -9,7 +9,7 @@
  * v2 swaps the concrete signer without touching this shape.
  */
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { getRecordMeta, unlockPhase1, type Phase } from "./keystore";
+import { getHome, listAccounts, unlockPhase1, type Phase } from "./keystore";
 import { localSignerFromSeed, type Signer } from "./signer";
 
 export interface WalletAccount {
@@ -19,7 +19,14 @@ export interface WalletAccount {
 
 interface WalletState {
   status: "loading" | "ready";
+  /** The ONE persistent home account — the address the app sends from + shows as identity. */
   account: WalletAccount | null;
+  /**
+   * Every stored account (home + any not-yet-swept throwaways). /home uses this to
+   * consolidate incoming money into home and to sum ONE total balance. The user never
+   * sees "account 1 / account 2" — this is plumbing, not UI.
+   */
+  accounts: WalletAccount[];
   /** true once a Phase-2 account has been unlocked this session (a signer is available). */
   unlocked: boolean;
   refresh: () => Promise<void>;
@@ -38,15 +45,18 @@ const WalletContext = createContext<WalletState | null>(null);
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<"loading" | "ready">("loading");
   const [account, setAccount] = useState<WalletAccount | null>(null);
+  const [accounts, setAccounts] = useState<WalletAccount[]>([]);
   const [unlocked, setUnlocked] = useState(false);
   const sessionSeed = useRef<Uint8Array | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const meta = await getRecordMeta();
-      setAccount(meta ? { address: meta.pubkey, phase: meta.phase } : null);
+      const [home, all] = await Promise.all([getHome(), listAccounts()]);
+      setAccount(home ? { address: home.pubkey, phase: home.phase } : null);
+      setAccounts(all.map((a) => ({ address: a.pubkey, phase: a.phase })));
     } catch {
       setAccount(null);
+      setAccounts([]);
     } finally {
       setStatus("ready");
     }
@@ -65,7 +75,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     if (!account) throw new Error("no local account");
     let signer: Signer;
     if (account.phase === 1) {
-      const seed = await unlockPhase1();
+      // Unlock the HOME account specifically (defaults to home, pinned for clarity).
+      const seed = await unlockPhase1(account.address);
       signer = localSignerFromSeed(seed);
       seed.fill(0);
     } else {
@@ -82,7 +93,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, [account]);
 
   return (
-    <WalletContext.Provider value={{ status, account, unlocked, refresh, setSessionSeed, getSigner }}>
+    <WalletContext.Provider value={{ status, account, accounts, unlocked, refresh, setSessionSeed, getSigner }}>
       {children}
     </WalletContext.Provider>
   );

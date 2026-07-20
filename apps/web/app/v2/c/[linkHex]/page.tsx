@@ -1,0 +1,38 @@
+/**
+ * /v2/c/[linkHex] — the v2 (Soroban LumenDrop) claim page. Value-first: the money is shown
+ * before any action. The recipient claims walletless + gasless — a fresh sponsored account is
+ * created for them and the drop is paid straight into it via the /v2-claim relayer (proven live).
+ * The link secret rides in the #fragment (client-only); the query carries the display metadata.
+ *
+ * This is a NEW route (the frozen v1 /c/[id] is untouched). It reuses the brand tokens.
+ */
+import { formatUsd } from "../../../../lib/money";
+import V2ClaimButton from "./V2ClaimButton";
+
+export default async function V2ClaimPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ linkHex: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { linkHex } = await params;
+  const sp = await searchParams;
+  const amount = typeof sp.a === "string" ? sp.a : "";
+  const sender = (typeof sp.s === "string" ? sp.s : "").trim() || "Someone";
+
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-8 px-6 py-12 text-center">
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-ink-soft">{sender} sent you money</p>
+        {amount ? (
+          <p className="text-6xl font-bold tabular-nums text-money">{formatUsd(amount)}</p>
+        ) : (
+          <p className="text-2xl font-semibold text-ink">You have money to claim</p>
+        )}
+      </div>
+      <V2ClaimButton linkHex={linkHex} amount={amount} sender={sender} />
+      <p className="text-xs text-ink-soft">Test network — this money isn&apos;t real.</p>
+    </main>
+  );
+}

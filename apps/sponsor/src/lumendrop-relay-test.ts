@@ -25,6 +25,7 @@ import {
 import { makeConfig } from "./lib/config.js";
 import { signerFromSecret } from "./lib/signer.js";
 import { relayClaimHandler } from "./lib/soroban-relay.js";
+import { createAccountHandler } from "./lib/create-account.js";
 
 const NET = Networks.TESTNET;
 const RPC = new rpc.Server("https://soroban-testnet.stellar.org");
@@ -52,6 +53,35 @@ async function usdcHolder(kp: Keypair, receive?: string) {
   if (receive) await classic(ISSUER, Operation.payment({ destination: kp.publicKey(), asset: USDC, amount: receive }));
 }
 async function usdcBal(pub: string) { const a = await HZ.loadAccount(pub); const l = a.balances.find((b: any) => b.asset_code === "USDC" && b.asset_issuer === USDC.getIssuer()); return l ? l.balance : "0"; }
+async function xlmBal(pub: string) { const a = await HZ.loadAccount(pub); return a.balances.find((b: any) => b.asset_type === "native")!.balance; }
+/** Deposit `amountStroops` USDC behind `linkPub`, sender-signed Soroban invoke. */
+async function deposit(sender: Keypair, linkPub: Buffer, amountStroops: bigint) {
+  const src = await RPC.getAccount(sender.publicKey());
+  const tx = new TransactionBuilder(src, { fee: "2000000", networkPassphrase: NET })
+    .addOperation(new Contract(CONTRACT).call("deposit",
+      Address.fromString(sender.publicKey()).toScVal(),
+      xdr.ScVal.scvBytes(linkPub),
+      nativeToScVal(amountStroops, { type: "i128" }),
+      nativeToScVal(4_000_000_000n, { type: "u64" }),
+    )).setTimeout(60).build();
+  const sim = await RPC.simulateTransaction(tx);
+  if (rpc.Api.isSimulationError(sim)) throw new Error(sim.error);
+  const prepared = rpc.assembleTransaction(tx, sim).build();
+  prepared.sign(sender);
+  await sorobanSubmit(prepared);
+}
+/** Read claim_message from the contract (as the client does) + sign it with the link key. */
+async function signClaim(sourcePub: string, link: Keypair, payout: string): Promise<string> {
+  const src = await RPC.getAccount(sourcePub);
+  const view = new TransactionBuilder(src, { fee: "1000000", networkPassphrase: NET })
+    .addOperation(new Contract(CONTRACT).call("claim_message",
+      nativeToScVal(1, { type: "u32" }), xdr.ScVal.scvBytes(Buffer.from(link.rawPublicKey())), Address.fromString(payout).toScVal(),
+    )).setTimeout(60).build();
+  const sim = await RPC.simulateTransaction(view);
+  if (rpc.Api.isSimulationError(sim)) throw new Error(sim.error);
+  const message = scValToNative((sim as rpc.Api.SimulateTransactionSuccessResponse).result!.retval) as Uint8Array;
+  return Buffer.from(link.sign(Buffer.from(message))).toString("hex");
+}
 async function sorobanSubmit(tx: any) {
   const sent = await RPC.sendTransaction(tx);
   if (sent.status === "ERROR") throw new Error(JSON.stringify(sent.errorResult));
@@ -108,6 +138,24 @@ async function main() {
   const res = await relayClaimHandler(config, signer, { method: "claim", linkHex: linkPub.toString("hex"), payout: payout.publicKey(), sigHex });
   check("relayer returned a tx hash", typeof res.hash === "string", res.hash.slice(0, 12) + "…");
   check("payout received the 8 USDC (walletless + gasless)", (await usdcBal(payout.publicKey())) === "8.0000000");
+
+  console.log("\n[5] CLAIM-PAGE path: sponsor creates a fresh 0-XLM account + trustline, then v2-claim into it");
+  const sender2 = Keypair.random();
+  const link2 = Keypair.random();
+  const payout2 = Keypair.random(); // a brand-new walletless recipient (no friendbot)
+  await usdcHolder(sender2, "20");
+  await deposit(sender2, Buffer.from(link2.rawPublicKey()), 60_000_000n); // 6 USDC
+  {
+    // the sponsored 0-XLM account + USDC trustline (the same /create-account the claim page uses)
+    const created = await createAccountHandler(HZ, config, signer, { recipientPublicKey: payout2.publicKey() });
+    const sandwich = TransactionBuilder.fromXDR(created.xdr, NET);
+    sandwich.sign(payout2);
+    await HZ.submitTransaction(sandwich);
+  }
+  const sig2 = await signClaim(payout2.publicKey(), link2, payout2.publicKey());
+  await relayClaimHandler(config, signer, { method: "claim", linkHex: Buffer.from(link2.rawPublicKey()).toString("hex"), payout: payout2.publicKey(), sigHex: sig2 });
+  check("sponsored 0-XLM account received the v2 claim (6 USDC)", (await usdcBal(payout2.publicKey())) === "6.0000000");
+  check("the recipient holds 0 XLM (walletless + gasless, end to end)", (await xlmBal(payout2.publicKey())) === "0.0000000");
 
   console.log("\n============================================================");
   console.log(fail === 0 ? ` ✅ RELAYER PROOF PASS (${pass}/${pass + fail})` : ` ❌ FAIL (${fail} failed)`);

@@ -12,6 +12,7 @@
  */
 import {
   rpc,
+  Horizon,
   Address,
   Contract,
   Keypair,
@@ -20,6 +21,7 @@ import {
   nativeToScVal,
   scValToNative,
   xdr,
+  type Transaction,
 } from "@stellar/stellar-sdk";
 import type { Signer } from "./signer";
 
@@ -145,4 +147,47 @@ export async function claimV2(opts: {
   const text = await res.text();
   if (!res.ok) throw new Error(`/v2-claim → ${res.status}: ${text}`);
   return JSON.parse(text) as { hash: string };
+}
+
+const HORIZON_URL = "https://horizon-testnet.stellar.org";
+
+/**
+ * The walletless recipient path for the v2 UI: create a fresh account with a sponsored USDC
+ * trustline (reusing the sponsor's /create-account — 0 XLM to the recipient), then claim the v2
+ * drop straight into it via the relayer. Returns the new account + seed to persist locally.
+ *
+ * (A classic account needs a USDC trustline to hold the SAC balance — hence the sponsored
+ * create-account; the trustline reserve is the sponsor's. The zero-reserve win fully lands once
+ * the payout is a passkey smart-account contract, which holds the SAC with no trustline — v2.1.)
+ */
+export async function claimV2ToSponsoredAccount(opts: {
+  linkSecret: string;
+  sponsorUrl: string;
+  group?: boolean;
+}): Promise<{ hash: string; publicKey: string; seed: Uint8Array }> {
+  const base = opts.sponsorUrl.replace(/\/$/, "");
+  const horizon = new Horizon.Server(HORIZON_URL);
+  const payout = Keypair.random();
+
+  // 1. sponsor creates the account + USDC trustline (recipient holds 0 XLM); recipient co-signs.
+  const created = (await (
+    await fetch(`${base}/create-account`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ recipientPublicKey: payout.publicKey() }),
+    })
+  ).json()) as { xdr?: string; error?: string };
+  if (!created.xdr) throw new Error(created.error ?? "create-account failed");
+  const sandwich = TransactionBuilder.fromXDR(created.xdr, NETWORK) as Transaction;
+  sandwich.sign(payout);
+  await horizon.submitTransaction(sandwich);
+
+  // 2. claim the v2 drop into the new account via the relayer (walletless + gasless).
+  const { hash } = await claimV2({
+    linkSecret: opts.linkSecret,
+    payout: payout.publicKey(),
+    sponsorUrl: opts.sponsorUrl,
+    group: opts.group,
+  });
+  return { hash, publicKey: payout.publicKey(), seed: new Uint8Array(payout.rawSecretKey()) };
 }

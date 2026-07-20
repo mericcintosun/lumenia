@@ -25,6 +25,10 @@ export interface SponsorConfig {
   usdc: Asset;
   /** Hard cap (stroops) on the fee the sponsor will pay for a single fee-bump. */
   feeBumpMaxStroops: string;
+  /** Soroban RPC url (v2 relayer). */
+  sorobanRpcUrl: string;
+  /** The deployed v2 LumenDrop escrow contract id (C...). Unset = the v2 relayer is disabled. */
+  lumendropContract?: string;
   port: number;
 }
 
@@ -42,6 +46,10 @@ export function defaultHorizon(network: StellarNetwork): string {
   return network === "mainnet" ? "https://horizon.stellar.org" : "https://horizon-testnet.stellar.org";
 }
 
+export function defaultSorobanRpc(network: StellarNetwork): string {
+  return network === "mainnet" ? "https://mainnet.sorobanrpc.com" : "https://soroban-testnet.stellar.org";
+}
+
 /** Build a config from explicit parts (used by the CLI when bootstrapping a demo). */
 export function makeConfig(parts: {
   network: StellarNetwork;
@@ -51,6 +59,8 @@ export function makeConfig(parts: {
   usdcCode?: string;
   horizonUrl?: string;
   feeBumpMaxStroops?: string;
+  sorobanRpcUrl?: string;
+  lumendropContract?: string;
   port?: number;
 }): SponsorConfig {
   const network = parts.network;
@@ -62,6 +72,8 @@ export function makeConfig(parts: {
     faucetSecret: parts.faucetSecret,
     usdc: new Asset(parts.usdcCode ?? "USDC", parts.usdcIssuer),
     feeBumpMaxStroops: parts.feeBumpMaxStroops ?? "10000", // 0.001 XLM per tx
+    sorobanRpcUrl: parts.sorobanRpcUrl ?? defaultSorobanRpc(network),
+    lumendropContract: parts.lumendropContract,
     port: parts.port ?? 8787,
   };
 }
@@ -80,6 +92,8 @@ export function loadConfig(): SponsorConfig {
     usdcCode: process.env.USDC_CODE,
     horizonUrl: process.env.HORIZON_URL,
     feeBumpMaxStroops: process.env.FEE_BUMP_MAX_STROOPS,
+    sorobanRpcUrl: process.env.SOROBAN_RPC_URL,
+    lumendropContract: process.env.LUMENDROP_CONTRACT,
     port: process.env.PORT ? Number.parseInt(process.env.PORT, 10) : undefined,
   });
 }

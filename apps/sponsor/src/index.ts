@@ -9,6 +9,7 @@
  *   POST /feebump         → validate (anti-drain CLAIM policy) + fee-bump + submit the claim
  *   POST /send-link       → validate (anti-drain SEND policy) + sponsor-sign + fee-bump the onward CB
  *   POST /sweep           → validate (anti-drain SWEEP policy) + fee-bump: consolidate a per-link account into home
+ *   POST /v2-claim        → relay a v2 (Soroban LumenDrop) claim: submit + pay the Soroban fee (walletless/gasless)
  *   POST /faucet          → dispense test-USDC (separate faucet key; recipient must already hold the trustline)
  *   POST /demo-link       → faucet mints a real demo Claimable Balance + returns the bearer secret
  *   POST /waitlist        → store a notify-me email (isolated, never joined to a pubkey)
@@ -27,6 +28,7 @@ import { createAccountHandler } from "./lib/create-account.js";
 import { feebumpHandler } from "./lib/feebump.js";
 import { sendLinkHandler } from "./lib/send.js";
 import { sweepHandler } from "./lib/sweep.js";
+import { relayClaimHandler } from "./lib/soroban-relay.js";
 import { faucetHandler } from "./lib/faucet.js";
 import { demoLinkHandler } from "./lib/demo-link.js";
 import { saveContact } from "./lib/waitlist.js";
@@ -146,6 +148,22 @@ const httpServer = createServer(async (req, res) => {
         homePublicKey: body.homePublicKey,
         balanceId: body.balanceId,
         amount: body.amount,
+      });
+      return send(res, 200, result);
+    }
+
+    if (method === "POST" && url === "/v2-claim") {
+      const body = (await readJson(req)) as { method?: string; linkHex?: string; payout?: string; sigHex?: string };
+      if (!body.method || !body.linkHex || !body.payout || !body.sigHex) {
+        return send(res, 400, { error: "method, linkHex, payout and sigHex are required" });
+      }
+      const rl = await enforceRateLimit(clientIp(req), body.payout);
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      const result = await relayClaimHandler(config, signer, {
+        method: body.method,
+        linkHex: body.linkHex,
+        payout: body.payout,
+        sigHex: body.sigHex,
       });
       return send(res, 200, result);
     }

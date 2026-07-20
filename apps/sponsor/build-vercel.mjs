@@ -24,6 +24,7 @@ const FUNCTIONS = [
   "feebump",
   "send-link",
   "sweep",
+  "v2-claim",
   "faucet",
   "demo-link",
   "waitlist",

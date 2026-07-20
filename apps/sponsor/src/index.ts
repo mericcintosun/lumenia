@@ -10,6 +10,7 @@
  *   POST /send-link       → validate (anti-drain SEND policy) + sponsor-sign + fee-bump the onward CB
  *   POST /sweep           → validate (anti-drain SWEEP policy) + fee-bump: consolidate a per-link account into home
  *   POST /v2-claim        → relay a v2 (Soroban LumenDrop) claim: submit + pay the Soroban fee (walletless/gasless)
+ *   POST /v2-deposit      → relay a v2 deposit: fee-bump the sender-signed deposit so a 0-XLM sender pays no gas
  *   POST /faucet          → dispense test-USDC (separate faucet key; recipient must already hold the trustline)
  *   POST /demo-link       → faucet mints a real demo Claimable Balance + returns the bearer secret
  *   POST /waitlist        → store a notify-me email (isolated, never joined to a pubkey)
@@ -28,7 +29,7 @@ import { createAccountHandler } from "./lib/create-account.js";
 import { feebumpHandler } from "./lib/feebump.js";
 import { sendLinkHandler } from "./lib/send.js";
 import { sweepHandler } from "./lib/sweep.js";
-import { relayClaimHandler } from "./lib/soroban-relay.js";
+import { relayClaimHandler, relayDepositHandler } from "./lib/soroban-relay.js";
 import { faucetHandler } from "./lib/faucet.js";
 import { demoLinkHandler } from "./lib/demo-link.js";
 import { saveContact } from "./lib/waitlist.js";
@@ -165,6 +166,15 @@ const httpServer = createServer(async (req, res) => {
         payout: body.payout,
         sigHex: body.sigHex,
       });
+      return send(res, 200, result);
+    }
+
+    if (method === "POST" && url === "/v2-deposit") {
+      const body = (await readJson(req)) as { xdr?: string; senderPublicKey?: string };
+      if (!body.xdr || !body.senderPublicKey) return send(res, 400, { error: "xdr and senderPublicKey are required" });
+      const rl = await enforceRateLimit(clientIp(req), body.senderPublicKey);
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      const result = await relayDepositHandler(config, signer, { xdr: body.xdr, senderPublicKey: body.senderPublicKey });
       return send(res, 200, result);
     }
 

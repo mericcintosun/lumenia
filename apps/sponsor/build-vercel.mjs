@@ -25,6 +25,7 @@ const FUNCTIONS = [
   "send-link",
   "sweep",
   "v2-claim",
+  "v2-deposit",
   "faucet",
   "demo-link",
   "waitlist",

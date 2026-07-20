@@ -24,7 +24,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWallet } from "../../../lib/wallet";
 import { loadBalance } from "../../../lib/horizon";
-import { createSendLink, payToAddress } from "../../../lib/send";
+import { payToAddress } from "../../../lib/send";
+import { createV2Link } from "../../../lib/lumendrop";
 import { isValidAddress } from "../../../lib/request";
 import { sendEvent } from "../../../lib/events";
 import { formatUsd } from "../../../lib/money";
@@ -187,15 +188,18 @@ export default function SendPage() {
         return;
       }
 
-      const result = await createSendLink({
+      // v2: the money is locked in the Soroban escrow behind a fresh link key; the payout is
+      // chosen at claim time (no reserve, no fragmentation, no sweep). The sender pays no gas —
+      // the sponsor fee-bumps the deposit (/v2-deposit). The claim opens at /v2/c/<linkHex>.
+      const result = await createV2Link({
         sponsorUrl: SPONSOR_URL,
         signer,
         amount: amt.toFixed(2),
         from: from.trim(),
         webOrigin: window.location.origin,
       });
-      saveSent(result.balanceId.slice(-8), {
-        balanceId: result.balanceId,
+      saveSent(result.linkHex.slice(-8), {
+        balanceId: result.linkHex, // the v2 drop id (the link key); reused by "my links"
         link: result.link,
         amount: amt.toFixed(2),
         from: from.trim(),
@@ -206,7 +210,7 @@ export default function SendPage() {
       // up with a link they can share.
       void sendEvent("send_link_created", account!.address);
       if (request?.nonce) void sendEvent("request_paid", request.nonce);
-      setReady({ kind: "link", link: result.link, balanceId: result.balanceId });
+      setReady({ kind: "link", link: result.link, balanceId: result.linkHex });
     } catch (e) {
       // Technical reasons (status codes, ledger result codes) must never reach a
       // money surface (vocabulary law); a rejected inner tx means nothing moved.

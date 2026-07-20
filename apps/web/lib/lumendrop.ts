@@ -31,19 +31,6 @@ const CONTRACT = process.env.NEXT_PUBLIC_LUMENDROP_CONTRACT ?? "CDYEDHBPMDOOZSJG
 const UNIT = 10_000_000n; // 1 USDC = 1e7 stroops
 
 const usdcStroops = (amount: string) => BigInt(Math.round(Number.parseFloat(amount) * Number(UNIT)));
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function submit(server: rpc.Server, tx: Parameters<rpc.Server["sendTransaction"]>[0]): Promise<string> {
-  const sent = await server.sendTransaction(tx);
-  if (sent.status === "ERROR") throw new Error(`send failed: ${JSON.stringify(sent.errorResult)}`);
-  let got = await server.getTransaction(sent.hash);
-  for (let i = 0; i < 40 && got.status === "NOT_FOUND"; i++) {
-    await sleep(1500);
-    got = await server.getTransaction(sent.hash);
-  }
-  if (got.status !== "SUCCESS") throw new Error(`tx ${got.status}`);
-  return sent.hash;
-}
 
 export interface V2Link {
   /** The share link — link id in the path, metadata in the query, the secret in the #fragment. */
@@ -54,9 +41,9 @@ export interface V2Link {
 }
 
 /**
- * Deposit `amount` USDC behind a fresh link. The SENDER sources + signs the invoke (authorizes the
- * USDC transfer into the escrow). NOTE: the sender pays this deposit's Soroban fee — a gasless
- * deposit (the sponsor paying via a signed auth entry) is a documented v2.1 refinement.
+ * Deposit `amount` USDC behind a fresh link — GASLESS. The SENDER signs the invoke (authorizes the
+ * USDC transfer into the escrow) but pays no gas: the sponsor FEE-BUMPS it via /v2-deposit, so even
+ * a 0-XLM sender can create a link (proven: the gasless-deposit spike, 5/5).
  */
 export async function createV2Link(opts: {
   signer: Signer;
@@ -64,6 +51,7 @@ export async function createV2Link(opts: {
   /** display name shown as "<from> sent you money" on the claim screen */
   from: string;
   webOrigin: string;
+  sponsorUrl: string;
   /** unix seconds; default now + 7 days (the reclaim window) */
   expiry?: number;
 }): Promise<V2Link> {
@@ -74,7 +62,7 @@ export async function createV2Link(opts: {
   const expiry = BigInt(opts.expiry ?? Math.floor(Date.now() / 1000) + 7 * 24 * 3600);
 
   const source = await server.getAccount(sender);
-  const tx = new TransactionBuilder(source, { fee: "1000000", networkPassphrase: NETWORK })
+  const tx = new TransactionBuilder(source, { fee: "2000000", networkPassphrase: NETWORK })
     .addOperation(
       new Contract(CONTRACT).call(
         "deposit",
@@ -84,14 +72,24 @@ export async function createV2Link(opts: {
         nativeToScVal(expiry, { type: "u64" }),
       ),
     )
-    .setTimeout(60)
+    .setTimeout(120)
     .build();
 
   const sim = await server.simulateTransaction(tx);
   if (rpc.Api.isSimulationError(sim)) throw new Error(`deposit simulation failed: ${sim.error}`);
   const prepared = rpc.assembleTransaction(tx, sim).build();
   await opts.signer.sign(prepared); // sender authorizes (source-account auth covers the SAC transfer)
-  const hash = await submit(server, prepared);
+
+  // Gasless: the sponsor fee-bumps + submits the sender-signed inner (the sender pays no XLM).
+  const base = opts.sponsorUrl.replace(/\/$/, "");
+  const res = await fetch(`${base}/v2-deposit`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ xdr: prepared.toXDR(), senderPublicKey: sender }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`/v2-deposit → ${res.status}: ${text}`);
+  const { hash } = JSON.parse(text) as { hash: string };
 
   const q = `a=${encodeURIComponent(opts.amount)}&s=${encodeURIComponent(opts.from)}`;
   const url = `${opts.webOrigin.replace(/\/$/, "")}/v2/c/${linkHex}?${q}#${link.secret()}`;

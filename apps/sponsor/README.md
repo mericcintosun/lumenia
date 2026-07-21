@@ -16,7 +16,7 @@ src/lib/            config · signer · stellar · service · create-account · 
                     anti-drain (the D3 validator) · rate-limit (durable KV/Upstash + in-memory fallback)
 src/vercel/         function sources → bundled to api/*.js by build-vercel.mjs
 src/cli/            bootstrap · create-account · claim · makelink
-src/test-antidrain.ts     25/25, no network
+src/test-antidrain.ts     44/44, no network
 src/test-integration.ts   6/6 — happy claim / happy send / drain rejection / rate-limit (testnet)
 src/spike*.ts             the pre-sprint proof spikes (#1, #1b, #1c, #4)
 ```
@@ -25,7 +25,7 @@ src/spike*.ts             the pre-sprint proof spikes (#1, #1b, #1c, #4)
 
 ```bash
 pnpm install                                       # at the repo root
-pnpm --filter @lumenia/sponsor test:antidrain      # 25/25, no network
+pnpm --filter @lumenia/sponsor test:antidrain      # 44/44, no network
 pnpm --filter @lumenia/sponsor test:integration    # 6/6, testnet (friendbot)
 pnpm --filter @lumenia/sponsor dev                 # local server (needs .env — see .env.example)
 # deploy: node build-vercel.mjs && vercel deploy --prod --yes

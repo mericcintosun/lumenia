@@ -17,7 +17,7 @@ Everything runs on the Stellar **testnet** — no real money:
 
 ```bash
 pnpm install
-pnpm test:antidrain   # anti-drain validator (25/25, offline)
+pnpm test:antidrain   # anti-drain validator (44/44, offline)
 pnpm spike1           # sponsored 0-XLM claim economics (testnet)
 ```
 
@@ -228,7 +228,7 @@ Three gates that must pass before writing any feature code (if one fails, the ar
 |---|---|
 | **Turkey off-ramp broken** (no Turkish CASP confirmed to accept USDC on the *Stellar* network; MASAK ~$3k/day cap + 72h first withdrawal) | Off-ramp framed honestly as a **next-milestone infrastructure bet, not solved**. Mitigation: **CCTP is live on Stellar (~May 2026)** → bridge Stellar-USDC to a chain a TR CASP accepts, or a **USDC-funded card** (RedotPay/KAST). v1 leans on internal circulation + EU→TR inbound. |
 | **WhatsApp webview blocks passkey** | Argon2id primary recovery, PRF upgrade |
-| **Sponsor service single choke-point** | **AWS KMS Ed25519 raw-sign is now available (since 2025-11-07) and proven mechanically (Spike #1b)**; anti-drain validator hardened to op SOURCE+PARAMETER level (**25/25 unit + 6/6 integration tests**, gating the live `/feebump`); web→sponsor XDR **wire-parity proven (Spike #1c + live browser claim)**; plus per-IP/per-account rate-limit + fee cap. |
+| **Sponsor service single choke-point** | **AWS KMS Ed25519 raw-sign is now available (since 2025-11-07) and proven mechanically (Spike #1b)**; anti-drain validator hardened to op SOURCE+PARAMETER level (**44/44 unit + 6/6 integration tests**, gating the live `/feebump`); web→sponsor XDR **wire-parity proven (Spike #1c + live browser claim)**; plus per-IP/per-account rate-limit + fee cap. |
 | **Competitor: Sling Money** ($15M, Solana) | Corridor strategy; being a global competitor; frame Sling as validation |
 | **Regulation (MASAK/CASP)** | Strictly non-custodial; leave off-ramp to a licensed CEX; lawyer before mainnet |
 | **Serwist + Turbopack** newest combo | Day-1 spike; fallback `--webpack` |

@@ -129,7 +129,7 @@ Proves the Stellar-specific half of the CCTP bridge leg (off-ramp Path 3) on liv
 | Item | Status |
 |---|---|
 | Sponsored 0-XLM onboarding + fee-bumped claim economics | ✅ PROVEN (Spike #1, testnet) |
-| Anti-drain validator rejects reserve/principal drain vectors | ✅ PROVEN (**25/25** unit + **6/6** integration tests; gates the live `/feebump` — §10) |
+| Anti-drain validator rejects reserve/principal drain vectors | ✅ PROVEN (**44/44** unit + **6/6** integration tests; gates the live `/feebump` — §10) |
 | Sponsor key behind external raw-Ed25519 signer (KMS path) | ✅ PROVEN mechanically (Spike #1b); the deployed testnet service uses an env hot-key (SOW scope) |
 | web→sponsor XDR wire-parity + fee-bump of re-parsed tx | ✅ PROVEN (Spike #1c + live browser claim — §10) |
 | **Live sponsor service + end-to-end walletless browser claim** | ✅ **PROVEN on-chain** (§10: tx `b9ef1844…` — 20 USDC landed, 0 XLM held, sponsor paid the fee) |

@@ -47,16 +47,18 @@ held 0 XLM throughout and paid no fee** — no wallet, no seed phrase, no setup.
 | Evidence | Where |
 |---|---|
 | Validator gating every live `/feebump` | [`apps/sponsor/src/lib/anti-drain.ts`](apps/sponsor/src/lib/anti-drain.ts) — allowlist over op **types, sources and parameters**, strict-by-default (a missing constraint rejects) |
-| Unit tests | **25/25** — `pnpm --filter @lumenia/sponsor test:antidrain` (no network; same module the deployed function bundles). 5 legitimate shapes accepted, 20 drain/griefing vectors rejected |
+| Unit tests | **44/44** — `pnpm --filter @lumenia/sponsor test:antidrain` (no network; same module the deployed function bundles). Was 25/25 at SOW time; +12 sweep-policy + 4 op-sequence + 3 golden-policy cases added since (post-SOW hardening) — re-running prints 44/44 |
 | Integration tests | **6/6** — `pnpm --filter @lumenia/sponsor test:integration` (real HTTP: happy claim lands 20 USDC at 0 XLM, a 0-XLM onward send creates a sponsored CB, a malicious payment is rejected 400, a burst 429s) |
 | Live drain rejection (deployed service) | A sponsor-sourced `payment` inner tx POSTed to the **production** `/feebump` returns `400 {"error":"anti-drain rejected the inner tx: op 'payment' sourced from sponsor (drain attempt)"}` (2026-07-11) |
 | Plain-language write-up | [ANTI_DRAIN.md](ANTI_DRAIN.md) |
 
 > **Why the count differs from the SOW.** The SOW (§4.1, written 2026-06-18) cites **14/14**. The suite has
-> since grown to **25/25**: hardening during the sprint added the strict-by-default fail-closed cases and
-> more drain vectors (14 → 18), and the post-SOW onward-send feature added a **separate, tight `/send-link`
-> policy** with 7 cases of its own (18 → 25) — the claim allowlist was never widened to accommodate it.
-> The count went up because coverage went up; no SOW-era test was removed or weakened.
+> since grown to **44/44**: sprint hardening added strict-by-default fail-closed cases + more drain vectors
+> (14 → 18); the post-SOW onward-send feature added a **separate, tight `/send-link` policy** (18 → 25); the
+> recovery-consolidation **sweep policy** added 12 (25 → 37); and an op-**sequence** matcher + a
+> **golden-policy** snapshot added 7 (37 → 44). The claim allowlist was never widened — the count went up
+> because coverage went up, and no SOW-era test was removed or weakened. (The screenshot below is the
+> SOW-era **25/25** capture; re-running the command today prints 44/44.)
 
 ### Test output (2026-07-15)
 

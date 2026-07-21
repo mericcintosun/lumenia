@@ -15,7 +15,7 @@ Closes #
 
 - [ ] `pnpm --filter @lumenia/sponsor exec tsc --noEmit`
 - [ ] `pnpm --filter @lumenia/web exec tsc --noEmit`
-- [ ] `pnpm test:antidrain` (25/25)
+- [ ] `pnpm test:antidrain` (44/44)
 - [ ] `pnpm --filter @lumenia/web build`
 
 ## Checklist

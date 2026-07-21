@@ -59,6 +59,13 @@ export async function sendLinkHandler(
     allowedOpTypes: ALLOWED_SEND_OP_TYPES,
     expectedClaimantCount: EXPECTED_CLAIMANTS,
     maxOps: 3,
+    // Pin the exact ordered shape the send flow builds (defense-in-depth): a reordered
+    // set of the same ops is rejected even though each op passes on its own.
+    expectedOpSequence: [
+      "beginSponsoringFutureReserves",
+      "createClaimableBalance",
+      "endSponsoringFutureReserves",
+    ],
   };
   const verdict = validateInnerTransaction(inner, policy);
   if (!verdict.ok) throw new Error(`anti-drain rejected the send tx: ${verdict.reason}`);

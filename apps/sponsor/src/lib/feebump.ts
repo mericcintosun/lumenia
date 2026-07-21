@@ -51,6 +51,7 @@ export async function feebumpHandler(
     expectedAsset: config.usdc,
     expectedBalanceId: input.balanceId,
     maxOps: 1, // the claim path is exactly one claimClaimableBalance op
+    expectedOpSequence: ["claimClaimableBalance"], // pin the exact shape (defense-in-depth)
   };
   const verdict = validateInnerTransaction(inner, policy);
   if (!verdict.ok) throw new Error(`anti-drain rejected the inner tx: ${verdict.reason}`);

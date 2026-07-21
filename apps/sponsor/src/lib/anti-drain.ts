@@ -12,7 +12,9 @@
  * `payment` to an arbitrary destination all drain the sponsor while passing a
  * type-only check. So we validate every op's SOURCE and its sensitive PARAMETERS.
  *
- * Covered by test-antidrain.ts (25/25) — the same file that tests the deployed gate.
+ * Covered by test-antidrain.ts (44/44) — the same file that tests the deployed gate.
+ * Includes an exact op-SEQUENCE matcher (defense-in-depth) + a GOLDEN-policy snapshot
+ * that fails CI if any allowlist silently widens.
  */
 import type { Asset, Transaction } from "@stellar/stellar-sdk";
 
@@ -87,6 +89,16 @@ export interface InnerTxPolicy {
    * omitted, the tx is REJECTED.
    */
   expectedClaimantCount?: number;
+  /**
+   * The EXACT ordered op-type sequence the tx must match (defense-in-depth, ON TOP of
+   * the per-op allowlist). Pins the tx to its known shape so a reordered set of
+   * individually-allowed ops — e.g. a send with `createClaimableBalance` BEFORE its
+   * `beginSponsoring` wrapper — is rejected even though every op passes on its own.
+   * Omit to skip the ordered check (the per-op allowlist still applies). The live claim
+   * policy pins `["claimClaimableBalance"]`; the send policy pins
+   * `[begin, createClaimableBalance, end]`.
+   */
+  expectedOpSequence?: readonly string[];
 }
 
 export interface ValidationResult {
@@ -115,6 +127,17 @@ export function validateInnerTransaction(
   }
   if (tx.source !== policy.expectedSource) {
     return { ok: false, reason: `unexpected tx source ${tx.source}` };
+  }
+
+  // Exact op-sequence match (when pinned): the tx must be its known ORDERED shape, not
+  // just a bag of individually-allowed ops. Defense-in-depth on top of the per-op checks
+  // below — catches a reordering of otherwise-valid ops.
+  if (policy.expectedOpSequence) {
+    const actual = tx.operations.map((o) => o.type);
+    const expected = policy.expectedOpSequence;
+    if (actual.length !== expected.length || actual.some((t, i) => t !== expected[i])) {
+      return { ok: false, reason: `op sequence [${actual.join(", ")}] != expected [${expected.join(", ")}]` };
+    }
   }
 
   for (const op of tx.operations) {

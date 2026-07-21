@@ -9,7 +9,7 @@
  *  not enough; the validator must check op SOURCE and sensitive PARAMETERS.
  *  These cases prove the hardened validator accepts the legit claim + send + sweep
  *  shapes and rejects every reserve/principal drain vector we could think of
- *  (37/37 = 18 claim + 7 send + 12 sweep). The sweep policy (validateSweepTransaction)
+ *  (44/44 = 18 claim + 7 send + 12 sweep + 4 op-sequence + 3 golden-policy). The sweep policy (validateSweepTransaction)
  *  is a SEPARATE tight allowlist — the claim/send allowlists are never widened.
  *
  *  RUN:
@@ -36,7 +36,9 @@ import {
 import {
   validateInnerTransaction,
   validateSweepTransaction,
+  ALLOWED_INNER_OP_TYPES,
   ALLOWED_SEND_OP_TYPES,
+  ALLOWED_SWEEP_OP_TYPES,
   type InnerTxPolicy,
   type SweepPolicy,
 } from "./lib/anti-drain.js";
@@ -509,6 +511,85 @@ check(
   false,
   "destination",
 );
+
+/* ---- OP-SEQUENCE MATCHER: pin the exact ORDERED shape (defense-in-depth) ----
+ * A reordering of individually-allowed ops (each passing source/param checks) must
+ * still be rejected. The live claim policy pins [claim]; the send policy pins
+ * [begin, createClaimableBalance, end]. */
+const claimSeqPolicy: InnerTxPolicy = { ...basePolicy, maxOps: 6, expectedOpSequence: ["claimClaimableBalance"] };
+check(
+  "SEQ-G1 claim matches the pinned sequence [claim]",
+  validateInnerTransaction(buildTx(recipient.publicKey(), [Operation.claimClaimableBalance({ balanceId: BALANCE_ID })]), claimSeqPolicy),
+  true,
+);
+check(
+  "SEQ-R1 claim + extra changeTrust rejected by the pinned [claim] sequence (order/shape)",
+  validateInnerTransaction(
+    buildTx(recipient.publicKey(), [
+      Operation.claimClaimableBalance({ balanceId: BALANCE_ID }),
+      Operation.changeTrust({ asset: USDC, source: recipient.publicKey() }),
+    ]),
+    claimSeqPolicy,
+  ),
+  false,
+  "sequence",
+);
+const sendSeqPolicy: InnerTxPolicy = {
+  ...sendPolicy,
+  expectedOpSequence: ["beginSponsoringFutureReserves", "createClaimableBalance", "endSponsoringFutureReserves"],
+};
+check(
+  "SEQ-G2 send matches the pinned sequence [begin,createCB,end]",
+  validateInnerTransaction(buildTx(recipient.publicKey(), sendOps(goodClaimants)), sendSeqPolicy),
+  true,
+);
+check(
+  "SEQ-R2 reordered send [createCB,begin,end] rejected (every op valid, ORDER wrong)",
+  validateInnerTransaction(
+    buildTx(recipient.publicKey(), [
+      Operation.createClaimableBalance({ asset: USDC, amount: "20", claimants: goodClaimants, source: recipient.publicKey() }),
+      Operation.beginSponsoringFutureReserves({ sponsoredId: recipient.publicKey(), source: sponsor.publicKey() }),
+      Operation.endSponsoringFutureReserves({ source: recipient.publicKey() }),
+    ]),
+    sendSeqPolicy,
+  ),
+  false,
+  "sequence",
+);
+
+/* ---- GOLDEN POLICY SNAPSHOT: the exported allowlists must NEVER silently widen ----
+ * If a future change adds an op type to any allowlist, this fails LOUDLY — widening the
+ * claim/send/sweep allowlist is exactly the accidental weakening this snapshot guards
+ * against. Changing an allowlist is a DELIBERATE act: update the golden list here too. */
+function goldenSet(name: string, got: Set<string>, golden: string[]) {
+  const g = [...got].sort();
+  const w = [...golden].sort();
+  const equal = g.length === w.length && g.every((x, i) => x === w[i]);
+  check(
+    `GOLDEN ${name} allowlist unchanged`,
+    { ok: equal, reason: `got [${g.join(",")}] want [${w.join(",")}] — allowlist changed; update deliberately` },
+    true,
+  );
+}
+goldenSet("claim (ALLOWED_INNER_OP_TYPES)", ALLOWED_INNER_OP_TYPES, [
+  "beginSponsoringFutureReserves",
+  "createAccount",
+  "changeTrust",
+  "endSponsoringFutureReserves",
+  "claimClaimableBalance",
+  "payment",
+]);
+goldenSet("send (ALLOWED_SEND_OP_TYPES)", ALLOWED_SEND_OP_TYPES, [
+  "beginSponsoringFutureReserves",
+  "createClaimableBalance",
+  "endSponsoringFutureReserves",
+]);
+goldenSet("sweep (ALLOWED_SWEEP_OP_TYPES)", ALLOWED_SWEEP_OP_TYPES, [
+  "claimClaimableBalance",
+  "payment",
+  "changeTrust",
+  "accountMerge",
+]);
 
 console.log("\n============================================================");
 console.log(failed === 0 ? ` ✅ ANTI-DRAIN TESTS PASS (${passed}/${passed + failed})` : ` ❌ ANTI-DRAIN TESTS FAIL (${failed} failed)`);

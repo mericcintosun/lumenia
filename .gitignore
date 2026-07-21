@@ -102,3 +102,6 @@ SCF_INTEREST_FORM.md
 RECOVERY_ARCHITECTURE.md
 REVIEW_AND_ROADMAP.md
 V2_SOROBAN_ESCROW.md
+
+# Property-test (proptest) writes a snapshot per fuzz case — noise, not a fixture
+contracts/lumen-drop/test_snapshots/test/no_pool_op_*.json

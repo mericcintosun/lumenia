@@ -3,6 +3,7 @@ extern crate std;
 
 use super::*;
 use ed25519_dalek::{Signer, SigningKey};
+use proptest::prelude::*;
 use soroban_sdk::testutils::{Address as _, Ledger as _};
 use soroban_sdk::{token, Address, Bytes, BytesN, Env};
 
@@ -21,6 +22,8 @@ fn sign(env: &Env, sk: &SigningKey, msg: &Bytes) -> BytesN<64> {
 
 struct Fixture<'a> {
     env: Env,
+    /// The deployed contract's address (used by property tests to read the escrow balance).
+    id: Address,
     client: LumenDropClient<'a>,
     token: token::Client<'a>,
     sac: token::StellarAssetClient<'a>,
@@ -37,6 +40,7 @@ fn setup<'a>() -> Fixture<'a> {
         client: LumenDropClient::new(&env, &id),
         token: token::Client::new(&env, &token_addr),
         sac: token::StellarAssetClient::new(&env, &token_addr),
+        id,
         env,
     }
 }
@@ -269,4 +273,67 @@ fn reclaimed_pool_cannot_drain_another_drops_escrow() {
     let vsig = sign(&f.env, &vk, &f.client.claim_message(&1, &vlink, &vpayout));
     f.client.claim(&vlink, &vpayout, &vsig);
     assert_eq!(f.token.balance(&vpayout), 100);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * PROPERTY-BASED INVARIANTS (soroban skill · Part 2 "Property-Based Testing").
+ * The reclaim-then-claim double-spend slipped past the example tests because they can't cover the
+ * combinatorial space of pool lifecycles. proptest fuzzes random operation sequences and asserts
+ * the safety INVARIANT directly — the class of bug, not a single instance.
+ * ------------------------------------------------------------------------------------------- */
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(48))]
+
+    /// FUND CONSERVATION ACROSS POOLS. A "bystander" pool escrows exactly 100 USDC. Then a random
+    /// sequence of SUBJECT-pool operations runs — any interleaving of `claim_share` / `reclaim_pool`
+    /// at any time, including the reclaim-then-claim double-spend the review caught. INVARIANT: the
+    /// contract's escrow can NEVER drop below the bystander's 100 (its funds are sacrosanct) and can
+    /// NEVER exceed 100 + subject-deposit (no funds are conjured). A regression (e.g. the pool not
+    /// closing on reclaim, or a missing expiry gate) drains the bystander → the property FAILS.
+    #[test]
+    fn no_pool_op_can_drain_or_inflate_a_bystander_pool(
+        s_amount in 8i128..=800,
+        s_slots in 1u32..=8,
+        attempts in 0u32..=12,
+        do_reclaim in any::<bool>(),
+        reclaim_first in any::<bool>(),
+    ) {
+        let f = setup();
+        let contract = f.id.clone();
+        let floor = 100i128;
+        let ceil = 100 + s_amount;
+
+        // The bystander pool — its 100 USDC must survive everything below untouched.
+        let vsender = Address::generate(&f.env);
+        f.sac.mint(&vsender, &floor);
+        let vsk = link_key(200);
+        f.client.create_drop(&vsender, &link_pub(&f.env, &vsk), &floor, &4, &2000);
+
+        // The subject pool — random size — is where every op (and any attack) happens.
+        let ssender = Address::generate(&f.env);
+        f.sac.mint(&ssender, &s_amount);
+        let ssk = link_key(201);
+        let slink = link_pub(&f.env, &ssk);
+        f.client.create_drop(&ssender, &slink, &s_amount, &s_slots, &2000);
+        prop_assert!(f.token.balance(&contract) >= floor && f.token.balance(&contract) <= ceil);
+
+        if reclaim_first && do_reclaim {
+            f.env.ledger().set_timestamp(2500);
+            let _ = f.client.try_reclaim_pool(&slink);
+            prop_assert!(f.token.balance(&contract) >= floor, "bystander drained by reclaim");
+        }
+        for _ in 0..attempts {
+            let p = Address::generate(&f.env);
+            let sig = sign(&f.env, &ssk, &f.client.claim_message(&2, &slink, &p));
+            let _ = f.client.try_claim_share(&slink, &p, &sig);
+            prop_assert!(f.token.balance(&contract) >= floor, "bystander drained by a share claim");
+            prop_assert!(f.token.balance(&contract) <= ceil, "funds conjured from nowhere");
+        }
+        if do_reclaim && !reclaim_first {
+            f.env.ledger().set_timestamp(2500);
+            let _ = f.client.try_reclaim_pool(&slink);
+        }
+        prop_assert!(f.token.balance(&contract) >= floor && f.token.balance(&contract) <= ceil);
+    }
 }

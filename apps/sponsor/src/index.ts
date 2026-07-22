@@ -32,7 +32,7 @@ import { createAccountHandler } from "./lib/create-account.js";
 import { feebumpHandler } from "./lib/feebump.js";
 import { sendLinkHandler } from "./lib/send.js";
 import { sweepHandler } from "./lib/sweep.js";
-import { relayClaimHandler, relayDepositHandler } from "./lib/soroban-relay.js";
+import { relayClaimHandler, relayDepositHandler, relayReclaimHandler } from "./lib/soroban-relay.js";
 import { faucetHandler } from "./lib/faucet.js";
 import { demoLinkHandler } from "./lib/demo-link.js";
 import { saveContact } from "./lib/waitlist.js";
@@ -189,6 +189,15 @@ const httpServer = createServer(async (req, res) => {
       const rl = await enforceRateLimit(clientIp(req), body.senderPublicKey);
       if (rl.limited) return send(res, 429, { error: rl.reason });
       const result = await relayDepositHandler(config, signer, { xdr: body.xdr, senderPublicKey: body.senderPublicKey });
+      return send(res, 200, result);
+    }
+
+    if (method === "POST" && url === "/v2-reclaim") {
+      const body = (await readJson(req)) as { xdr?: string; senderPublicKey?: string };
+      if (!body.xdr || !body.senderPublicKey) return send(res, 400, { error: "xdr and senderPublicKey are required" });
+      const rl = await enforceRateLimit(clientIp(req), body.senderPublicKey);
+      if (rl.limited) return send(res, 429, { error: rl.reason });
+      const result = await relayReclaimHandler(config, signer, { xdr: body.xdr, senderPublicKey: body.senderPublicKey });
       return send(res, 200, result);
     }
 

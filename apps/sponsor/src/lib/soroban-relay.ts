@@ -15,6 +15,8 @@ import type { SponsorSigner } from "./signer.js";
 import { CHANNEL_LEASE_TTL_SECONDS, type ChannelManager } from "./channels.js";
 
 const ALLOWED_METHODS = new Set<string>(["claim", "claim_share"]);
+/** The two reclaim methods a sender may relay to recover their OWN unclaimed drop after expiry. */
+const ALLOWED_RECLAIM_METHODS = new Set<string>(["reclaim", "reclaim_pool"]);
 /** Max fee (stroops) the sponsor will fee-bump a v2 deposit to (~2 XLM; a deposit costs ~0.2). */
 const V2_DEPOSIT_FEE_CAP = 20_000_000;
 
@@ -180,5 +182,58 @@ export async function relayDepositHandler(
     got = await server.getTransaction(sent.hash);
   }
   if (got.status !== "SUCCESS") throw new Error(`v2-deposit tx ${got.status}`);
+  return { hash: sent.hash };
+}
+
+/**
+ * /v2-reclaim — gasless v2 reclaim relayer (C2 recovery lever for v2 drops). After a drop's
+ * `expiry`, the ORIGINAL sender reclaims their OWN unclaimed drop: they build + sign a
+ * `reclaim` / `reclaim_pool` invoke (the contract does `sender.require_auth()`, satisfied by
+ * the sender being the inner tx source); the sponsor FEE-BUMPS it so the sender pays no gas.
+ * The contract only returns funds to the recorded sender — the relayer can never redirect a
+ * stroop (mirror of /v2-deposit; the SEPARATE tight allowlist never widens the claim/deposit
+ * ones). This is v2's equivalent of the classic /feebump sender-reclaim (spike9).
+ */
+export async function relayReclaimHandler(
+  config: SponsorConfig,
+  signer: SponsorSigner,
+  input: RelayDepositInput,
+): Promise<RelayClaimResult> {
+  if (!config.lumendropContract) throw new Error("v2 relayer not configured (LUMENDROP_CONTRACT unset)");
+  const inner = TransactionBuilder.fromXDR(input.xdr, config.networkPassphrase) as Transaction;
+
+  if (inner.source !== input.senderPublicKey) throw new Error(`unexpected inner source ${inner.source}`);
+  if (inner.operations.length !== 1) throw new Error("reclaim tx must have exactly 1 op");
+  const op = inner.operations[0] as { type: string; func?: xdr.HostFunction };
+  if (op.type !== "invokeHostFunction" || !op.func) throw new Error("not a contract invoke");
+  if (op.func.switch().name !== "hostFunctionTypeInvokeContract") throw new Error("not a contract call");
+  const ic = op.func.invokeContract();
+  const calledContract = Address.fromScAddress(ic.contractAddress()).toString();
+  const calledFn = ic.functionName().toString();
+  if (calledContract !== config.lumendropContract) throw new Error("wrong contract");
+  if (!ALLOWED_RECLAIM_METHODS.has(calledFn)) {
+    throw new Error(`only reclaim/reclaim_pool is relayed here, got '${calledFn}'`);
+  }
+  if (Number.parseInt(inner.fee, 10) > V2_DEPOSIT_FEE_CAP) {
+    throw new Error(`inner fee ${inner.fee} exceeds cap ${V2_DEPOSIT_FEE_CAP}`);
+  }
+
+  const feeBump = TransactionBuilder.buildFeeBumpTransaction(
+    signer.publicKey(),
+    inner.fee,
+    inner,
+    config.networkPassphrase,
+  );
+  signer.sign(feeBump);
+
+  const server = new rpc.Server(config.sorobanRpcUrl);
+  const sent = await server.sendTransaction(feeBump);
+  if (sent.status === "ERROR") throw new Error(`v2-reclaim send failed: ${JSON.stringify(sent.errorResult)}`);
+  let got = await server.getTransaction(sent.hash);
+  for (let i = 0; i < 40 && got.status === "NOT_FOUND"; i++) {
+    await sleep(1500);
+    got = await server.getTransaction(sent.hash);
+  }
+  if (got.status !== "SUCCESS") throw new Error(`v2-reclaim tx ${got.status}`);
   return { hash: sent.hash };
 }

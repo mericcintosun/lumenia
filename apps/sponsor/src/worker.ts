@@ -17,7 +17,7 @@ import { createAccountHandler } from "./lib/create-account.js";
 import { feebumpHandler } from "./lib/feebump.js";
 import { sendLinkHandler } from "./lib/send.js";
 import { sweepHandler } from "./lib/sweep.js";
-import { relayClaimHandler, relayDepositHandler } from "./lib/soroban-relay.js";
+import { relayClaimHandler, relayDepositHandler, relayReclaimHandler } from "./lib/soroban-relay.js";
 import { faucetHandler } from "./lib/faucet.js";
 import { demoLinkHandler } from "./lib/demo-link.js";
 import { saveContact } from "./lib/waitlist.js";
@@ -151,6 +151,14 @@ export default {
         const rl = await enforceRateLimit(clientIp(request), body.senderPublicKey);
         if (rl.limited) return json(429, { error: rl.reason });
         return json(200, await relayDepositHandler(config, signer, { xdr: body.xdr, senderPublicKey: body.senderPublicKey }));
+      }
+
+      if (method === "POST" && url === "/v2-reclaim") {
+        const body = (await readJson(request)) as { xdr?: string; senderPublicKey?: string };
+        if (!body.xdr || !body.senderPublicKey) return json(400, { error: "xdr and senderPublicKey are required" });
+        const rl = await enforceRateLimit(clientIp(request), body.senderPublicKey);
+        if (rl.limited) return json(429, { error: rl.reason });
+        return json(200, await relayReclaimHandler(config, signer, { xdr: body.xdr, senderPublicKey: body.senderPublicKey }));
       }
 
       if (method === "POST" && url === "/faucet") {

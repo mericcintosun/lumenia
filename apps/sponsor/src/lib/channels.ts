@@ -7,20 +7,26 @@
  *
  * FIX: a POOL of sponsor-controlled "channel" accounts, each LENDING its sequence
  * number to one concurrent onboarding. Different concurrent requests use different
- * channels → independent sequences → no collision (spike8: 20/20, 0 tx_bad_seq).
+ * channels → independent sequences → no collision (spike8: 20/20, 0 tx_bad_seq). This
+ * is the exact pattern in Stellar's official "channel accounts" guide.
  *
  * WORKERS REALITY: the sponsor is a Cloudflare Worker; isolates don't share memory,
  * so an in-memory free-list is unsafe under the exact viral load we're fixing. Two
  * isolates could hand out the same channel + sequence. Coordination therefore uses an
  * EXCLUSIVE LEASE in the shared store (the same Upstash Redis the rate-limiter uses):
- * `SET chan:<pub> 1 NX EX <ttl>` is atomic across isolates — exactly one isolate wins.
+ * `SET chan:<pub> <token> NX EX <ttl>` is atomic across isolates — exactly one wins.
+ * The lease value is a per-lease TOKEN so release() is FENCED (compare-and-delete): a
+ * slow isolate whose lease already TTL-expired cannot delete a successor's fresh lease.
  *
  * WHY A LEASE (not a reserved-sequence counter): the create-account client submits the
  * tx itself, and the sequence is BAKED into the XDR the client signs — the server can't
- * retry with a fresh sequence without a re-sign. So each channel serves ONE in-flight
- * onboarding at a time (exclusive lease). The lease TTL MUST exceed the tx's timebound,
- * so an abandoned (never-submitted) handout's tx is dead (tx_too_late) before the
- * channel is reused — otherwise a late submit could still land and collide.
+ * retry with a fresh sequence without a re-sign. A monotonic counter would jam on the
+ * first abandoned handout (a gap poisons every later sequence). So each channel serves
+ * ONE in-flight onboarding at a time (exclusive lease). The lease TTL MUST exceed the
+ * tx's timebound, so an abandoned (never-submitted) handout's tx is dead (tx_too_late)
+ * before the channel is reused — otherwise a late submit could still land and collide.
+ * INVARIANT: any tx built on a leased channel MUST carry maxTime < the lease TTL, and
+ * the channel's sequence MUST be read FRESH from chain at each lease (never cached).
  *
  * Empty CHANNEL_SECRETS ⇒ the pool is disabled and callers fall back to the
  * sponsor-sourced path (backward compatible — never worse than today).
@@ -33,14 +39,28 @@ export const CHANNEL_LEASE_TTL_SECONDS = 150;
 /** Timebound (seconds) of a tx built on a leased channel. MUST be < the lease TTL. */
 export const CHANNEL_TX_TIMEOUT_SECONDS = 120;
 
+// The whole TTL>timebound safety (an abandoned handout dies before its channel is
+// reused) collapses if this is ever violated — fail loudly at load, not silently at scale.
+if (CHANNEL_TX_TIMEOUT_SECONDS >= CHANNEL_LEASE_TTL_SECONDS) {
+  throw new Error(
+    `channel invariant violated: CHANNEL_TX_TIMEOUT_SECONDS (${CHANNEL_TX_TIMEOUT_SECONDS}) must be < CHANNEL_LEASE_TTL_SECONDS (${CHANNEL_LEASE_TTL_SECONDS})`,
+  );
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** A minimal exclusive-lease store: acquire() is atomic; release() is best-effort. */
+/** A minimal exclusive-lease store with FENCED release (compare-and-delete on a token). */
 export interface LeaseStore {
-  /** Try to take an exclusive lease on `key` for `ttlSeconds`. true = acquired. */
-  acquire(key: string, ttlSeconds: number): Promise<boolean>;
-  /** Drop the lease early (server-submit paths). TTL is the backstop if this is missed. */
-  release(key: string): Promise<void>;
+  /** Try to take an exclusive lease on `key` for `ttlSeconds`. Returns the lease token on
+   *  success, or null if the key is already leased. */
+  acquire(key: string, ttlSeconds: number): Promise<string | null>;
+  /** Release the lease ONLY if `token` still owns it (fences against a TTL-expired holder
+   *  deleting a successor's lease). Best-effort; the TTL is the backstop. */
+  release(key: string, token: string): Promise<void>;
+}
+
+function newToken(): string {
+  return crypto.randomUUID();
 }
 
 /* ---------- durable (cross-isolate) backend: Upstash Redis / Vercel KV REST ---------- */
@@ -62,15 +82,19 @@ function redisLeaseStore(kv: KvConfig): LeaseStore {
     if (!first || first.error) throw new Error(`channel lease store error: ${first?.error}`);
     return first.result;
   };
+  // Compare-and-delete: only the token that owns the key may release it.
+  const FENCED_DEL = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
   return {
     // SET NX returns "OK" when the key was set (lease acquired) or null when it already
     // exists (still leased by another isolate) — an atomic compare-and-set.
     async acquire(key, ttlSeconds) {
-      return (await pipeline(["SET", key, "1", "NX", "EX", String(ttlSeconds)])) === "OK";
+      const token = newToken();
+      const ok = (await pipeline(["SET", key, token, "NX", "EX", String(ttlSeconds)])) === "OK";
+      return ok ? token : null;
     },
-    async release(key) {
+    async release(key, token) {
       try {
-        await pipeline(["DEL", key]);
+        await pipeline(["EVAL", FENCED_DEL, "1", key, token]);
       } catch {
         /* best-effort — the TTL will reclaim the channel regardless */
       }
@@ -81,17 +105,19 @@ function redisLeaseStore(kv: KvConfig): LeaseStore {
 /* ---------- in-memory fallback: single-process only (local dev / integration test) ---------- */
 
 export function memoryLeaseStore(): LeaseStore {
-  const leases = new Map<string, number>(); // key → expiry (epoch ms)
+  const leases = new Map<string, { token: string; expiry: number }>();
   return {
     async acquire(key, ttlSeconds) {
       const now = Date.now();
-      const exp = leases.get(key);
-      if (exp !== undefined && exp > now) return false; // still leased
-      leases.set(key, now + ttlSeconds * 1000);
-      return true;
+      const cur = leases.get(key);
+      if (cur !== undefined && cur.expiry > now) return null; // still leased
+      const token = newToken();
+      leases.set(key, { token, expiry: now + ttlSeconds * 1000 });
+      return token;
     },
-    async release(key) {
-      leases.delete(key);
+    async release(key, token) {
+      const cur = leases.get(key);
+      if (cur && cur.token === token) leases.delete(key); // fenced
     },
   };
 }
@@ -111,7 +137,8 @@ export interface ChannelLease {
   /** The channel keypair (sponsor-controlled). It sources the tx + signs as the source. */
   keypair: Keypair;
   publicKey: string;
-  /** Drop the lease early — call after the tx CONFIRMS on server-submit paths. */
+  /** Drop the lease early — call after the tx CONFIRMS on server-submit paths. Fenced:
+   *  a no-op if this lease already TTL-expired and the channel was re-leased. */
   release(): Promise<void>;
 }
 
@@ -164,17 +191,18 @@ export class ChannelManager {
       for (let i = 0; i < n; i++) {
         const kp = this.keypairs[(start + i) % n]!;
         const key = `chan:${kp.publicKey()}`;
-        let got: boolean;
+        let token: string | null;
         try {
-          got = await this.store.acquire(key, CHANNEL_LEASE_TTL_SECONDS);
+          token = await this.store.acquire(key, CHANNEL_LEASE_TTL_SECONDS);
         } catch (e) {
           // Store failure ⇒ give up on channels for this request (fall back). Never block
           // an onboarding on the pool's own infrastructure.
           console.warn(`[channels] lease store unavailable, falling back: ${(e as Error).message}`);
           return null;
         }
-        if (got) {
-          return { keypair: kp, publicKey: kp.publicKey(), release: () => this.store.release(key) };
+        if (token !== null) {
+          const t = token;
+          return { keypair: kp, publicKey: kp.publicKey(), release: () => this.store.release(key, t) };
         }
       }
       if (attempt < attempts - 1) await sleep(delayMs);

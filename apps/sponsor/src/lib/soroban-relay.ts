@@ -12,11 +12,24 @@
 import { rpc, Address, Contract, TransactionBuilder, xdr, type Transaction, type FeeBumpTransaction } from "@stellar/stellar-sdk";
 import type { SponsorConfig } from "./config.js";
 import type { SponsorSigner } from "./signer.js";
-import type { ChannelManager } from "./channels.js";
+import { CHANNEL_LEASE_TTL_SECONDS, type ChannelManager } from "./channels.js";
 
 const ALLOWED_METHODS = new Set<string>(["claim", "claim_share"]);
 /** Max fee (stroops) the sponsor will fee-bump a v2 deposit to (~2 XLM; a deposit costs ~0.2). */
 const V2_DEPOSIT_FEE_CAP = 20_000_000;
+
+/**
+ * Timebound (s) for a v2-claim tx AND the confirm-wait budget — kept EQUAL on purpose:
+ * a tx still unconfirmed when the channel lease is released is already past its maxTime
+ * (tx_too_late → it can never land after the channel is reused, so no cross-lease
+ * collision). MUST be < the channel lease TTL (the lease is the outer safety net). The
+ * fenced release (see channels.ts) is the belt to this suspenders.
+ */
+const V2_CLAIM_TIMEOUT_SECONDS = 60;
+const V2_CLAIM_POLL_MS = 1500;
+if (V2_CLAIM_TIMEOUT_SECONDS >= CHANNEL_LEASE_TTL_SECONDS) {
+  throw new Error("v2-claim timeout must be < channel lease TTL");
+}
 
 export interface RelayClaimInput {
   /** LumenDrop method: "claim" (one-to-one) or "claim_share" (group). */
@@ -71,7 +84,7 @@ export async function relayClaimHandler(
           xdr.ScVal.scvBytes(sig),
         ),
       )
-      .setTimeout(60)
+      .setTimeout(V2_CLAIM_TIMEOUT_SECONDS)
       .build();
 
     const sim = await server.simulateTransaction(tx);
@@ -98,9 +111,12 @@ export async function relayClaimHandler(
 
     const sent = await server.sendTransaction(submitTx);
     if (sent.status === "ERROR") throw new Error(`v2-claim send failed: ${JSON.stringify(sent.errorResult)}`);
+    // Confirm-wait is bounded to V2_CLAIM_TIMEOUT_SECONDS (= the tx timebound) so a tx not
+    // yet in a ledger by then is already tx_too_late; the lease is freed only after this.
+    const maxPolls = Math.ceil((V2_CLAIM_TIMEOUT_SECONDS * 1000) / V2_CLAIM_POLL_MS);
     let got = await server.getTransaction(sent.hash);
-    for (let i = 0; i < 40 && got.status === "NOT_FOUND"; i++) {
-      await sleep(1500);
+    for (let i = 0; i < maxPolls && got.status === "NOT_FOUND"; i++) {
+      await sleep(V2_CLAIM_POLL_MS);
       got = await server.getTransaction(sent.hash);
     }
     if (got.status !== "SUCCESS") throw new Error(`v2-claim tx ${got.status}`);

@@ -39,27 +39,28 @@ async function main() {
   console.log(" CHANNEL-LEASE MANAGER — offline correctness");
   console.log("============================================================\n");
 
-  /* --- D: store atomicity (compare-and-set) --- */
-  console.log("[D] store atomicity — a held lease cannot be re-acquired");
+  /* --- D: store atomicity (compare-and-set) + FENCED release --- */
+  console.log("[D] store atomicity — a held lease can't be re-acquired; release is fenced");
   {
     const store = memoryLeaseStore();
-    const first = await store.acquire("chan:X", 100);
-    const second = await store.acquire("chan:X", 100);
-    ok("first acquire wins", first === true);
-    ok("second acquire on a held key fails", second === false);
-    await store.release("chan:X");
-    const third = await store.acquire("chan:X", 100);
-    ok("after release, acquire wins again", third === true);
+    const t1 = await store.acquire("chan:X", 100);
+    const t2 = await store.acquire("chan:X", 100);
+    ok("first acquire wins (returns a token)", typeof t1 === "string");
+    ok("second acquire on a held key fails (null)", t2 === null);
+    await store.release("chan:X", "wrong-token");
+    ok("release with the WRONG token is a no-op (still held)", (await store.acquire("chan:X", 100)) === null);
+    await store.release("chan:X", t1!);
+    ok("release with the OWNING token frees it", typeof (await store.acquire("chan:X", 100)) === "string");
   }
 
   /* --- E: TTL expiry (abandoned handout self-heals) --- */
   console.log("\n[E] TTL expiry — a lease auto-releases after its TTL");
   {
     const store = memoryLeaseStore();
-    ok("acquire with 1s TTL", (await store.acquire("chan:Y", 1)) === true);
-    ok("still held before TTL", (await store.acquire("chan:Y", 1)) === false);
+    ok("acquire with 1s TTL", typeof (await store.acquire("chan:Y", 1)) === "string");
+    ok("still held before TTL", (await store.acquire("chan:Y", 1)) === null);
     await sleep(1150);
-    ok("re-acquirable after TTL", (await store.acquire("chan:Y", 1)) === true);
+    ok("re-acquirable after TTL", typeof (await store.acquire("chan:Y", 1)) === "string");
   }
 
   /* --- A: N concurrent leases over N channels → all distinct --- */

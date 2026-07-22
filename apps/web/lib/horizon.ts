@@ -28,6 +28,14 @@ export interface ActivityItem {
   at: string; // ISO timestamp
 }
 
+export interface ReclaimableSend {
+  balanceId: string;
+  usd: string;
+  at: string; // ISO (last modified)
+  /** ISO time the reclaim window opened (already in the past for a reclaimable send). */
+  reclaimableAt: string;
+}
+
 function server(): Horizon.Server {
   return new Horizon.Server(HORIZON_URL);
 }
@@ -108,6 +116,46 @@ export async function loadIncomingClaims(address: string, issuer: string): Promi
         usd: cb.amount,
         at: (cb as unknown as { last_modified_time?: string }).last_modified_time ?? "",
       }));
+  } catch (e) {
+    if ((e as { response?: { status?: number } })?.response?.status === 404) return [];
+    throw e;
+  }
+}
+
+/**
+ * Your OWN sends that have come back to you: open Claimable Balances where THIS account is
+ * the SENDER-RECLAIM claimant — a `not(before-time)` predicate — whose window has already
+ * PASSED (the recipient never claimed and the reclaim window is up). You can take that money
+ * back gaslessly via /feebump (a reclaim IS a claimClaimableBalance sourced by you — proven
+ * by spike9). Still present in Horizon ⇒ unclaimed. This is the exact mirror of
+ * loadIncomingClaims: incoming = your UNCONDITIONAL claimant; reclaimable = your time-locked
+ * claimant with an elapsed window. Pinned to the account's own trustline asset.
+ */
+export async function loadReclaimableSends(address: string, issuer: string): Promise<ReclaimableSend[]> {
+  try {
+    const now = Date.now();
+    const page = await server().claimableBalances().claimant(address).limit(200).order("desc").call();
+    const out: ReclaimableSend[] = [];
+    for (const cb of page.records) {
+      if (cb.asset !== `USDC:${issuer}`) continue;
+      const mine = cb.claimants.find((c) => c.destination === address);
+      const not = (mine?.predicate as { not?: { abs_before?: string; abs_before_epoch?: string } } | undefined)?.not;
+      if (!not) continue; // not the time-locked reclaim claimant (unconditional = incoming, handled elsewhere)
+      // Horizon resolves the relative predicate to an absolute cutoff: reclaimable once now >= it.
+      const openMs = not.abs_before
+        ? Date.parse(not.abs_before)
+        : not.abs_before_epoch
+          ? Number.parseInt(not.abs_before_epoch, 10) * 1000
+          : NaN;
+      if (!Number.isFinite(openMs) || openMs > now) continue; // window not open yet
+      out.push({
+        balanceId: cb.id,
+        usd: cb.amount,
+        at: (cb as unknown as { last_modified_time?: string }).last_modified_time ?? "",
+        reclaimableAt: not.abs_before ?? new Date(openMs).toISOString(),
+      });
+    }
+    return out;
   } catch (e) {
     if ((e as { response?: { status?: number } })?.response?.status === 404) return [];
     throw e;

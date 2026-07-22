@@ -90,6 +90,18 @@ export const copy = {
     row: (amount: string) => `${amount} is waiting for you`,
   },
   /**
+   * Money YOU sent that came back — a link no one claimed, past the 7-day window (the
+   * approved "comes back to you after 7 days"). Take it back gaslessly, no jargon.
+   * ADDITIVE block (copy.ts is in the frozen claim route's import graph — existing keys
+   * above never change).
+   */
+  recover: {
+    row: (amount: string) => `${amount} you sent came back to you`,
+    hint: "No one claimed it, so it's yours again.",
+    take: "Take it back",
+    taking: "Taking it back…",
+  },
+  /**
    * Delegated cash-out placeholder (Instawards SOW note): conversion to local
    * currency is handled by a licensed provider, never by Lumenia. UI placeholder
    * only. Lives on /home + /cash-out now — NOT on the claim success screen.

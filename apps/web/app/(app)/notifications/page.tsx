@@ -111,7 +111,7 @@ export default function NotificationsPage() {
     <div className="flex flex-col gap-4 py-4">
       <header>
         <h1 className="text-xl font-bold text-ink">Notifications</h1>
-        <p className="mt-1 text-sm text-ink-soft">Money in and money waiting, from the public record.</p>
+        <p className="mt-1 text-sm text-ink-soft">Money in, waiting, and coming back to you — from the public record.</p>
       </header>
 
       {loading && notices.length === 0 ? (
@@ -127,20 +127,26 @@ export default function NotificationsPage() {
               <div className="flex-1">
                 <p className="font-semibold text-ink">
                   {n.kind === "waiting"
-                    ? `${formatUsd(n.usd)} is waiting for you`
-                    : `You received ${formatUsd(n.usd)}`}
+                    ? copy.waiting.row(formatUsd(n.usd))
+                    : n.kind === "reclaimable"
+                      ? copy.recover.row(formatUsd(n.usd))
+                      : `You received ${formatUsd(n.usd)}`}
                 </p>
-                {n.at && <p className="text-xs text-ink-soft">{whenText(n.at)}</p>}
+                {n.kind === "reclaimable" ? (
+                  <p className="text-xs text-ink-soft">{copy.recover.hint}</p>
+                ) : n.at ? (
+                  <p className="text-xs text-ink-soft">{whenText(n.at)}</p>
+                ) : null}
               </div>
-              {n.kind === "waiting" && n.balanceId && (
+              {(n.kind === "waiting" || n.kind === "reclaimable") && n.balanceId && (
                 <div className="shrink-0">
                   <PrimaryButton
                     loading={collectingId === n.id}
                     disabled={collectingId !== null && collectingId !== n.id}
-                    loadingLabel={copy.waiting.collecting}
+                    loadingLabel={n.kind === "reclaimable" ? copy.recover.taking : copy.waiting.collecting}
                     onClick={() => collect(n.balanceId!, n.id)}
                   >
-                    {copy.waiting.collect}
+                    {n.kind === "reclaimable" ? copy.recover.take : copy.waiting.collect}
                   </PrimaryButton>
                 </div>
               )}

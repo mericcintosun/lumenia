@@ -4,22 +4,24 @@
  * no push subscription, no per-user database — which is exactly the product's privacy posture (money
  * lives on the public record; we hold nothing).
  *
- * Two kinds of item, both real:
- *   - "waiting"  — an open Claimable Balance you can collect right now (a paid request, or a transfer
- *                  straight to your account). Source: loadIncomingClaims.
- *   - "received" — money that already landed in your account. Source: loadActivity (incoming effects).
+ * Three kinds of item, all real:
+ *   - "waiting"     — an open Claimable Balance you can collect right now (a paid request, or a
+ *                     transfer straight to your account). Source: loadIncomingClaims.
+ *   - "reclaimable" — money YOU sent that was never claimed and whose 7-day window is up, so it can
+ *                     come back to you (gasless, via /feebump — proven). Source: loadReclaimableSends.
+ *   - "received"    — money that already landed in your account. Source: loadActivity (incoming effects).
  *
  * Unread = an item whose id you have not marked seen on this device. There is deliberately no
  * cross-device sync: a notification is a hint derived from the ledger, not a record we keep for you.
  */
-import { loadActivity, loadIncomingClaims, loadBalance } from "./horizon";
+import { loadActivity, loadIncomingClaims, loadReclaimableSends, loadBalance } from "./horizon";
 
 export interface Notice {
   id: string;
-  kind: "waiting" | "received";
+  kind: "waiting" | "reclaimable" | "received";
   usd: string;
   at: string; // ISO ("" if the ledger didn't stamp one)
-  /** for a "waiting" item: the balance id to collect. */
+  /** for a "waiting" or "reclaimable" item: the balance id to collect / take back. */
   balanceId?: string;
 }
 
@@ -47,8 +49,9 @@ export function markAllSeen(ids: string[]): void {
 /** Build the full notice list from the ledger, newest first. */
 export async function loadNotices(address: string): Promise<Notice[]> {
   const bal = await loadBalance(address);
-  const [waiting, activity] = await Promise.all([
+  const [waiting, reclaimable, activity] = await Promise.all([
     bal?.issuer ? loadIncomingClaims(address, bal.issuer) : Promise.resolve([]),
+    bal?.issuer ? loadReclaimableSends(address, bal.issuer) : Promise.resolve([]),
     loadActivity(address, 50),
   ]);
   const notices: Notice[] = [
@@ -58,6 +61,13 @@ export async function loadNotices(address: string): Promise<Notice[]> {
       usd: w.usd,
       at: w.at,
       balanceId: w.balanceId,
+    })),
+    ...reclaimable.map((r) => ({
+      id: `rc:${r.balanceId}`,
+      kind: "reclaimable" as const,
+      usd: r.usd,
+      at: r.at,
+      balanceId: r.balanceId,
     })),
     ...activity
       .filter((a) => a.direction === "in")

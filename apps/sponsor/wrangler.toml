@@ -18,6 +18,9 @@ compatibility_flags = ["nodejs_compat"]
 STELLAR_NETWORK = "testnet"
 ALLOWED_ORIGIN = "https://getlumenia.com"
 USDC_ISSUER = "GDO7HI2WKTMDLDG54XKAVE6BTJ5BYXE7PAYQNM5535J2SJNXR334ECYC"
+# v2 Soroban LumenDrop escrow (public contract id) — enables the /v2-deposit,
+# /v2-claim and /v2-reclaim relayers. SOROBAN_RPC_URL defaults to the testnet RPC.
+LUMENDROP_CONTRACT = "CDYEDHBPMDOOZSJGB2Z6JVK7GS3S5CWNXNGTEPMJFS25TAWSYHTXA2RF"
 
 # Uncomment after the Worker exists + the zone DNS is set:
 # [[routes]]

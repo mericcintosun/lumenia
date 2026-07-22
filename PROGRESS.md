@@ -2,11 +2,13 @@
 
 This file records **only the work that has actually been done** (not plans or decisions — those live in [README.md](README.md) and [stack.md](stack.md)). The next agent reads this to see "what really exists." Be honest about the line between *proven* and *unverified* (the §6 table is the single source of truth for that).
 
-Last updated: 2026-07-11 · Network: **testnet** · No real money used.
+Last updated: 2026-07-22 · Network: **testnet** · No real money used.
 
 > **Instawards sprint (25.06 → ~24.07): see §10** — the live sponsor service, the
 > end-to-end browser claim (binary metric MET on-chain) and the hardened anti-drain
-> (25/25 + 6/6) supersede the pre-award state below where they conflict.
+> (**44/44** unit + **6/6** integration) supersede the pre-award state below where they conflict.
+> The project has continued past the sprint: the sponsor now runs as a single **Cloudflare Worker**,
+> and v2 Soroban escrow + recovery + request-money + onward-send are shipped on testnet (§6, §10).
 
 > Naming note: the product is **Lumenia**; packages are `@lumenia/*`. The working directory is historically named `faceid-wallet` (cosmetic). Stelvin is a **separate, independent project** — not part of Lumenia and not used as its credential.
 
@@ -40,12 +42,16 @@ lumenia/  (working dir: faceid-wallet)
 │       ├── package.json                 # @lumenia/sponsor — stellar-sdk only (ESM; recovery deps dropped)
 │       ├── tsconfig.json
 │       ├── README.md                    # live service layout + module-system gotchas
+│       ├── wrangler.toml                 # Cloudflare Worker config (the LIVE deploy)
 │       └── src/
+│           ├── worker.ts                    # ✅ Cloudflare Worker entry — all endpoints (the LIVE host)
+│           ├── lib/                          # create-account · feebump · send · sweep · channels · soroban-relay · anti-drain · recovery-*
+│           ├── vercel/                       # esbuild-bundled deprecated 12-fn Vercel fallback
 │           ├── spike1-sponsored-claim.ts   # ✅ Spike #1  — sponsored 0-XLM claim economics
 │           ├── spike1b-kms-rawsign.ts      # ✅ Spike #1b — external raw Ed25519 → DecoratedSignature
 │           ├── spike1c-wire-parity.ts      # ✅ Spike #1c — web→sponsor XDR wire-parity + fee-bump
 │           ├── spike5-sponsored-send.ts    # ✅ Spike #5  — 0-XLM sponsored onward-send (7/7 testnet)
-│           └── test-antidrain.ts           # ✅ anti-drain validator tests (now 25/25: 18 claim + 7 onward-send)
+│           └── test-antidrain.ts           # ✅ anti-drain validator tests (44/44: 18 claim+7 send+12 sweep+4 seq+3 golden)
 └── packages/
     └── shared/
         ├── package.json                 # @lumenia/shared
@@ -88,7 +94,7 @@ The primitives shared by web + sponsor:
 
 > ⚠️ **Correction (don't overclaim):** Spike #1 signs with a **local in-memory `Keypair`** (`tx.sign`) in a **single process**. It does **NOT** prove (a) that the sponsor key can live in an HSM/KMS, or (b) that the inner tx survives the web→sponsor wire, or (c) fee-abuse/economic anti-drain. Those are covered by §4b–§4d below; what remains open is in 6.
 
-## 4b. ✅ Anti-drain validator hardening + tests (14/14 → 18/18 → 25/25, see §10)
+## 4b. ✅ Anti-drain validator hardening + tests (14/14 → 18/18 → 25/25 → 44/44, see §10)
 
 **File:** [apps/sponsor/src/test-antidrain.ts](apps/sponsor/src/test-antidrain.ts) · **Run:** `pnpm test:antidrain` · no network needed.
 
@@ -134,6 +140,10 @@ Proves the Stellar-specific half of the CCTP bridge leg (off-ramp Path 3) on liv
 | web→sponsor XDR wire-parity + fee-bump of re-parsed tx | ✅ PROVEN (Spike #1c + live browser claim — §10) |
 | **Live sponsor service + end-to-end walletless browser claim** | ✅ **PROVEN on-chain** (§10: tx `b9ef1844…` — 20 USDC landed, 0 XLM held, sponsor paid the fee) |
 | Fee-abuse / rate-limit economic defense | ✅ PROVEN live — durable cross-instance 429 on the deployed service (Upstash store; §10) + integration test |
+| v2 Soroban `LumenDrop` escrow (late-bound payout; the default shareable link-send) | ✅ PROVEN (testnet) — 11 unit + a 48-case proptest invariant + 7/7 on-chain; deployed, with deposit→claim→reclaim live over HTTP and the sponsor paying the fees (§10). Mainnet gated on audit. |
+| Sponsor concurrency (channel-account pool; was the #1 mainnet blocker) | ✅ PROVEN live — 20/20 concurrent `/create-account`, 0 `tx_bad_seq`, 20/20 via:channel (§10) |
+| Recovery (password + email-OTP + WebAuthn-PRF "Face ID") | ◑ SHIPPED in code + crypto self-test 13/13 (multi-account keystore + sweep also shipped, Spike #7 8/8). Real-device PRF (Spike #2) + Resend domain-verify still gate real users. |
+| Sponsor runs as a single Cloudflare Worker (env hot-key signer) | ✅ LIVE — `lumenia-sponsor.avakit.workers.dev`; the Vercel esbuild-CJS path is a deprecated 12-fn fallback. KMS raw-signer proven mechanically (Spike #1b), not wired. |
 | 🔑 Recipient can turn Stellar-USDC into spendable TRY (off-ramp) | ⚠️ PATHS IDENTIFIED, real-world unconfirmed. **CCTP V2 is live on Stellar testnet+mainnet** (bridge leg is **testnet-testable now**, no money/KYC). Two **direct** Stellar-USDC exits need no bridge: **KAST card** (TRY spend) and **Binance Global→Binance TR→IBAN**. MASAK: ~$3k/day, 72h first withdrawal. Official anchor directory (anchors.stellar.org) checked 2026-06-18: TR anchors = Banxa/BiLira/Onramp.money/Digibank/Arf, but **Banxa rejects Stellar-USDC** (XLM buy-only) and **no anchor offers a direct TRY off-ramp for Stellar-USDC** — Banxa/BiLira are BD leads ("accept USDC on Stellar?"), not a ready path. Plan tracked in a local working doc — Spike #4 (CCTP testnet) done; KAST/Binance real-account checks pending. |
 | WebAuthn PRF round-trip on real devices (Spike #2) | ❌ UNVERIFIED (needs hardware); Argon2id is the mandatory floor |
 | WhatsApp webview claim + escape-to-browser + Argon2id (Spike #3) | ❌ UNVERIFIED (needs hardware); architecture researched (value-first + escape-to-browser) |
@@ -161,7 +171,7 @@ Six deep research briefs were produced to de-risk the review-flagged unknowns. H
 - ❌ **Spike #2** (WebAuthn PRF round-trip on a real device) — requires hardware.
 - ❌ **Spike #3** (WhatsApp webview claim + escape-to-browser + Argon2id fallback) — requires hardware.
 - ❌ 🔑 **CASP / off-ramp confirmation** — still the highest-leverage off-code task; research narrowed it to "confirm a CCTP-bridged or card cash-out actually works for a TR recipient."
-- ❌ Off-chain split ledger, request (SEP-7) flow, DB schema, recovery (PRF/Argon2id) implementation.
+- ◑ **Recovery** (password + email-OTP + PRF "Face ID") is SHIPPED in code (real-device PRF / Spike #2 + Resend domain-verify pending) and **request-money** is SHIPPED (push-only, **not** SEP-7 — the first-time-asker case has no destination account). Still unbuilt: an off-chain split ledger and a production DB (the live stores are Upstash Redis + on-chain; there is no Postgres).
 
 ---
 
@@ -171,7 +181,7 @@ Six deep research briefs were produced to de-risk the review-flagged unknowns. H
 # at the repo root
 pnpm install        # entire workspace
 pnpm spike1         # Spike #1   → testnet → "✅ SPIKE #1 PASS"
-pnpm test:antidrain # validator  → "✅ ANTI-DRAIN TESTS PASS (25/25)" (no network)
+pnpm test:antidrain # validator  → "✅ ANTI-DRAIN TESTS PASS (44/44)" (no network)
 pnpm --filter @lumenia/sponsor test:integration  # → "✅ INTEGRATION TESTS PASS (6/6)" (testnet)
 pnpm spike1b        # Spike #1b  → testnet → "✅ SPIKE #1b PASS"
 pnpm spike1c        # Spike #1c  → testnet → "✅ SPIKE #1c PASS"
@@ -186,9 +196,9 @@ pnpm spike4         # Spike #4   → testnet → "✅ SPIKE #4 PASS" (CCTP Stell
 
 The 30-day SOW ([INSTAWARDS_SOW.md](INSTAWARDS_SOW.md)) integrates the proven spikes into one live flow. Status per deliverable — see [EVIDENCE.md](EVIDENCE.md) for the reviewer-facing package:
 
-- **D1 — live sponsor service:** deployed at `https://lumenia-sponsor.vercel.app` (`/health`, `/create-account`, `/feebump`) as esbuild-bundled CJS functions; env hot-key signer; fee cap; per-IP + per-account rate limiting on both POST endpoints, **durable across serverless instances** (Upstash Redis via Vercel Marketplace, `KV_REST_API_URL/TOKEN`; in-memory fallback). Proven live 2026-07-11: 12 concurrent `/create-account` for one account → exactly 5×200 (cap) + 7×429.
+- **D1 — live sponsor service:** now deployed as a single **Cloudflare Worker** at `https://lumenia-sponsor.avakit.workers.dev` (`/health`, `/create-account`, `/feebump`, plus the post-sprint `/send-link` `/sweep` `/faucet` `/demo-link` `/events` `/waitlist` `/feedback` and v2/recovery endpoints); env hot-key signer; fee cap; per-IP + per-account rate limiting, **durable across instances** (Upstash Redis, `KV_REST_API_URL/TOKEN`; in-memory fallback). Proven live: 12 concurrent `/create-account` for one account → exactly 5×200 (cap) + 7×429. (The Vercel esbuild-CJS deploy is a deprecated 12-fn fallback — the move was forced by Vercel Hobby's 12-function cap once recovery pushed the count to 15.)
 - **D2 — end-to-end walletless claim:** ✅ **binary metric MET.** A real browser tapped a claim link on `https://lumenia-chi.vercel.app`, the sponsor created a 0-XLM account + USDC trustline, and the fee-bumped claim landed **20 USDC with the recipient holding 0 XLM** — tx `b9ef1844c6ca2df732648b965a2f991ba0197643057b2c9e2a60ab52c3e23746` (fee paid by the sponsor; verify on stellar.expert).
-- **D3 — anti-drain, wired and tested:** the validator (`apps/sponsor/src/lib/anti-drain.ts`, moved out of `packages/shared` for the Vercel deploy boundary, hardened to **strict-by-default**) gates every live `/feebump`. **25/25** unit tests + **6/6** integration tests (happy claim / happy send / drain rejection / rate-limit 429 over real HTTP); a live drain attempt against the deployed endpoint returns `400 — "op 'payment' sourced from sponsor (drain attempt)"`. Write-up: [ANTI_DRAIN.md](ANTI_DRAIN.md).
+- **D3 — anti-drain, wired and tested:** the validator (`apps/sponsor/src/lib/anti-drain.ts`, hardened to **strict-by-default**) gates every live `/feebump`. **44/44** unit tests (18 claim + 7 send + 12 sweep + 4 op-sequence + 3 golden-policy) + **6/6** integration tests (happy claim / happy send / drain rejection / rate-limit 429 over real HTTP); a live drain attempt against the deployed endpoint returns `400 — "op 'payment' sourced from sponsor (drain attempt)"`. Three separate tight policies (CLAIM / SEND / SWEEP); the claim allowlist is never widened. Write-up: [ANTI_DRAIN.md](ANTI_DRAIN.md).
 - **Web claim UI:** value-first page (amount before any credential; bearer key in the `#fragment`, never sent to a server), on-screen explorer tx link after the claim, and the delegated cash-out **placeholder** (disabled "Spend with a card / Convert to Turkish lira" — a licensed provider converts, Lumenia never does; SOW §4.1 note).
 - **Evidence:** [EVIDENCE.md](EVIDENCE.md) + the test-output capture `evidence/tests-25-25-and-6-6.png`.
 - **Still open (W4):** the 60-second demo video (user-recorded).

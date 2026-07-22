@@ -97,7 +97,9 @@ Sender                           Stellar Ledger                 Recipient (walle
 
 ### 3.2 Request money flow
 
-On Stellar there is **no pull/debit (automatic collection).** "Request money" = a **SEP-7 payment link** is generated; the payer opens it, sees the amount, confirms, and **pushes** it. No one can pull money from anyone without their knowledge — this isn't a constraint, it's a **trust feature** ("you won't get a surprise charge").
+On Stellar there is **no pull/debit (automatic collection).** "Request money" = a **push-only request**: the asker generates a request link carrying the amount, their name, and a nonce (no custody, no credential); the payer opens it, sees the amount, and **pushes** the money back — a first-time asker gets a normal bearer claim link in return, while a returning asker's link also carries her address so the payer's Claimable Balance names her as the claimant. No one can pull money from anyone without their knowledge — this isn't a constraint, it's a **trust feature** ("you won't get a surprise charge").
+
+> **Not SEP-7 (yet):** the shipped v1 deliberately does **not** use a SEP-7 `web+stellar:pay` URI — a first-time asker has no destination account to express, and a SEP-7 URI would drop the sender's reclaim predicate. "Pay from any wallet" via SEP-7 is a later, additive SCF-Integration milestone (v1.5).
 
 ### 3.3 Recovery (device change / loss)
 
@@ -111,9 +113,9 @@ On Stellar there is **no pull/debit (automatic collection).** "Request money" = 
 > pending password-strength/OTP-abuse security pass; the WebAuthn-PRF design below is now the
 > implementation, not just a plan. (Guardian/social recovery via a v2 smart account remains future.)
 
-The v2 design: keeping a classic Ed25519 key only in browser memory is catastrophic (if the data is wiped, the money is gone). Instead:
-- A key is derived from the **PRF output of a WebAuthn passkey** → the Ed25519 secret is encrypted with **AES-256-GCM** → the ciphertext is stored on the server → with the user's platform passkey (iCloud/Google) it is **synced/recovered across devices.**
-- Because the WhatsApp in-app browser blocks passkey creation, the **Argon2id password-based fallback is the primary path**, and PRF is the upgrade offered on a real browser.
+The design (now shipped): keeping a classic Ed25519 key only in browser memory is catastrophic (if the data is wiped, the money is gone). Instead:
+- ONE 32-byte seed is wrapped **twice** into **AES-256-GCM** ciphertext — copy A with a key from **Argon2id(password)** (the floor), copy B with a key from a **WebAuthn-PRF passkey** (the Face ID upgrade). The server stores **only ciphertext it can never open**; there is still **no seed-export path.**
+- Cross-device restore = an **email one-time code** unlocks fetching the sealed box, which is decrypted locally back into the **same account.** Because the WhatsApp in-app browser blocks passkey creation, the **Argon2id password path is primary**, and PRF is the fast-unlock upgrade offered on a real browser.
 
 ---
 
@@ -125,8 +127,10 @@ This section is the heart of the project: every major decision and **why** it wa
 **Why:** The essence of Lumenia is a **link.** A link opens wherever the user taps it (WhatsApp in-app browser, Safari, Chrome). Saying "go to the App Store first to receive the money" kills the funnel — that's the exact opposite of the "30 seconds, zero setup" promise. Also WebAuthn/passkey is **first-class on the web**, whereas in React Native it's polyfill hell (`createKeypair` blows up in RN, requiring crypto/Buffer shims). A Next.js PWA = a single codebase, both a powerful web app and a mobile app installed via "Add to Home Screen." If a true native app is needed, we move to Expo in v2. **Web-first also keeps the passkey door open for v2.**
 
 ### Decision 2 — Not a Soroban smart-account, but **classic Ed25519 (v1)**
-**Why:** "A Face ID, seedless wallet" is a UX promise, not a cryptographic one. Keeping a classic Ed25519 key in the device's secure enclave and unlocking it with biometrics is **indistinguishable** from a real passkey in the experience the user lives — and it ships in 30 days. A true passkey smart-account (OpenZeppelin Smart Accounts), on the other hand, requires a factory contract + relayer + Soroban-token balances + RN native modules; SDF's own relayer (Launchtube) says "prototype, no SLA." **The "Zero XLM" feature already comes from sponsorship, not from the account type** — meaning it's achievable today even with a classic account. Smart-account = v2 (for recovery + multi-device); placing the `RecipientAccount` interface in v1 makes the migration cheap.
+**Why:** "A Face ID, seedless wallet" is a UX promise, not a cryptographic one. Keeping a classic Ed25519 key in the device's secure enclave and unlocking it with biometrics is **indistinguishable** from a real passkey in the experience the user lives — and it ships in 30 days. A true passkey smart-account (OpenZeppelin Smart Accounts), on the other hand, requires a factory contract + relayer + Soroban-token balances + RN native modules; SDF's own relayer (Launchtube) was "prototype, no SLA" (SDF is now discontinuing Launchtube — the v2 send path uses the **OpenZeppelin Relayer** instead). **The "Zero XLM" feature already comes from sponsorship, not from the account type** — meaning it's achievable today even with a classic account. Smart-account = v2 (for recovery + multi-device); placing the `RecipientAccount` interface in v1 makes the migration cheap.
 > Note: the `passkey-kit` library says in its README "demo only, not audited, do not use to protect anything" → an app that holds money is not built on top of it.
+>
+> **Status (2026-07-22):** the passkey *smart-account* for identity/recovery/multi-device remains v2/future — but the v2 **Soroban escrow** for the *send* path, **LumenDrop**, is already **built + deployed to testnet** (11 unit tests + a 48-case fund-conservation proptest + a 7/7 on-chain proof that the recipient pays no gas) and is now the **default shareable link-send** (late-bound payout; the OpenZeppelin Relayer pays the Soroban fee, so the recipient still pays no gas) and the **SCF Integration centerpiece**, live in the deployed sponsor Worker. The **frozen classic `/c/[id]` Claimable-Balance claim stays v1**, so the app runs a **v1-claim / v2-send hybrid.** Mainnet is gated on an audit.
 
 ### Decision 3 — Custody: **sender-funded Claimable Balance + sponsor backend**
 **Why:** Choosing the right primitive for "let the walletless recipient claim the money" is critical.
@@ -162,9 +166,9 @@ Full pinned list and rationales: **[stack.md](stack.md)**. Summary:
 | **Identity** | Classic Ed25519 keypair; encrypted recovery with WebAuthn PRF + Argon2id (`@simplewebauthn` 13.x) |
 | **Chain** | `@stellar/stellar-sdk@16.0.0` (sponsored-reserve sandwich + fee-bump); `@stellar/typescript-wallet-sdk@3` (SEP flows) |
 | **Custody** | Sender-funded Claimable Balance (dual predicate) — ledger escrow, non-custodial |
-| **Backend** | Separate Node sponsor service; sponsor key in KMS (AWS KMS Ed25519 / Dfns / Turnkey); anti-drain allowlist + rate-limit |
-| **DB** | Postgres (claim link `hash`, request state, off-chain split ledger, encrypted key blobs) |
-| **Notifications** | WhatsApp Business API (primary) + web push |
+| **Backend** | Single **Cloudflare Worker** sponsor service (`worker.ts`); sponsor key = env hot-key behind a `SponsorSigner` interface (AWS KMS Ed25519 raw-sign mechanically proven, not yet wired); anti-drain allowlist + rate-limit |
+| **State** | **No Postgres** — **Upstash Redis** (rate-limit, waitlist, recovery ciphertext boxes, channel-account leases; in-memory fallback) + everything else **on-chain** (Horizon / Soroban) |
+| **Notifications** | **Email via Resend** (interim OTP + notify, owner-gated) + in-app Horizon poll; WhatsApp Business API is a Q1-2027 long-lead item |
 | **Asset / Network** | Native Circle USDC · testnet → mainnet |
 
 **Why these versions:** `next-pwa` is dead → Serwist is the standard. `stellar-sdk@16` (not v14) because the `rpc`/sponsorship/fee-bump APIs are the same and v14 is two majors behind for no reason. AWS KMS has done Ed25519 raw-sign since November 2025 → secure custody of the sponsor key is possible.
@@ -176,31 +180,34 @@ Full pinned list and rationales: **[stack.md](stack.md)**. Summary:
 ```
 lumenia/  (pnpm workspaces)
 ├── apps/
-│   ├── web/         → Next.js 16 PWA (PUBLIC, no secrets)
-│   └── sponsor/     → separate Node service (HOT Ed25519 sponsor key, KMS)
-│       └── src/
-│           ├── spike1b-kms-rawsign.ts → AWS KMS Ed25519 raw-sign proof
-│           ├── spike1c-wire-parity.ts → web→sponsor XDR wire-parity proof
-│           └── test-antidrain.ts      → anti-drain validator tests
+│   ├── web/         → Next.js 16 PWA (PUBLIC, no secrets) → Vercel, getlumenia.com
+│   └── sponsor/     → Cloudflare Worker sponsor service (env hot-key; KMS drop-in later)
+│       ├── src/
+│       │   ├── worker.ts              → Workers `fetch` entry (reuses lib/* verbatim)
+│       │   ├── lib/                   → signer, anti-drain, channels, recovery box
+│       │   ├── spike1b-kms-rawsign.ts → AWS KMS Ed25519 raw-sign proof
+│       │   ├── spike1c-wire-parity.ts → web→sponsor XDR wire-parity proof
+│       │   └── test-antidrain.ts      → anti-drain validator tests
+│       └── wrangler.toml              → Worker config (nodejs_compat)
 ├── packages/
-│   └── shared/      → tx-builders, claim-secret hash, types
-│                      (web + sponsor must build the tx byte-for-byte identically)
+│   └── shared/      → claim-secret / asset helpers + shared types
+│                      (web + sponsor cross the wire as XDR, must re-parse byte-identically)
 ├── stack.md         → pinned tech stack + adversarial review rulings
 └── README.md        → this document
 ```
 
 > Note: the working directory is historically named `faceid-wallet`; the project/monorepo root is `lumenia`.
 
-**Why two separate services:** The sponsor backend holds a hot signing key + KMS → it must have its own network/IAM boundary and its own deploy cadence; putting it in the same place as the public edge PWA is the wrong blast-radius.
+**Why two separate services:** The sponsor backend holds a hot signing key → it must have its own network boundary and its own deploy cadence (a Cloudflare Worker, deployed independently of the web app); putting it in the same place as the public edge PWA is the wrong blast-radius.
 
 ---
 
 ## 7. Getting started
 
-> The monorepo skeleton **exists** — the spikes below run today (all on testnet except the anti-drain validator test, which runs locally).
+> The monorepo is **built and deployed** — the web app ships to Vercel on push (product domain **getlumenia.com**) and the sponsor runs as a Cloudflare Worker (`https://lumenia-sponsor.avakit.workers.dev`); the spikes below still run today (all on testnet except the anti-drain validator test, which runs locally).
 
 ```bash
-# Requirements: Node 20+, pnpm, a Postgres, a testnet sponsor key
+# Requirements: Node 20+, pnpm, a testnet sponsor key
 pnpm install
 
 # Day-1 spikes (run today)
@@ -210,7 +217,7 @@ pnpm spike1c         # web→sponsor XDR wire-parity proof (testnet)
 pnpm test:antidrain  # anti-drain validator tests (local)
 ```
 
-Environment variables (draft, for the **not-yet-built HTTP service**): `STELLAR_NETWORK=testnet`, `RPC_URL`, `SPONSOR_KMS_KEY_ID`, `USDC_ASSET`, `DATABASE_URL`, `WHATSAPP_TOKEN`, `WEBAUTHN_RP_ID`.
+Sponsor Worker vars (`apps/sponsor/wrangler.toml [vars]` + secrets via `wrangler secret put`): `STELLAR_NETWORK=testnet`, `ALLOWED_ORIGIN`, `USDC_ISSUER`, `LUMENDROP_CONTRACT`, plus the sponsor secret and the Upstash/Resend secrets. Web vars: `NEXT_PUBLIC_SPONSOR_URL`, `NEXT_PUBLIC_SITE_URL`, `WEBAUTHN_RP_ID`.
 
 ---
 
@@ -230,7 +237,7 @@ Three gates that must pass before writing any feature code (if one fails, the ar
 
 | Risk | Mitigation |
 |---|---|
-| **Turkey off-ramp broken** (no Turkish CASP confirmed to accept USDC on the *Stellar* network; MASAK ~$3k/day cap + 72h first withdrawal) | Off-ramp framed honestly as a **next-milestone infrastructure bet, not solved**. Mitigation: **CCTP is live on Stellar (~May 2026)** → bridge Stellar-USDC to a chain a TR CASP accepts, or a **USDC-funded card** (RedotPay/KAST). v1 leans on internal circulation + EU→TR inbound. |
+| **Turkey off-ramp broken** (no Turkish CASP confirmed to accept USDC on the *Stellar* network; MASAK ~$3k/day cap + 72h first withdrawal) | Off-ramp framed honestly as a **next-milestone infrastructure bet, not solved**. Mitigation: **CCTP is live on Stellar (~May 2026)** → bridge Stellar-USDC to a chain a TR CASP accepts, or a **USDC-funded card** (RedotPay; note KAST cannot be funded from Stellar-USDC). v1 leans on internal circulation + EU→TR inbound. |
 | **WhatsApp webview blocks passkey** | Argon2id primary recovery, PRF upgrade |
 | **Sponsor service single choke-point** | **AWS KMS Ed25519 raw-sign is now available (since 2025-11-07) and proven mechanically (Spike #1b)**; anti-drain validator hardened to op SOURCE+PARAMETER level (**44/44 unit + 6/6 integration tests**, gating the live `/feebump`); web→sponsor XDR **wire-parity proven (Spike #1c + live browser claim)**; plus per-IP/per-account rate-limit + fee cap. |
 | **Competitor: Sling Money** ($15M, Solana) | Corridor strategy; being a global competitor; frame Sling as validation |
@@ -243,18 +250,20 @@ Detailed risk table and the "mempool-class" assumption traps that were caught: [
 
 ## 10. Roadmap
 
-**v1 — Instaward MVP (30 days, testnet)** — ruthlessly scoped to the hero flow (PM review):
-- Sponsor backend (sponsored create + fee-bump; KMS Ed25519 signer)
+**v1 — Instaward MVP (30 days, testnet)** ✅ **shipped** — the hero flow:
+- Sponsor backend (sponsored create + fee-bump) — now a **Cloudflare Worker** with an env hot-key signer (KMS raw-sign mechanically proven, drops in later)
 - **Link-send claim flow** (Claimable Balance) — the hero
 - PWA claim page + dynamic OG cards (`next/og`)
-- **Argon2id recovery only** (value-first: show the money before asking for a credential)
+- Full **recovery** (shipped ahead of plan, not "Argon2id only"): password + **email-OTP** + a **WebAuthn-PRF "Face ID"** upgrade over a zero-knowledge ciphertext box
 - North-star metric: **net-new funded recipients that take a retained second action** (raw address count is sybil-gameable, so it is gated on unique-human + a retained action)
 
-**v1.5 — SCF Build** (deferred out of v1 to keep the 30-day scope honest):
-- **Request-money** (SEP-7) + **uneven splits** (off-chain ledger) — the retention layer
-- **WhatsApp auto-notifications** (Business API) + **PRF recovery upgrade**
+**v1.5 — SCF Build** — the retention layer + Integration track:
+- ✅ **Request-money** (push-only) + **uneven splits** — shipped on testnet (SEP-7 "pay from any wallet" still deferred to this track)
+- ✅ **Onward-send** + **sender-reclaim** ("take it back"), both sponsor-paid so the user pays no gas — shipped
+- ✅ **v2 Soroban escrow (LumenDrop)** — built + deployed to testnet; the default shareable link-send + the Integration centerpiece
+- **WhatsApp auto-notifications** (Business API) — still future (email via Resend is the interim channel)
 - EU→TR inbound on-ramp (MyKobo EURC/SEPA + on-chain EURC→USDC swap)
-- Mainnet, real USDC
+- Mainnet, real USDC (gated on an audit)
 - _claim-to-second-action ≥ 25% as a retention hypothesis to measure (not a v1 success gate)_
 
 **v2**

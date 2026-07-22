@@ -40,7 +40,7 @@ Target program: **SCF Build (Integration Track)** + **Instawards** (ambassador, 
 
 **Unmade-assumption traps ("mempool-class," caught before diving in):**
 - A Claimable Balance alone doesn't solve accountless claim (the claimant needs a funded account + trustline) → sponsored-create is required.
-- Stellar has no pull/debit → "request money" = SEP-7 push, the payer approves.
+- Stellar has no pull/debit → "request money" is a push the payer approves (shipped v1 uses a bearer / address Claimable Balance, **not** SEP-7 — SEP-7 deferred to v1.5).
 - "Deterministic address" (SDP/Meridian) = the Soroban **smart-wallet** path, not a classic-keypair primitive → don't bring it into v1.
 
 ---
@@ -51,10 +51,10 @@ Target program: **SCF Build (Integration Track)** + **Instawards** (ambassador, 
 ```
 lumenia/  (pnpm workspaces)
 ├── apps/web/        → Next.js 16 PWA (PUBLIC, no secrets)
-├── apps/sponsor/    → separate Node service (HOT Ed25519 sponsor key)
+├── apps/sponsor/    → separate service, runs as a single Cloudflare Worker (HOT Ed25519 sponsor key)
 └── packages/shared/ → tx-builder, claim-secret hash, types (web+sponsor must build byte-identical tx)
 ```
-The sponsor backend is a **separate Node service** (not a Next API route): the hot signing key + KMS + anti-drain validation must live within their own network/IAM boundary and their own deploy cadence.
+The sponsor backend is a **separate service** (not a Next API route): the hot signing key + anti-drain validation must live within their own network/IAM boundary and their own deploy cadence. It runs as a single **Cloudflare Worker** (`apps/sponsor/src/worker.ts`, `nodejs_compat`) — the Vercel esbuild-CJS path is a deprecated 12-function fallback (the move was forced by Vercel Hobby's 12-function cap once recovery pushed the count to 15).
 
 ### 3.1 Frontend (apps/web)
 | Package | Version | What for |
@@ -71,7 +71,8 @@ The sponsor backend is a **separate Node service** (not a Next API route): the h
 - **OG cards:** `next/og`, a **per-claim-ID route** (`/c/[id]/opengraph-image`), **SSR**, pre-rendered/cached when the claim is created (the WhatsApp crawler misses a cold function). Each claim has a unique URL → WhatsApp's cache self-solves.
 
 ### 3.2 Identity & Recovery
-- **v1 = classic Ed25519 keypair** (Soroban smart-account = v2).
+> **Status (2026-07-22): SHIPPED in code** — password + email-OTP recovery + a WebAuthn-PRF "Face ID" upgrade (recovery crypto self-test 13/13; multi-account keystore + sweep also shipped). Real-device PRF (Spike #2) + Resend domain verification still gate real users.
+- **v1 = classic Ed25519 keypair** (Soroban smart-account = v2; the v2 `LumenDrop` escrow is built + deployed to testnet).
 - **Recovery:** WebAuthn **PRF** → `HKDF-SHA256` → `AES-256-GCM`, ciphertext **server-side** (cross-device passkey sync). The pattern is proven in Bitwarden.
 - **Inversion:** Argon2id password-wrap = **primary** (WhatsApp webview), PRF = upgrade. Two server-wrapped copies of the same secret, one ciphertext-of-record.
 - Support: Android Chrome/GPM is solid; iOS Safari **18.4+**. A fallback is mandatory.
@@ -83,7 +84,8 @@ The sponsor backend is a **separate Node service** (not a Next API route): the h
   - → **The ledger escrows it, not the backend. Non-custodial.**
 - **Claim sandwich** (sponsor signs + fee-bump): `beginSponsoring → createAccount(0 XLM) → changeTrust(USDC) → endSponsoring` + the recipient's `claimClaimableBalance`. The recipient has **0 XLM**, with USDC in their own account.
 - **The secret in the link = a bearer claim-key** (NOT the recovery key), single-use.
-- **Sponsor signing — confirmed:** AWS KMS Ed25519 **raw-sign** is available and proven (Spike #1b); the earlier "KMS may not do Ed25519" caveat is **obsolete**.
+- **Sponsor signing:** the live signer is an **env hot-key** (behind the `SponsorSigner` interface); AWS KMS Ed25519 **raw-sign** is proven mechanically (Spike #1b) and drops in behind the same interface later — not yet wired.
+- **v1-claim / v2-send hybrid (2026-07-22):** the frozen `/c/[id]` claim stays classic CB (v1); the default shareable **link-send is now v2 Soroban `LumenDrop`** (late-bound payout, no per-recipient reserve), while classic direct-pay to an address stays v1.
 - ❌ The deterministic-address pattern is not brought into v1 (smart-wallet = v2).
 
 ### 3.4 Backend — Sponsor service (apps/sponsor)
@@ -93,14 +95,14 @@ The sponsor backend is a **separate Node service** (not a Next API route): the h
 | `@simplewebauthn/server` | `13.3.1` | Passkey ceremony + PRF salt |
 | `@aws-sdk/client-kms` | `3.x` | **AWS KMS Ed25519 raw-sign — confirmed** (since 2025-11-07; `ECC_NIST_EDWARDS25519` / `ED25519_SHA_512` / `MessageType=RAW`, raw 64-byte sig). Alt: **Dfns** (native Stellar fee-sponsor) / **Turnkey** |
 | `argon2` | `^0.41` | Argon2id password-fallback KDF |
-| `drizzle-orm` / `prisma@^6` + Postgres | — | claim link (**only `hash(secret)`**), request state, off-chain split ledger, 2 encrypted key blobs |
+| `@upstash/redis` (REST) | — | durable rate-limit, waitlist set, recovery ciphertext boxes, channel-account leases. **No Postgres is built** — everything else is on-chain (Horizon/Soroban) or on-device (IndexedDB) |
 | `@upstash/ratelimit` | — | anti-drain |
 
 - **Anti-drain (mandatory):** before the fee-bump, validate the inner tx at **op-source + parameter level** (not type-only) — every op's SOURCE plus the new `InnerTxPolicy` fields (`expectedAsset`, `expectedBalanceId`, `allowedPaymentDestinations`, `maxStartingBalance`): only the expected `createAccount(0)` + `changeTrust(USDC)` + a `claim` against a known CB; fee-source = sponsor. Stellar isolates the fee, **you prevent the reserve drain.** Hardened with **44/44 tests** (`test-antidrain.ts`, strict-by-default); wire-parity of the re-parsed tx proven (Spike #1c) and the gate runs on every live `/feebump`.
 - The sponsor key is never a signer on a user account and can never spend principal.
 
 ### 3.5 Notification & sharing
-- **WhatsApp Business API (Meta Cloud API) = primary in Turkey** (utility template free within the 24h window).
+- **Interim (shipped): email via Resend** for OTP + an in-app ~15s Horizon poll (owner-gated until getlumenia.com is verified in Resend). **WhatsApp Business API (Meta Cloud API) = planned primary in Turkey** (Q1-2027 long-lead; utility template free within the 24h window).
 - **Web push** (Serwist + VAPID) → installed PWA (iOS: home-screen install required).
 - ❌ Avoid SMS (Turkey P2P+URL restrictions).
 
@@ -153,4 +155,4 @@ The sponsor backend is a **separate Node service** (not a Next API route): the h
 - `stellar/moneygram-access-wallet-mvp` — SEP-24 client reference (for the v2 off-ramp)
 
 ---
-*Last updated: 2026-06-17 · Network: testnet-first · Regulation: no-yield, non-custodial*
+*Last updated: 2026-07-22 · Network: testnet-first · Regulation: no-yield, non-custodial*

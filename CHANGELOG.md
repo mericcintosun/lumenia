@@ -14,6 +14,46 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 - Community-health and presentation layer: contributing guide, code of conduct,
   security policy, issue/PR templates, and this changelog.
 
+## [0.2.0] — 2026-07-22
+
+Everything below remains on the Stellar **test network**. This release moves the
+sponsor to a single always-on host, makes the default shareable link a Soroban
+smart-contract escrow, and adds account recovery, concurrency, and take-it-back —
+none of which touches the frozen classic claim path.
+
+### Added
+
+- **v2 Soroban `LumenDrop` escrow** — a smart-contract drop with a **late-bound
+  payout**: the link key does not hold the money, it authorizes a payout to an
+  address chosen at claim time (verified inside the contract). This is now the
+  **default shareable link-send**; the relayer submits and pays the Soroban fee, so
+  the flow stays walletless and the recipient still pays no gas. Deployed to testnet
+  (single-drop + group-pool variants). The classic v1 Claimable Balance claim
+  (`/c/[id]`) remains live and unchanged alongside it.
+- **Account recovery** — password + email-OTP recovery of the on-device seed, plus a
+  WebAuthn-PRF "Face ID" fast-unlock upgrade. One 32-byte seed is wrapped twice
+  (Argon2id → AES-GCM as the floor; PRF → HKDF → AES-GCM as the upgrade) and stored
+  as a ciphertext-only, zero-knowledge box the server cannot open. OTP-gated, on its
+  own rate-limit bucket. (Owner-gated while the email domain is being verified.)
+- **Channel-account concurrency** — a pool of sponsor-controlled channel accounts,
+  each lending a transaction sequence under an exclusive Upstash Redis lease, removes
+  the single-sequence bottleneck so concurrent claims no longer collide.
+- **Recover / reclaim ("Take it back")** — a sender can reclaim an
+  abandoned drop without paying gas (the sponsor fee-bumps) for both the classic (v1) and Soroban (v2) paths, surfaced as
+  reclaimable notices in the app.
+
+### Changed
+
+- **Sponsor now runs as a single Cloudflare Worker**
+  (`https://lumenia-sponsor.avakit.workers.dev`, deployed with `wrangler`), replacing
+  the earlier multi-function serverless deployment. Same anti-drain gate, same
+  env-hot-key signer, durable Upstash rate-limiting.
+- **Anti-drain hardened to 44/44 unit tests** (from 25/25) — added a strict
+  recovery-consolidation **sweep** policy, an exact op-**sequence** matcher, and a
+  **golden-policy snapshot** test that fails if any allowlist ever widens. The claim
+  allowlist was never widened. Integration suite stays 6/6.
+- **Live product domain** — the web app now serves from **getlumenia.com**.
+
 ## [0.1.0] — 2026-07-18
 
 The first end-to-end testnet pilot: send and request money by link, where the
@@ -55,5 +95,6 @@ recipient claims it walletless, seedless, and pays no gas.
   the address bar after use; it is never sent to a server.
 - Money surfaces never expose wallet, crypto, or ledger-level error codes to users.
 
-[Unreleased]: https://github.com/getlumenia/lumenia/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/getlumenia/lumenia/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/getlumenia/lumenia/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/getlumenia/lumenia/releases/tag/v0.1.0

@@ -28,7 +28,7 @@ This is a pnpm workspace with two apps and one shared package:
 
 ```
 apps/web       → Next.js 16 PWA (the product surfaces + the claim page)
-apps/sponsor   → the Node sponsor service (anti-drain gate, fee-bump, rate limit)
+apps/sponsor   → the sponsor service (anti-drain gate, fee-bump, rate limit) — runs as a Cloudflare Worker
 packages/shared → claim-secret + asset helpers + shared types
 ```
 

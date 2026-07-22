@@ -4,9 +4,10 @@ Lumenia's web-first PWA (Next.js 16, App Router). A single codebase = a web app 
 installed via "Add to Home Screen". For product architecture and decisions see the root
 [README.md](../../README.md) and [stack.md](../../stack.md).
 
-**Live (testnet):** https://lumenia-chi.vercel.app — the value-first claim page is wired to the live
-sponsor service (see [EVIDENCE.md](../../EVIDENCE.md)). **Deploy = push:** the Vercel Git integration
-builds `main` automatically; there is no manual `vercel deploy` step in the normal flow.
+**Live (testnet):** https://getlumenia.com — the value-first claim page is wired to the live sponsor
+service (a Cloudflare Worker, via `NEXT_PUBLIC_SPONSOR_URL`; see [EVIDENCE.md](../../EVIDENCE.md)).
+**Deploy = push:** the Vercel Git integration builds `main` automatically; there is no manual
+`vercel deploy` step in the normal flow.
 
 ## Route groups
 
@@ -16,7 +17,7 @@ The app is split into three worlds that never share chrome:
 |---|---|---|
 | `(site)` | `/`, `/how-it-works`, `/demo`, `/learn` (+guides), `/about`, `/roadmap`, `/developers`, `/tools/*`, `/waitlist`, `/cash-out`, `/brand`, `/privacy`, `/terms`, `/claimed` | **Periwinkle**, indexed, self-hosted Sentient + Switzer, `next-themes` light/dark |
 | `(app)` | `/home`, `/send`, `/sent/[id]`, `/request`, `/r/[id]`, `/account`, `/activity`, `/contacts`, `/notifications`, `/split`, `/unlock` | Periwinkle via the `.app-pw` token scope; real money surfaces; **all `noindex`** |
-| root | `/c/[id]` | **FROZEN** — Instawards grant evidence. Webfont-free + Motion-free, proven per-route via its client-reference-manifest. Never restyle it. |
+| root | `/c/[id]` · `/v2/c/[linkHex]` | `/c/[id]` = the **FROZEN** v1 classic claim (Instawards grant evidence; webfont-free + Motion-free, proven per-route; never restyle it). `/v2/c/[linkHex]` = the v2 Soroban LumenDrop claim — the default shareable link-send is now v2. |
 
 Internal-only: `app/brand-kit/*` (design workspace) and `app/dev` are **404 in production** (a
 `NODE_ENV` guard); `app/spike` is a key-lifecycle harness kept for a deferred device measurement.

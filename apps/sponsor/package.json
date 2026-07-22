@@ -19,6 +19,7 @@
     "spike5": "tsx src/spike5-sponsored-send.ts",
     "spike6": "tsx src/spike6-request-pay.ts",
     "spike8": "tsx src/spike8-channel-accounts.ts",
+    "spike9": "tsx src/spike9-gasless-reclaim.ts",
     "test:channels": "tsx src/test-channels.ts",
     "test:concurrency": "tsx src/test-concurrency.ts",
     "test:v2-concurrency": "tsx src/test-v2-concurrency.ts",

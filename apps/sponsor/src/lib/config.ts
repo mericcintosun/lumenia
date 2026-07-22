@@ -23,6 +23,13 @@ export interface SponsorConfig {
   faucetSecret?: string;
   /** The one USDC asset the sponsor will open a trustline to. */
   usdc: Asset;
+  /**
+   * Channel-account pool secrets (S…, comma-separated in CHANNEL_SECRETS). Each is a
+   * sponsor-controlled account that LENDS its sequence number to a concurrent onboarding
+   * so the sponsor's single sequence no longer serializes claims (C1 fix). Empty ⇒ the
+   * pool is disabled and the sponsor-sourced path is used (backward compatible).
+   */
+  channelSecrets: string[];
   /** Hard cap (stroops) on the fee the sponsor will pay for a single fee-bump. */
   feeBumpMaxStroops: string;
   /** Soroban RPC url (v2 relayer). */
@@ -50,6 +57,15 @@ export function defaultSorobanRpc(network: StellarNetwork): string {
   return network === "mainnet" ? "https://mainnet.sorobanrpc.com" : "https://soroban-testnet.stellar.org";
 }
 
+/** Parse a comma/whitespace-separated list of channel secrets (empty ⇒ []). */
+export function parseChannelSecrets(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
 /** Build a config from explicit parts (used by the CLI when bootstrapping a demo). */
 export function makeConfig(parts: {
   network: StellarNetwork;
@@ -61,6 +77,7 @@ export function makeConfig(parts: {
   feeBumpMaxStroops?: string;
   sorobanRpcUrl?: string;
   lumendropContract?: string;
+  channelSecrets?: string[];
   port?: number;
 }): SponsorConfig {
   const network = parts.network;
@@ -74,6 +91,7 @@ export function makeConfig(parts: {
     feeBumpMaxStroops: parts.feeBumpMaxStroops ?? "10000", // 0.001 XLM per tx
     sorobanRpcUrl: parts.sorobanRpcUrl ?? defaultSorobanRpc(network),
     lumendropContract: parts.lumendropContract,
+    channelSecrets: parts.channelSecrets ?? [],
     port: parts.port ?? 8787,
   };
 }
@@ -94,6 +112,7 @@ export function loadConfig(): SponsorConfig {
     feeBumpMaxStroops: process.env.FEE_BUMP_MAX_STROOPS,
     sorobanRpcUrl: process.env.SOROBAN_RPC_URL,
     lumendropContract: process.env.LUMENDROP_CONTRACT,
+    channelSecrets: parseChannelSecrets(process.env.CHANNEL_SECRETS),
     port: process.env.PORT ? Number.parseInt(process.env.PORT, 10) : undefined,
   });
 }

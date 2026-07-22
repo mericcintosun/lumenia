@@ -25,8 +25,8 @@ export default async function handler(req: VercelReq, res: VercelRes): Promise<v
     }
     const rl = await enforceRateLimit(clientIpFrom(req.headers), payout);
     if (rl.limited) return res.status(429).json({ error: rl.reason });
-    const { config, signer } = getService();
-    const result = await relayClaimHandler(config, signer, { method, linkHex, payout, sigHex });
+    const { config, signer, channels } = getService();
+    const result = await relayClaimHandler(config, signer, { method, linkHex, payout, sigHex }, channels);
     return res.status(200).json(result);
   } catch (e) {
     return res.status(400).json({ error: (e as Error).message });

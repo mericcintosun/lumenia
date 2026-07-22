@@ -21,8 +21,8 @@ export default async function handler(req: VercelReq, res: VercelRes): Promise<v
     }
     const rl = await enforceRateLimit(clientIpFrom(req.headers), recipientPublicKey);
     if (rl.limited) return res.status(429).json({ error: rl.reason });
-    const { config, signer, server } = getService();
-    const result = await createAccountHandler(server, config, signer, { recipientPublicKey });
+    const { config, signer, server, channels } = getService();
+    const result = await createAccountHandler(server, config, signer, { recipientPublicKey }, channels);
     return res.status(200).json(result);
   } catch (e) {
     return res.status(400).json({ error: (e as Error).message });

@@ -7,6 +7,7 @@ import type { Horizon } from "@stellar/stellar-sdk";
 import { loadConfig, type SponsorConfig } from "./config.js";
 import { signerFromSecret, type SponsorSigner } from "./signer.js";
 import { horizon } from "./stellar.js";
+import { ChannelManager } from "./channels.js";
 import { checkRateLimitDurable, rateLimitConfigFromEnv, type RateLimitVerdict } from "./rate-limit.js";
 
 export interface Service {
@@ -15,6 +16,8 @@ export interface Service {
   /** Test-USDC faucet signer — null when FAUCET_SECRET is unset (faucet disabled). */
   faucet: SponsorSigner | null;
   server: Horizon.Server;
+  /** Channel-account pool (C1 fix). Disabled (enabled=false) when CHANNEL_SECRETS is unset. */
+  channels: ChannelManager;
 }
 
 let cached: Service | null = null;
@@ -27,6 +30,7 @@ export function getService(): Service {
       signer: signerFromSecret(config.sponsorSecret),
       faucet: config.faucetSecret ? signerFromSecret(config.faucetSecret) : null,
       server: horizon(config),
+      channels: new ChannelManager(config.channelSecrets),
     };
   }
   return cached;

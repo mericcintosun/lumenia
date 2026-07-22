@@ -72,7 +72,7 @@ export default {
     if (method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders() });
 
     try {
-      const { config, signer, faucet, server } = getService();
+      const { config, signer, faucet, server, channels } = getService();
 
       if (method === "GET" && url === "/health") {
         return json(200, {
@@ -90,7 +90,7 @@ export default {
         if (!body.recipientPublicKey) return json(400, { error: "recipientPublicKey is required" });
         const rl = await enforceRateLimit(clientIp(request), body.recipientPublicKey);
         if (rl.limited) return json(429, { error: rl.reason });
-        return json(200, await createAccountHandler(server, config, signer, { recipientPublicKey: body.recipientPublicKey }));
+        return json(200, await createAccountHandler(server, config, signer, { recipientPublicKey: body.recipientPublicKey }, channels));
       }
 
       if (method === "POST" && url === "/feebump") {
@@ -142,7 +142,7 @@ export default {
         if (rl.limited) return json(429, { error: rl.reason });
         return json(200, await relayClaimHandler(config, signer, {
           method: body.method, linkHex: body.linkHex, payout: body.payout, sigHex: body.sigHex,
-        }));
+        }, channels));
       }
 
       if (method === "POST" && url === "/v2-deposit") {

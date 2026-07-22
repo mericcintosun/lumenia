@@ -18,6 +18,12 @@
     "spike4": "tsx src/spike4-cctp-bridge.ts",
     "spike5": "tsx src/spike5-sponsored-send.ts",
     "spike6": "tsx src/spike6-request-pay.ts",
+    "spike8": "tsx src/spike8-channel-accounts.ts",
+    "test:channels": "tsx src/test-channels.ts",
+    "test:concurrency": "tsx src/test-concurrency.ts",
+    "test:v2-concurrency": "tsx src/test-v2-concurrency.ts",
+    "provision-channels": "tsx src/cli/provision-channels.ts",
+    "concurrency-check": "tsx src/cli/concurrency-check.ts",
     "test:antidrain": "tsx src/test-antidrain.ts",
     "test:integration": "tsx src/test-integration.ts"
   },

@@ -9,9 +9,10 @@
  * two claim methods, valid 32-byte link + 64-byte sig. The sponsor sources the tx (pays fees) and
  * can never lose value — it holds no USDC in this path.
  */
-import { rpc, Address, Contract, TransactionBuilder, xdr, type Transaction } from "@stellar/stellar-sdk";
+import { rpc, Address, Contract, TransactionBuilder, xdr, type Transaction, type FeeBumpTransaction } from "@stellar/stellar-sdk";
 import type { SponsorConfig } from "./config.js";
 import type { SponsorSigner } from "./signer.js";
+import type { ChannelManager } from "./channels.js";
 
 const ALLOWED_METHODS = new Set<string>(["claim", "claim_share"]);
 /** Max fee (stroops) the sponsor will fee-bump a v2 deposit to (~2 XLM; a deposit costs ~0.2). */
@@ -38,6 +39,7 @@ export async function relayClaimHandler(
   config: SponsorConfig,
   signer: SponsorSigner,
   input: RelayClaimInput,
+  channels?: ChannelManager,
 ): Promise<RelayClaimResult> {
   if (!config.lumendropContract) throw new Error("v2 relayer not configured (LUMENDROP_CONTRACT unset)");
   if (!ALLOWED_METHODS.has(input.method)) throw new Error(`method not allowed: ${input.method}`);
@@ -50,33 +52,63 @@ export async function relayClaimHandler(
   const payoutScVal = Address.fromString(input.payout).toScVal();
 
   const server = new rpc.Server(config.sorobanRpcUrl);
-  const source = await server.getAccount(signer.publicKey());
-  const tx = new TransactionBuilder(source, { fee: "1000000", networkPassphrase: config.networkPassphrase })
-    .addOperation(
-      new Contract(config.lumendropContract).call(
-        input.method,
-        xdr.ScVal.scvBytes(link),
-        payoutScVal,
-        xdr.ScVal.scvBytes(sig),
-      ),
-    )
-    .setTimeout(60)
-    .build();
 
-  const sim = await server.simulateTransaction(tx);
-  if (rpc.Api.isSimulationError(sim)) throw new Error(`v2-claim simulation failed: ${sim.error}`);
-  const prepared = rpc.assembleTransaction(tx, sim).build();
-  signer.sign(prepared);
+  // C1: like /create-account, the sponsor-sourced submit serializes concurrent v2 claims
+  // on the sponsor's ONE sequence. Lease a CHANNEL to source the tx (its own sequence)
+  // and FEE-BUMP with the sponsor — the sponsor stays the fee source, the channel only
+  // lends its sequence. This path SERVER-submits, so the lease is released as soon as the
+  // tx confirms (high reuse). No channel/lease ⇒ the sponsor-sourced fallback.
+  const lease = channels?.enabled ? await channels.lease() : null;
+  try {
+    const sourcePub = lease ? lease.publicKey : signer.publicKey();
+    const source = await server.getAccount(sourcePub);
+    const tx = new TransactionBuilder(source, { fee: "1000000", networkPassphrase: config.networkPassphrase })
+      .addOperation(
+        new Contract(config.lumendropContract).call(
+          input.method,
+          xdr.ScVal.scvBytes(link),
+          payoutScVal,
+          xdr.ScVal.scvBytes(sig),
+        ),
+      )
+      .setTimeout(60)
+      .build();
 
-  const sent = await server.sendTransaction(prepared);
-  if (sent.status === "ERROR") throw new Error(`v2-claim send failed: ${JSON.stringify(sent.errorResult)}`);
-  let got = await server.getTransaction(sent.hash);
-  for (let i = 0; i < 40 && got.status === "NOT_FOUND"; i++) {
-    await sleep(1500);
-    got = await server.getTransaction(sent.hash);
+    const sim = await server.simulateTransaction(tx);
+    if (rpc.Api.isSimulationError(sim)) throw new Error(`v2-claim simulation failed: ${sim.error}`);
+    const prepared = rpc.assembleTransaction(tx, sim).build();
+
+    let submitTx: Transaction | FeeBumpTransaction;
+    if (lease) {
+      prepared.sign(lease.keypair); // channel = tx source (lends its sequence)
+      // Fee-bump so the SPONSOR pays the Soroban fee (mirrors /v2-deposit). prepared.fee
+      // already covers inclusion + resource fee; the fee-bump per-op floor requires ≥ it.
+      const feeBump = TransactionBuilder.buildFeeBumpTransaction(
+        signer.publicKey(),
+        prepared.fee,
+        prepared,
+        config.networkPassphrase,
+      );
+      signer.sign(feeBump);
+      submitTx = feeBump;
+    } else {
+      signer.sign(prepared); // sponsor = tx source (fallback)
+      submitTx = prepared;
+    }
+
+    const sent = await server.sendTransaction(submitTx);
+    if (sent.status === "ERROR") throw new Error(`v2-claim send failed: ${JSON.stringify(sent.errorResult)}`);
+    let got = await server.getTransaction(sent.hash);
+    for (let i = 0; i < 40 && got.status === "NOT_FOUND"; i++) {
+      await sleep(1500);
+      got = await server.getTransaction(sent.hash);
+    }
+    if (got.status !== "SUCCESS") throw new Error(`v2-claim tx ${got.status}`);
+    return { hash: sent.hash };
+  } finally {
+    // Server-submit path: the channel is free the instant this claim settles/fails.
+    if (lease) await lease.release();
   }
-  if (got.status !== "SUCCESS") throw new Error(`v2-claim tx ${got.status}`);
-  return { hash: sent.hash };
 }
 
 export interface RelayDepositInput {

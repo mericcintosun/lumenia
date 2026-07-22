@@ -41,7 +41,7 @@ import { handleEvent } from "./lib/events.js";
 import { putBox, getBox } from "./lib/recovery-store.js";
 import { requestOtp, verifyOtp } from "./lib/recovery-otp.js";
 
-const { config, signer, faucet, server } = getService();
+const { config, signer, faucet, server, channels } = getService();
 const allowedOrigin = process.env.ALLOWED_ORIGIN ?? "*";
 
 /* ------------------------------- helpers ---------------------------------- */
@@ -98,9 +98,13 @@ const httpServer = createServer(async (req, res) => {
       if (!body.recipientPublicKey) return send(res, 400, { error: "recipientPublicKey is required" });
       const rl = await enforceRateLimit(clientIp(req), body.recipientPublicKey);
       if (rl.limited) return send(res, 429, { error: rl.reason });
-      const result = await createAccountHandler(server, config, signer, {
-        recipientPublicKey: body.recipientPublicKey,
-      });
+      const result = await createAccountHandler(
+        server,
+        config,
+        signer,
+        { recipientPublicKey: body.recipientPublicKey },
+        channels,
+      );
       return send(res, 200, result);
     }
 
@@ -165,12 +169,17 @@ const httpServer = createServer(async (req, res) => {
       }
       const rl = await enforceRateLimit(clientIp(req), body.payout);
       if (rl.limited) return send(res, 429, { error: rl.reason });
-      const result = await relayClaimHandler(config, signer, {
-        method: body.method,
-        linkHex: body.linkHex,
-        payout: body.payout,
-        sigHex: body.sigHex,
-      });
+      const result = await relayClaimHandler(
+        config,
+        signer,
+        {
+          method: body.method,
+          linkHex: body.linkHex,
+          payout: body.payout,
+          sigHex: body.sigHex,
+        },
+        channels,
+      );
       return send(res, 200, result);
     }
 

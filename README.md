@@ -101,11 +101,15 @@ On Stellar there is **no pull/debit (automatic collection).** "Request money" = 
 
 ### 3.3 Recovery (device change / loss)
 
-> **Scope note (what ships today vs. the design):** the shipped testnet build uses a **classic
-> Ed25519 key generated on-device**, held in an **IndexedDB keystore** and optionally locked with an
-> **Argon2id-derived key** (a password you choose). There is **no server-stored key material and no
-> passkey path** in the current build — recovery beyond the single device is out of scope for the
-> testnet pilot. The WebAuthn-PRF design below is the **planned v2 upgrade**, not a current feature.
+> **Scope note (updated 2026-07-22 — recovery is now built on testnet):** a **classic Ed25519 key** is
+> generated on-device (IndexedDB keystore, optionally locked with an **Argon2id password**). On top of
+> that, a **portable, server-storable zero-knowledge "recovery box"** wraps the seed with that password
+> (floor) and/or a **WebAuthn-PRF passkey** (the Face ID upgrade) into AES-256-GCM ciphertext — the
+> server holds **only ciphertext it can never open**, so recovery stays strictly non-custodial. Cross-
+> device restore = email one-time-code → fetch the sealed box → decrypt locally → the SAME account.
+> Real-user rollout is gated on email-channel verification + real-device passkey validation, and a
+> pending password-strength/OTP-abuse security pass; the WebAuthn-PRF design below is now the
+> implementation, not just a plan. (Guardian/social recovery via a v2 smart account remains future.)
 
 The v2 design: keeping a classic Ed25519 key only in browser memory is catastrophic (if the data is wiped, the money is gone). Instead:
 - A key is derived from the **PRF output of a WebAuthn passkey** → the Ed25519 secret is encrypted with **AES-256-GCM** → the ciphertext is stored on the server → with the user's platform passkey (iCloud/Google) it is **synced/recovered across devices.**

@@ -37,10 +37,13 @@ function isB64(s: unknown): s is string {
 function isArgon(a: unknown): a is ArgonParams {
   if (!a || typeof a !== "object") return false;
   const p = a as Record<string, unknown>;
+  // Enforce a Argon2id MINIMUM (security review F4): a box wrapped with weak params (memMiB=1,
+  // time=1) is trivially crackable offline once the store leaks. OWASP floor: ≥19 MiB, ≥2 passes.
+  // DEFAULT_ARGON (48/2/1) clears it; an old/buggy/malicious client can't persist a weak box.
   return (
     Object.keys(p).length === 3 &&
-    typeof p.memMiB === "number" && p.memMiB > 0 && p.memMiB <= 1024 &&
-    typeof p.time === "number" && p.time > 0 && p.time <= 16 &&
+    typeof p.memMiB === "number" && p.memMiB >= 19 && p.memMiB <= 1024 &&
+    typeof p.time === "number" && p.time >= 2 && p.time <= 16 &&
     typeof p.parallelism === "number" && p.parallelism > 0 && p.parallelism <= 8
   );
 }

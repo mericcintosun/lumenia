@@ -24,6 +24,11 @@
 const PRF_SALT = new TextEncoder().encode("lumenia-recovery-prf-salt-v1");
 
 const RP_NAME = "Lumenia";
+// Relying-Party id (security review F6): pin to the PRODUCTION apex (e.g. getlumenia.com) via
+// NEXT_PUBLIC_RP_ID so a passkey enrolled on the real site restores on the real site (and across
+// its subdomains). Unset ⇒ the browser defaults to the current origin's domain — the safe default
+// for local dev / previews (a wrong rp.id breaks the ceremony). Spike #2 confirms the prod value.
+const RP_ID = (typeof process !== "undefined" && process.env.NEXT_PUBLIC_RP_ID) || undefined;
 const bs = (u: Uint8Array): BufferSource => u as unknown as BufferSource;
 
 // Local shapes for the (still-unstandardised in TS DOM) `prf` extension.
@@ -66,7 +71,7 @@ export async function enrollPasskeyPrf(opts: {
   if (!isPasskeyCapable()) notSupported();
   const cred = (await navigator.credentials.create({
     publicKey: {
-      rp: { name: RP_NAME },
+      rp: RP_ID ? { name: RP_NAME, id: RP_ID } : { name: RP_NAME },
       user: { id: bs(opts.userId), name: opts.userName, displayName: opts.userName },
       challenge: bs(crypto.getRandomValues(new Uint8Array(32))),
       pubKeyCredParams: [
@@ -97,6 +102,7 @@ export async function derivePasskeyPrf(credentialId?: Uint8Array): Promise<Uint8
   if (!isPasskeyCapable()) notSupported();
   const assertion = (await navigator.credentials.get({
     publicKey: {
+      ...(RP_ID ? { rpId: RP_ID } : {}),
       challenge: bs(crypto.getRandomValues(new Uint8Array(32))),
       allowCredentials: credentialId ? [{ type: "public-key", id: bs(credentialId) }] : [],
       userVerification: "required",

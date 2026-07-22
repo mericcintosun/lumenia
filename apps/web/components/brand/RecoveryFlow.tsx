@@ -11,17 +11,19 @@
  * cached, so a wrong password retries without a fresh code. Argon2id params are the
  * provisional DEFAULT_ARGON, tuned later from the on-device Spike #3 measurement.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PrimaryButton } from "./PrimaryButton";
 import { useWallet } from "../../lib/wallet";
 import { requestRecoveryOtp, storeRecoveryBox, fetchRecoveryBox } from "../../lib/recovery-api";
-import type { RecoveryBox } from "../../lib/recovery";
+import { findCopy, type RecoveryBox } from "../../lib/recovery";
+import { isPlatformAuthenticatorAvailable } from "../../lib/passkey-prf";
+import { passwordStrength } from "../../lib/password-strength";
 
 const field = "w-full rounded-[14px] border border-line bg-paper px-3 py-3 text-[16px] text-ink";
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export function RecoveryFlow({ mode }: { mode: "secure" | "restore" }) {
-  const { secureRecovery, restoreRecovery } = useWallet();
+  const { secureRecovery, restoreRecovery, addFaceIdBackup, restoreWithFaceId } = useWallet();
   const secure = mode === "secure";
   const [step, setStep] = useState<"start" | "code" | "done">("start");
   const [email, setEmail] = useState("");
@@ -30,10 +32,24 @@ export function RecoveryFlow({ mode }: { mode: "secure" | "restore" }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [fetched, setFetched] = useState<RecoveryBox | null>(null);
+  // Face ID is a REAL-BROWSER upgrade — only offer it where a platform authenticator exists
+  // (never in the WhatsApp webview, which can't create passkeys; the password floor stays).
+  const [faceCapable, setFaceCapable] = useState(false);
+  const [addFaceId, setAddFaceId] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void isPlatformAuthenticatorAvailable().then((ok) => live && setFaceCapable(ok));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const emailOk = EMAIL_RE.test(email.trim());
   const codeOk = /^\d{6}$/.test(code.trim());
-  const pwOk = password.length >= 6;
+  // Setting a NEW recovery password must clear the strength floor (F1 — the password copy is
+  // offline-crackable if the store leaks); entering an EXISTING one on restore just needs length.
+  const pwCheck = secure ? passwordStrength(password) : { ok: password.length >= 6, reason: undefined as string | undefined };
+  const pwOk = pwCheck.ok;
 
   async function sendCode() {
     setError("");
@@ -53,7 +69,14 @@ export function RecoveryFlow({ mode }: { mode: "secure" | "restore" }) {
     setBusy(true);
     try {
       if (secure) {
-        const box = await secureRecovery(password);
+        let box = await secureRecovery(password);
+        if (addFaceId && faceCapable) {
+          try {
+            box = await addFaceIdBackup(box); // add a second (Face ID) copy before storing
+          } catch {
+            /* declined / unavailable on this device → ship the password-only box (still a full backup) */
+          }
+        }
         await storeRecoveryBox(email.trim(), code.trim(), box);
       } else {
         let box = fetched;
@@ -64,6 +87,27 @@ export function RecoveryFlow({ mode }: { mode: "secure" | "restore" }) {
         }
         await restoreRecovery(box, password);
       }
+      setStep("done");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Restore path via Face ID (real browser) — fetches the box (email + code), then opens its
+   *  PRF copy with the passkey instead of a password. */
+  async function finishWithFaceId() {
+    setError("");
+    setBusy(true);
+    try {
+      let box = fetched;
+      if (!box) {
+        box = await fetchRecoveryBox(email.trim(), code.trim());
+        if (!box) throw new Error("No backup was found for that email.");
+        setFetched(box);
+      }
+      await restoreWithFaceId(box);
       setStep("done");
     } catch (e) {
       setError((e as Error).message);
@@ -123,14 +167,40 @@ export function RecoveryFlow({ mode }: { mode: "secure" | "restore" }) {
             className={field}
           />
           {secure && (
-            <p className="text-xs text-ink-soft">
-              Remember it — it can&apos;t be reset. It is the only key to your money.
-            </p>
+            <>
+              {password && !pwOk && pwCheck.reason && (
+                <p className="text-xs text-danger">{pwCheck.reason}</p>
+              )}
+              <p className="text-xs text-ink-soft">
+                Remember it — it can&apos;t be reset. It is the only key to your money.
+              </p>
+              {faceCapable && (
+                <label className="flex items-center gap-2 text-sm text-ink">
+                  <input
+                    type="checkbox"
+                    checked={addFaceId}
+                    onChange={(e) => setAddFaceId(e.target.checked)}
+                    className="size-4 accent-money"
+                  />
+                  Also unlock with Face ID on this phone
+                </label>
+              )}
+            </>
           )}
           {error && <p className="text-sm text-danger">{error}</p>}
           <PrimaryButton loading={busy} loadingLabel="Working…" onClick={finish} disabled={!codeOk || !pwOk}>
             {secure ? "Back up my money" : "Restore my money"}
           </PrimaryButton>
+          {!secure && faceCapable && (
+            <button
+              type="button"
+              onClick={finishWithFaceId}
+              disabled={busy || !codeOk}
+              className="text-sm font-semibold text-money underline-offset-2 hover:underline disabled:opacity-50"
+            >
+              Or restore with Face ID
+            </button>
+          )}
           <button
             type="button"
             onClick={sendCode}

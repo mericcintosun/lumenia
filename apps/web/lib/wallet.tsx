@@ -9,10 +9,12 @@
  * v2 swaps the concrete signer without touching this shape.
  */
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { getHome, listAccounts, unlockPhase1, unlockPhase2, savePhase2, setHome, type Phase } from "./keystore";
+import { getHome, listAccounts, unlockPhase1, unlockPhase2, savePhase1, savePhase2, setHome, type Phase } from "./keystore";
 import { localSignerFromSeed, type Signer } from "./signer";
 import { DEFAULT_ARGON } from "./argon";
-import { wrapWithPassword, unwrapWithPassword, emptyBox, putCopy, findCopy, type RecoveryBox } from "./recovery";
+import { wrapWithPassword, unwrapWithPassword, wrapWithPrf, unwrapWithPrf, emptyBox, putCopy, findCopy, type RecoveryBox } from "./recovery";
+import { enrollPasskeyPrf, derivePasskeyPrf } from "./passkey-prf";
+import { StrKey } from "@stellar/stellar-sdk";
 
 export interface WalletAccount {
   address: string;
@@ -51,6 +53,15 @@ interface WalletState {
    * home account (locked with that password), and unlock it for the session.
    */
   restoreRecovery: (box: RecoveryBox, password: string) => Promise<void>;
+  /**
+   * Face ID UPGRADE (real browser only; RECOVERY_ARCHITECTURE §12 step 5): enroll a passkey
+   * and wrap the seed with its PRF output, adding a second (PRF) copy to `box`. Returns the
+   * updated box to re-store. Requires the account to be unlocked (session seed present).
+   * Degrades gracefully where passkeys/PRF are unavailable; NEVER a claim-path dependency.
+   */
+  addFaceIdBackup: (box: RecoveryBox) => Promise<RecoveryBox>;
+  /** Restore on a fresh device via Face ID: unwrap the box's PRF copy with the passkey. */
+  restoreWithFaceId: (box: RecoveryBox) => Promise<void>;
 }
 
 const WalletContext = createContext<WalletState | null>(null);
@@ -140,9 +151,41 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     [refresh, setSessionSeed],
   );
 
+  const addFaceIdBackup = useCallback(
+    async (box: RecoveryBox): Promise<RecoveryBox> => {
+      if (!account) throw new Error("no local account");
+      if (!sessionSeed.current) throw new Error("locked"); // Face ID is an upgrade over the unlocked seed
+      // A stable per-account passkey user id = the account's raw 32-byte public key.
+      const userId = StrKey.decodeEd25519PublicKey(account.address);
+      const { prf } = await enrollPasskeyPrf({ userId, userName: `Lumenia ${account.address.slice(0, 6)}` });
+      const updated = putCopy(box, await wrapWithPrf(sessionSeed.current, prf));
+      prf.fill(0);
+      return updated;
+    },
+    [account],
+  );
+
+  const restoreWithFaceId = useCallback(
+    async (box: RecoveryBox): Promise<void> => {
+      const copy = findCopy(box, "prf");
+      if (!copy) throw new Error("This backup has no Face ID key — use your password.");
+      const prf = await derivePasskeyPrf();
+      const seed = await unwrapWithPrf(copy, prf); // throws on a wrong passkey / tampered copy
+      prf.fill(0);
+      const pub = localSignerFromSeed(seed).publicKey();
+      // Adopt device-locally with the device key (Phase 1) — they authenticated biometrically,
+      // so no separate password; the "Back up your money" card can add one later.
+      await savePhase1(pub, seed);
+      await setHome(pub);
+      setSessionSeed(seed);
+      await refresh();
+    },
+    [refresh, setSessionSeed],
+  );
+
   return (
     <WalletContext.Provider
-      value={{ status, account, accounts, unlocked, refresh, setSessionSeed, getSigner, secureRecovery, restoreRecovery }}
+      value={{ status, account, accounts, unlocked, refresh, setSessionSeed, getSigner, secureRecovery, restoreRecovery, addFaceIdBackup, restoreWithFaceId }}
     >
       {children}
     </WalletContext.Provider>
